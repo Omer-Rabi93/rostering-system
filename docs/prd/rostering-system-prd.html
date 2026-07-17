@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rostering System — PRD</title>
+<style>
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    max-width: 760px;
+    margin: 2rem auto;
+    padding: 0 1.25rem;
+    line-height: 1.6;
+    color: #222;
+  }
+  h1 { font-size: 1.7rem; border-bottom: 2px solid #ccc; padding-bottom: .4rem; }
+  h2 { font-size: 1.2rem; margin-top: 1.8rem; color: #1a3a5c; }
+  ul { padding-left: 1.4rem; }
+  li { margin-bottom: .35rem; }
+  p { margin: .5rem 0 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Rostering System — PRD</h1>
+
+<h2>Summary</h2>
+<p>A single web platform that unifies worker and contract management with automatic monthly shift scheduling for a 24/7 security operation. The system automatically assigns workers to shifts so that each worker's contracted minimum and maximum monthly hours are honored, replacing today's manual spreadsheet rostering and giving planners early warning of staffing gaps.</p>
+
+<h2>Problem</h2>
+<p>Scheduling is done manually across spreadsheets and disconnected tools, causing frequent errors, under-staffed shifts, and contract violations that expose the company to risk. HR records and shift plans drift out of sync, and the process will not survive workforce growth.</p>
+
+<h2>Target Users</h2>
+<ul>
+  <li>HR / workforce-planning staff who maintain worker records and contracts.</li>
+  <li>Operations planners who generate and adjust monthly rosters.</li>
+  <li>Indirectly: the workforce (General Guards, Supervisors, Screeners), who receive a clear personal schedule.</li>
+</ul>
+
+<h2>Goals &amp; Success</h2>
+<ul>
+  <li>Workers are assigned to shifts automatically, within their contracted min/max monthly hours — no manual spreadsheet scheduling.</li>
+  <li>Zero contract violations: availability, min/max monthly hours, and the 2-of-3-shifts-per-day cap are always honored.</li>
+  <li>Planners see unfillable shifts and minimum-hours shortfalls before saving, not after the month starts.</li>
+  <li>HR data is the single source of truth, with easy bulk movement in and out via CSV.</li>
+  <li>The process scales with significant workforce growth.</li>
+</ul>
+
+<h2>User Stories</h2>
+<ul>
+  <li>As an HR staff member, I want to manage worker records and contracts (including bulk CSV import/export) so that scheduling always runs on accurate, current data.</li>
+  <li>As a planner, I want workers auto-assigned to a valid monthly roster within their contracted hours so that I stop hand-building error-prone spreadsheets.</li>
+  <li>As a planner, I want to be warned about unfillable shifts and workers below contracted minimum hours before saving so that I can fix staffing risk early.</li>
+  <li>As a planner, I want to manually adjust the generated calendar without being able to break hard rules so that last-minute changes stay safe.</li>
+  <li>As a planner, I want a projected monthly labor-cost view per roster and per worker so that I have budget visibility before committing a schedule.</li>
+  <li>As a guard, I want a read-only page or printout of my own monthly schedule so that I don't depend on the planner to tell me my shifts.</li>
+</ul>
+
+<h2>Requirements</h2>
+<ul>
+  <li><strong>Operating model:</strong> 24/7 operation at a single site with three fixed daily shifts — A (00:00–08:00), B (08:00–16:00), C (16:00–00:00). Hard rule: no worker works more than 2 shifts in a calendar day. Roles: General Guard, Supervisor, Screener.</li>
+  <li><strong>Worker management:</strong> full create/read/update/delete; fields include full name, validated 9-digit Israeli ID, role, and Active/Inactive status. Inactive workers never appear in rostering.</li>
+  <li><strong>Contracts (per worker):</strong> hourly cost (ILS), availability by weekday and shift, minimum and maximum monthly hours.</li>
+  <li><strong>Configurable staffing requirements:</strong> the planner defines required headcount per role, per shift, via a settings screen.</li>
+  <li><strong>Roster generation:</strong> for a target month, automatically assign workers to shifts respecting availability, min/max monthly hours, and the hard rule, shown in a clear monthly calendar/grid of shift slots and assigned workers.</li>
+  <li><strong>Warn-and-confirm alerts:</strong> before saving, the system flags unfillable shifts (with detail) and per-worker minimum-hours shortfalls; saving is allowed only after the planner explicitly acknowledges each alert.</li>
+  <li><strong>Manual edits:</strong> planners can move and add personnel on the generated calendar. Hard-rule violations (2-shifts-per-day cap, availability) are blocked outright; min/max hours issues warn and require confirmation.</li>
+  <li><strong>CSV import/export:</strong> bulk import of workers + contracts with per-row validation and error reporting that never aborts the whole import; export of the full list that is re-importable unmodified; documented schema and a sample file of at least 10 workers.</li>
+  <li><strong>Cost dashboard (enhancement):</strong> projected monthly labor cost per roster and per worker, computed from hourly rates — budget visibility from data already captured.</li>
+  <li><strong>Worker schedule view (enhancement):</strong> a read-only per-worker schedule page (or export/print) so each worker sees their own month — reduces planner communication overhead and disputes.</li>
+</ul>
+
+<h2>Out of Scope</h2>
+<ul>
+  <li>Worker logins and notifications — the system is planner-facing; the worker schedule view is a read-only page/printout.</li>
+  <li>Labour-law simulation — the 2-shifts-per-day cap is the only hard platform rule beyond contract terms.</li>
+  <li>Ad-hoc unavailability (vacation, sick leave) — availability is the static weekly pattern in the contract.</li>
+  <li>Multiple sites/locations — the system models a single site.</li>
+  <li><strong>Assumptions:</strong> CSV import is a full workforce sync — existing workers matched by ID are updated, and workers absent from the file are set Inactive (never deleted; keeps exports re-importable); when multiple valid rosters exist, the engine prefers even distribution of hours among eligible workers.</li>
+</ul>
+
+<h2>Open Questions</h2>
+<ul>
+  <li>Roster lifecycle: draft vs. published states, later regeneration/editing of a saved month, and who approves a roster.</li>
+  <li>Rest rules across days: is back-to-back scheduling (e.g., Shift C followed by next day's Shift A) acceptable?</li>
+  <li>User permissions and audit: are role-based permissions (HR vs. planner) or a change history of roster edits needed?</li>
+  <li>Budget limits: should the cost dashboard enforce or warn against budget thresholds, or display projections only?</li>
+</ul>
+
+</body>
+</html>

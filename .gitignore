@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+
+# Dependencies / builds (for when code is added)
+node_modules/
+dist/
+build/
+.env
+.env.*
