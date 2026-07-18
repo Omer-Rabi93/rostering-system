@@ -5,6 +5,7 @@ import { monthAvailabilitySchema, monthSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { isUniqueConstraintViolation } from '../db/prismaErrors.js';
 import { BadRequestError, ConflictError } from '../errors.js';
 import { AvailabilityService } from '../services/availabilityService.js';
 import { AvailabilityCsvHeaderError, AvailabilityCsvRowShapeError, parseAvailabilityCsv } from '../csv/index.js';
@@ -27,6 +28,13 @@ const companyIdFormFieldSchema = z.object({ companyId: z.coerce.number().int().p
 /** One row = one worker; bounds the `availability-import` job at <= this x the month's day count
  * upserts, mirroring `routes/importExport.ts`'s own `MAX_ROWS` for the worker CSV. */
 const MAX_AVAILABILITY_CSV_ROWS = 10_000;
+
+/** Bounded retry count for the route-level cancel-and-replace sequence below. See the doc comment
+ * on the `POST /import/availability/:month` handler for why a single attempt isn't enough under
+ * genuine concurrent load, and why the retry must cover BOTH `beginImportTask` and
+ * `enqueueAvailabilityImport` together, not either one independently. Matches
+ * `routes/importExport.ts`'s identical constant/reasoning. */
+const MAX_ENQUEUE_ATTEMPTS = 5;
 
 /**
  * Body-size decision (Availability v2 plan): the app-wide `express.json({ limit: '100kb' })` in
@@ -115,20 +123,39 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
         ]);
       }
 
-      // v4 cancel-and-replace: create (or replace) this company's `AVAILABILITY_SYNC` `ImportTask`
-      // BEFORE sending the job, so a rapid second upload can find and cancel it even if this job
-      // hasn't started running yet -- see `AvailabilityService.beginImportTask`'s doc comment and
-      // the v4 design doc, Part A's "Cancel-and-replace" section. `enqueueAvailabilityImport`'s
-      // positional argument order is `(boss, companyId, csv, month)` -- verified directly against
-      // `jobs/queue.ts`, not assumed.
-      const task = await availabilityService.beginImportTask(companyId, month, rowCount);
-      const jobId = await enqueueAvailabilityImport(boss, companyId, csvText, month);
-      if (!jobId) {
-        // Defensive, matching `routes/rosters.ts`'s handling of the same `null`-on-collision
-        // contract: a genuine race even after our own cancel-and-replace step above (two uploads
-        // for this company landing close enough together). Fail the orphaned task rather than
-        // leaving it PENDING forever (it would otherwise block every future upload for this company).
+      // v4 cancel-and-replace: create (or replace) this company's `AVAILABILITY_SYNC` `ImportTask`,
+      // THEN send the job. `beginImportTask` (a DB-level `import_tasks` row) and
+      // `enqueueAvailabilityImport` (a pg-boss job row, singletonKey-guarded) are two
+      // INDEPENDENTLY-raced resources, not one primary and one redundant backstop -- there is a real
+      // window, between "we created a fresh PENDING task" and "we actually called
+      // enqueueAvailabilityImport", during which a different concurrent request for this same
+      // company can complete its OWN full cancel-and-replace sequence and win the pg-boss slot
+      // first. A single attempt at this sequence is provably not enough under genuine concurrent
+      // load (found via the v4 load-test suite's rapid-fire-reupload script, same root cause as
+      // `routes/importExport.ts`'s identical fix) -- so retry the WHOLE sequence, as one unit, up to
+      // `MAX_ENQUEUE_ATTEMPTS` times. `beginImportTask` itself has its own bounded internal P2002
+      // retry (`AvailabilityService.cancelAndCreateTask`), but under a genuine burst that inner
+      // retry CAN also be exhausted and throw -- this loop must catch that (not just a `null` return
+      // from `enqueueAvailabilityImport`) and retry the whole sequence again, or a burst wide enough
+      // to exhaust the inner retry crashes the request instead of cleanly converging (confirmed as a
+      // real reproduced 500, not a hypothetical). `enqueueAvailabilityImport`'s positional argument
+      // order is `(boss, companyId, csv, month)` -- verified directly against `jobs/queue.ts`, not
+      // assumed.
+      let jobId: string | null = null;
+      let task: Awaited<ReturnType<typeof availabilityService.beginImportTask>> | undefined;
+      for (let attempt = 0; attempt < MAX_ENQUEUE_ATTEMPTS; attempt++) {
+        try {
+          task = await availabilityService.beginImportTask(companyId, month, rowCount);
+        } catch (err) {
+          if (isUniqueConstraintViolation(err)) continue;
+          throw err;
+        }
+        jobId = await enqueueAvailabilityImport(boss, companyId, csvText, month);
+        if (jobId) break;
         await availabilityService.failImportTask(task.id);
+        task = undefined;
+      }
+      if (!jobId || !task) {
         throw new ConflictError(`An availability-import job for company ${companyId} is already in flight`);
       }
       await availabilityService.attachImportJob(task.id, jobId);

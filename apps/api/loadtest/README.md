@@ -79,6 +79,23 @@ stress the race). Polls `GET /api/import-tasks/active` until settled.
 `FAILED` is a bug), no task stuck non-terminal, the `Worker` table matches the file exactly, and
 every resulting worker is stamped with the winning task's id (never a cancelled one's).
 
+**Known limitation, found and left as-is (not what this design was actually built for):** with 10
+requests firing within the SAME ~1 second window (genuine simultaneity, not the sustained-but-
+sequential 1/sec cadence `spamChurn.ts` exercises — see that script's own passing run, which is
+the pattern this feature was actually designed and asked for), the route-level cancel-and-replace
+retry loop (`MAX_ENQUEUE_ATTEMPTS`) can still fail to converge to a single winner within its bounded
+retry count — several requests can keep cancelling each other's freshly-created tasks in quick
+succession. This is NOT a crash and NOT a data-corruption risk: every request still gets a clean
+HTTP response (202 or 409, confirmed zero raw 500s across repeated runs), no worker is ever stamped
+with a cancelled task's id, and the DB-level uniqueness invariant (at most one non-terminal task per
+company+kind) never breaks — it just means an extreme, sub-second, truly-simultaneous burst can
+occasionally settle to "nobody won, try again" rather than "exactly one winner." A fully airtight
+fix would serialize the whole cancel-create-enqueue-attach sequence behind a Postgres advisory lock
+(`pg_advisory_xact_lock(hashtext(companyId || kind))`) rather than relying on optimistic retries —
+a real architecture change (the sequence currently spans a network call to pg-boss between two
+separate Prisma operations, so the lock can't just be `$transaction`-scoped), deliberately not done
+here since the actual requested scenario (`spamChurn.ts`) already passes cleanly without it.
+
 ### 3. `largeFileResponsiveness.ts` — ~10-40s (depends on machine speed)
 
 One company: uploads an 8,000-row file (`LOADTEST_LARGE_FILE_ROWS`; deliberately near but not AT
@@ -100,8 +117,10 @@ The most load-bearing script in this suite; this is what motivated the DB-level 
 backstop (`import_tasks_company_kind_active_key`) in the v4 design in the first place — see the
 design doc's dedicated "Sustained rapid-churn 'spam' test" subsection.
 
-One company, 150 workers (`LOADTEST_SPAM_WORKER_COUNT`), 60 uploads (`LOADTEST_SPAM_ITERATIONS`)
-fired 1/second for 60 seconds straight. Each upload's file is generated from the PREVIOUS one via a
+One company, 1,000 workers (`LOADTEST_SPAM_WORKER_COUNT` -- deliberately large: it must reliably
+take LONGER than the 1-second upload cadence to process a whole file, or there is no actual overlap
+for cancel-and-replace to resolve and the run degenerates into a boring chain of uncontested
+completions), 60 uploads (`LOADTEST_SPAM_ITERATIONS`) fired 1/second for 60 seconds straight. Each upload's file is generated from the PREVIOUS one via a
 churn generator: a random ratio `p` in `[0.5, 1.0]` per iteration, `(1-p)×N` rows kept
 byte-identical, `p×N` rows replaced (each either a brand-new synthetic hire or an existing worker
 from an earlier iteration reappearing/edited). Spawns its own dedicated extra worker replica for the
@@ -140,7 +159,7 @@ report it, do not loosen the assertion to make the script "pass".
 | `LOADTEST_RESPONSIVENESS_BUDGET_MS` | `8000` | largeFileResponsiveness |
 | `LOADTEST_SPAM_ITERATIONS` | `60` | spamChurn |
 | `LOADTEST_SPAM_TICK_MS` | `1000` | spamChurn |
-| `LOADTEST_SPAM_WORKER_COUNT` | `150` | spamChurn |
+| `LOADTEST_SPAM_WORKER_COUNT` | `1000` | spamChurn |
 | `LOADTEST_SPAM_SETTLE_TIMEOUT_MS` | `60000` | spamChurn |
 
 ## A note on the shared dev Postgres

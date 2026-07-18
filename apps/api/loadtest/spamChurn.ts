@@ -59,11 +59,18 @@ import {
 
 const ITERATIONS = Number(process.env.LOADTEST_SPAM_ITERATIONS ?? 60);
 const TICK_MS = Number(process.env.LOADTEST_SPAM_TICK_MS ?? 1000);
-/** Base worker-list size -- large enough to be a non-trivial import (multiple cooperative-
- * cancellation checkpoints, every 50 rows -- see `CANCELLATION_CHECK_INTERVAL` in
- * `csvImportService.ts`), small enough that a single import's processing time stays in the same
- * ballpark as the 1/sec upload cadence, which is what makes this adversarial in the first place. */
-const BASE_WORKER_COUNT = Number(process.env.LOADTEST_SPAM_WORKER_COUNT ?? 150);
+/** Base worker-list size -- per the v4 design doc's own suggestion ("starting from a base set,
+ * e.g. the 1,000-worker tier from the scale benchmark"). MUST be large enough that one import's
+ * own row-processing time reliably EXCEEDS the 1-second upload cadence -- empirically confirmed
+ * (first draft of this script used 150 rows, ~0.5-0.8s/import on this machine, which routinely
+ * finished a whole import comfortably inside one tick with no overlap at all: most uploads then
+ * legitimately raced nobody and reached COMPLETED on their own, `deferred cancel-and-replace never
+ * even had a superseding task to cancel against, and the "exactly one COMPLETED" assertion failed
+ * for the boring reason that there was no actual contention to resolve, not a real bug). At 1,000
+ * rows this machine's own per-row transaction cost reliably pushes each import to several seconds,
+ * guaranteeing every iteration but (usually) the very last one gets genuinely superseded mid-flight
+ * -- which is the entire point of this test. */
+const BASE_WORKER_COUNT = Number(process.env.LOADTEST_SPAM_WORKER_COUNT ?? 1000);
 /** Extra time to keep polling for settlement after the last (60th) upload, before giving up. */
 const SETTLE_TIMEOUT_MS = Number(process.env.LOADTEST_SPAM_SETTLE_TIMEOUT_MS ?? 60_000);
 
@@ -268,7 +275,16 @@ async function main(): Promise<void> {
     ok = false;
   }
 
-  section('Assertion 2: final Worker table matches the file behind the COMPLETED task, field-for-field');
+  section('Assertion 2: every worker in the COMPLETED task\'s own file matches it, field-for-field');
+  // NOTE on scope: per the v4 design's explicit "NO deactivation sweep" invariant (a worker absent
+  // from a given worker-CSV upload is simply left untouched, never deleted/deactivated), earlier
+  // iterations -- including ones whose OWN task was later cancelled, since each row is its own
+  // committed transaction independent of whether the overall task finishes -- can leave behind
+  // workers that are no longer part of the LATEST (winning) iteration's churn window. That is
+  // expected, by design, not a bug: this assertion is scoped to "every worker the winning file DOES
+  // mention has exactly that file's fields and is stamped by the winning task" -- not "the Worker
+  // table's row set is identical to the winning file's row set" (extra leftover workers from
+  // earlier iterations are allowed to exist; they are simply outside what this assertion checks).
   const winningTask = completed[0];
   if (winningTask) {
     const winningIterIndex = iterationJobIds.findIndex((jobId) => jobId === winningTask.pgBossJobId);
@@ -279,20 +295,19 @@ async function main(): Promise<void> {
       const expectedRows = iterationSnapshots[winningIterIndex];
       if (!expectedRows) throw new Error('unreachable');
       console.log(`COMPLETED task corresponds to iteration ${winningIterIndex + 1}/${ITERATIONS} (${expectedRows.length} expected rows)`);
-      const actualWorkers = await prisma.worker.findMany({ where: { companyId }, include: { contract: true } });
-      const expectedByNationalId = new Map(expectedRows.map((r) => [r.nationalId, r]));
+      const actualWorkers = await prisma.worker.findMany({
+        where: { companyId, nationalId: { in: expectedRows.map((r) => r.nationalId) } },
+        include: { contract: true },
+      });
+      const actualByNationalId = new Map(actualWorkers.map((w) => [w.nationalId, w]));
 
-      if (actualWorkers.length !== expectedRows.length) {
-        console.error(`FAIL: expected ${expectedRows.length} workers, found ${actualWorkers.length}`);
-        ok = false;
-      }
+      let missing = 0;
       let fieldMismatches = 0;
       let notStampedByWinner = 0;
-      for (const worker of actualWorkers) {
-        const expected = expectedByNationalId.get(worker.nationalId);
-        if (!expected) {
-          console.error(`FAIL: worker ${worker.nationalId} present in DB but not in the winning iteration's file`);
-          fieldMismatches++;
+      for (const expected of expectedRows) {
+        const worker = actualByNationalId.get(expected.nationalId);
+        if (!worker) {
+          missing++;
           continue;
         }
         const expectedRole = expected.role === 'General Guard' ? 'GENERAL_GUARD' : expected.role === 'Supervisor' ? 'SUPERVISOR' : 'SCREENER';
@@ -309,16 +324,20 @@ async function main(): Promise<void> {
         }
         if (worker.lastImportTaskId !== winningTask.id) notStampedByWinner++;
       }
+      if (missing > 0) {
+        console.error(`FAIL: ${missing} worker(s) from the winning file are missing entirely from the DB`);
+        ok = false;
+      }
       if (fieldMismatches > 0) {
         console.error(`FAIL: ${fieldMismatches} worker(s) don't field-for-field match the winning iteration's file`);
         ok = false;
       }
       if (notStampedByWinner > 0) {
-        console.error(`FAIL: ${notStampedByWinner} worker(s) not stamped with the winning COMPLETED task's id`);
+        console.error(`FAIL: ${notStampedByWinner} of the winning file's ${expectedRows.length} worker(s) are NOT stamped with the winning COMPLETED task's id`);
         ok = false;
       }
-      if (fieldMismatches === 0 && notStampedByWinner === 0 && actualWorkers.length === expectedRows.length) {
-        console.log('Worker table matches the winning file exactly, every worker stamped by the winning task.');
+      if (missing === 0 && fieldMismatches === 0 && notStampedByWinner === 0) {
+        console.log(`All ${expectedRows.length} workers in the winning file match exactly and are stamped by the winning task.`);
       }
     }
   } else {

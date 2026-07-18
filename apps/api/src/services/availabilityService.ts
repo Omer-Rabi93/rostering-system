@@ -64,6 +64,14 @@ export const MAX_AVAILABILITY_ENTRIES = 20_000;
  * rows" figure. */
 const CANCELLATION_CHECK_INTERVAL = 50;
 
+/** Bounded retry count for `cancelAndCreateTask`'s P2002 backstop against near-simultaneous
+ * uploads for the same company+kind. See that method's catch block for why a single retry isn't
+ * enough under genuine concurrent load -- 20, not 5, because this is ALSO the inner half of the
+ * route-level retry (`routes/availability.ts`'s `MAX_ENQUEUE_ATTEMPTS`), and an exhausted-retries
+ * throw here propagates uncaught up through that outer loop's `beginImportTask` call. Matches
+ * `CsvImportService`'s identical constant/reasoning. */
+const MAX_CANCEL_AND_CREATE_ATTEMPTS = 20;
+
 const AVAILABILITY_SYNC_KIND = 'AVAILABILITY_SYNC' as const;
 
 function monthDateRange(month: string): { readonly start: Date; readonly end: Date } {
@@ -442,9 +450,16 @@ export class AvailabilityService {
         },
       });
     } catch (err) {
-      if (isUniqueConstraintViolation(err) && attempt === 0) {
+      if (isUniqueConstraintViolation(err) && attempt < MAX_CANCEL_AND_CREATE_ATTEMPTS) {
         // The just-lost race means there IS now a non-terminal task to cancel, from the request
-        // that won -- re-run the full sequence once (v4 design doc, Part A's "Cancel-and-replace").
+        // that won -- re-run the full sequence (v4 design doc, Part A's "Cancel-and-replace"). A
+        // single retry (attempt === 0 only) is NOT enough under genuine concurrent load: with
+        // several requests racing for the same company+kind slot, attempt 1 can itself lose to a
+        // third racer, and so on -- confirmed as a real, reproduced bug (raw 500s under the v4
+        // load-test suite's rapid-fire-reupload script, same root cause as `CsvImportService`'s
+        // identical fix) before this fix. Each collision resolves as soon as any one racer's
+        // transaction commits (microseconds), so a small bounded retry count comfortably absorbs
+        // realistic contention without risking an unbounded loop against a genuinely broken DB.
         return this.cancelAndCreateTask(companyId, month, totalRows, pgBossJobId, initialStatus, attempt + 1);
       }
       throw err;

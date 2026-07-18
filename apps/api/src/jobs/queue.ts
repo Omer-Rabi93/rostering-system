@@ -6,17 +6,30 @@
 // written against an older pg-boss major. pg-boss 12 replaced `teamSize` with per-`work()`
 // `localConcurrency`.
 //
-// v4: per-company partitioning uses `singletonKey` on these same shared/static queues (recommended
-// over literal per-company physical queues -- see the v4 design doc, Part A's "Queue-partitioning
-// mechanism" comparison table), the same pattern `roster-generation` already proved
-// (`singletonKey: "<companyId>:<month>"`, `stately` policy). `csv-import`/`availability-import` now
-// use `singletonKey: "<companyId>:<kind>"` (kind = 'WORKER_SYNC' | 'AVAILABILITY_SYNC', matching
-// `ImportTaskKind`) and the `stately` policy too, so at most one queued/active job per company+kind
-// can exist -- the queue-level half of cancel-and-replace (the DB-level backstop lives in the
-// `import_tasks` partial unique index). `localConcurrency` on all three queues is now
-// env-configurable rather than hardcoded to `1` -- see each `register*Worker` function below for
-// why the right number differs sharply between the I/O-bound CSV queues and the CPU-bound
-// roster-generation queue (design doc Part E.3).
+// v4: all three queues use `singletonKey` + `stately` policy for per-company (or per-company+month)
+// partitioning: `roster-generation` on `"<companyId>:<month>"`, `csv-import`/`availability-import`
+// on `"<companyId>:WORKER_SYNC"` / `"<companyId>:AVAILABILITY_SYNC"`. This key is REQUIRED on a
+// `stately` queue, not optional -- see `enqueueCsvImport`'s doc comment for why dropping it doesn't
+// disable the uniqueness constraint, it collapses every job on the queue onto one shared implicit
+// key, making the whole queue globally single-flight instead of per-company (confirmed directly, by
+// trying exactly that and finding it broke cross-company independence).
+//
+// `csv-import`/`availability-import` ALSO have a DB-level `import_tasks` partial unique index
+// (`import_tasks_company_kind_active_key`) enforcing the same "at most one non-terminal task per
+// company+kind" invariant, one layer up, in `CsvImportService`/`AvailabilityService`'s own
+// `beginImportTask` -> `cancelAndCreateTask` sequence. These are two INDEPENDENTLY-raced resources
+// (the `import_tasks` row and the pg-boss job row), not one primary and one redundant backstop --
+// there is a real window, between "we created a fresh PENDING task" and "we actually called
+// `enqueueCsvImport`", during which a different concurrent request can complete its own full
+// cancel-and-replace sequence and win the pg-boss slot first. The fix (found via the v4 load-test
+// suite's rapid-fire-reupload script) is for the route-level caller to retry the WHOLE
+// `beginImportTask` -> `enqueueCsvImport` sequence as one unit on EITHER a DB-level P2002 OR a
+// pg-boss-level `null` return, not to treat them as two independent retry loops -- see
+// `CsvImportService.beginImportTask`'s doc comment for the full sequence.
+//
+// `localConcurrency` on all three queues is env-configurable rather than hardcoded to `1` -- see
+// each `register*Worker` function below for why the right number differs sharply between the
+// I/O-bound CSV queues and the CPU-bound roster-generation queue (design doc Part E.3).
 
 import { PgBoss } from 'pg-boss';
 import type { Job } from 'pg-boss';
@@ -102,13 +115,27 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
 /**
  * `singletonKey = "<companyId>:WORKER_SYNC"` -> pg-boss allows at most ONE queued/active
  * worker-CSV-import job per company (matching `ImportTaskKind.WORKER_SYNC`) -- a different
- * company's own worker-CSV import is an unrelated job, not a collision. Mirrors
- * `enqueueRosterGeneration`'s exact pattern, including returning `null` on a singletonKey
- * collision rather than throwing: a later phase's cancel-and-replace flow (mark the existing
- * non-terminal `ImportTask` `CANCELLED`, `boss.cancel()` its pg-boss job, only then enqueue the
- * replacement) is expected to always free the slot before calling this again, so a collision here
- * signals a genuine race the caller must detect and retry, exactly like `enqueueRosterGeneration`'s
- * 409 handling -- see the v4 design doc, Part A's "Cancel-and-replace" section.
+ * company's own worker-CSV import is an unrelated job, not a collision. IMPORTANT: this key is
+ * REQUIRED, not optional, on a `stately`-policy queue -- `stately`'s uniqueness index is on
+ * `(name, state, COALESCE(singleton_key, ''))`, so a job sent with NO key doesn't bypass the
+ * uniqueness constraint, it shares the SAME implicit empty-string key with every other keyless job
+ * on this queue, which would make the whole queue globally single-flight ACROSS EVERY COMPANY, not
+ * per-company. (Confirmed directly: an earlier attempt to drop this key entirely, on the theory
+ * that the DB-level `import_tasks` partial unique index alone was sufficient, caused exactly that
+ * regression -- different companies' uploads started blocking each other, worse than the bug it was
+ * meant to fix. Never remove this without also either dropping the queue's `stately` policy or
+ * switching to `standard` and re-adding some other per-company gate.)
+ *
+ * Returns `null` on a genuine collision (a non-terminal job already holds this company's slot).
+ * The caller (`CsvImportService`'s route-level cancel-and-replace sequence) MUST treat a `null`
+ * return the same way it treats a DB-level `import_tasks` unique-constraint violation -- as a
+ * signal to retry the WHOLE `beginImportTask` -> `enqueueCsvImport` sequence, not a terminal
+ * failure. These are two independently-raced resources (the `import_tasks` DB row and the pg-boss
+ * job row) with a real window between "we created a fresh PENDING task" and "we actually sent the
+ * job" during which a different concurrent request can win that same window -- see
+ * `CsvImportService.beginImportTask`'s doc comment for the full sequence and why a single retry
+ * layer covering both resources, not two independent ad hoc retries, is what actually closes the
+ * race (found and fixed via the v4 load-test suite's rapid-fire-reupload script).
  */
 export async function enqueueCsvImport(boss: PgBoss, companyId: number, csv: string): Promise<string | null> {
   await ensureBossStarted(boss);
@@ -117,11 +144,8 @@ export async function enqueueCsvImport(boss: PgBoss, companyId: number, csv: str
   });
 }
 
-/**
- * `singletonKey = "<companyId>:AVAILABILITY_SYNC"` -> same partitioning (and same `null`-on-
- * collision contract) as `enqueueCsvImport`, for the availability-CSV kind (matching
- * `ImportTaskKind.AVAILABILITY_SYNC`).
- */
+/** Same reasoning and same REQUIRED-key warning as `enqueueCsvImport` -- see its doc comment --
+ * for the availability-CSV kind. */
 export async function enqueueAvailabilityImport(
   boss: PgBoss,
   companyId: number,

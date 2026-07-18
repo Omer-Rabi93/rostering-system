@@ -10,10 +10,14 @@
 // by a better mechanism: a worker absent from a new upload simply keeps its current status, and
 // becomes ineligible for roster generation only if `lastImportTaskId` no longer matches the
 // company's latest COMPLETED `WORKER_SYNC` task (see `RosterGenerationService`'s eligibility
-// query). `lastImportTaskId` is stamped optimistically on every row this service
-// matches/creates/updates, inside the same per-row transaction -- if the task is later cancelled
-// (superseded by a newer upload) rather than reaching COMPLETED, that stamp is simply never "the
-// latest COMPLETED task's id" for eligibility purposes, so it's inert, not wrong.
+// query). `lastImportTaskId` is stamped in BULK, once, only after the task is confirmed COMPLETED
+// (see `importCsv`'s bulk-stamp step) -- NOT per-row mid-loop. An earlier version of this file
+// stamped it optimistically per row on the theory that a later cancellation would make the stamp
+// merely inert; that reasoning was wrong (found by the v4 load-test suite's spam/churn test,
+// reproduced at scale): a worker already correctly stamped by an EARLIER completed sync could have
+// that valid stamp overwritten -- and lost -- by a LATER task that touched their row before itself
+// getting cancelled, wrongly making them ineligible. Tying the stamp to the same "did we reach
+// COMPLETED" gate as the task status update closes that hole.
 //
 // `ImportTask` two-phase lifecycle, split across two entry points -- identical shape to
 // `AvailabilityService`'s independently-implemented version (some duplication between the two
@@ -51,6 +55,16 @@ type ImportRowError = ImportResult['errors'][number];
 /** Re-read the task's own status this often (row count) inside the import loop -- matches the v4
  * design doc's "every 50 rows" figure and `AvailabilityService`'s identical constant. */
 const CANCELLATION_CHECK_INTERVAL = 50;
+
+/** Bounded retry count for `cancelAndCreateTask`'s P2002 backstop against near-simultaneous
+ * uploads for the same company+kind. See that method's catch block for why a single retry isn't
+ * enough under genuine concurrent load -- 20, not 5, because this is ALSO the inner half of the
+ * route-level retry (`routes/importExport.ts`'s `MAX_ENQUEUE_ATTEMPTS`), and an exhausted-retries
+ * throw here propagates uncaught up through that outer loop's `beginImportTask` call (confirmed as
+ * a real reproduced 500 at 5 with a genuine 10-way concurrent burst). Each individual collision
+ * resolves in microseconds, so this bound is about comfortable headroom under realistic worst-case
+ * concurrency, not a meaningfully longer wait. */
+const MAX_CANCEL_AND_CREATE_ATTEMPTS = 20;
 
 const WORKER_SYNC_KIND = 'WORKER_SYNC' as const;
 
@@ -140,6 +154,9 @@ export class CsvImportService {
     let failed = 0;
     let cancelled = false;
     const errors: ImportRowError[] = [];
+    // Collected, not stamped, per row -- see the bulk-stamp step below for why the stamp itself
+    // must wait until the task is confirmed COMPLETED, never written optimistically mid-loop.
+    const touchedWorkerIds: number[] = [];
 
     for (const [index, raw] of rawRows.entries()) {
       const rowNum = index + 1;
@@ -156,9 +173,10 @@ export class CsvImportService {
       }
 
       try {
-        const outcome = await this.importRow(raw, companyId, task.id);
+        const { outcome, workerId } = await this.importRow(raw, companyId);
         if (outcome === 'inserted') inserted++;
         else updated++;
+        touchedWorkerIds.push(workerId);
       } catch (err) {
         failed++;
         errors.push(toRowError(rowNum, raw.national_id, err));
@@ -168,6 +186,22 @@ export class CsvImportService {
     const result: ImportResult = { totalRows: rawRows.length, inserted, updated, failed, errors };
 
     if (!cancelled) {
+      // `lastImportTaskId` is stamped HERE, in bulk, only once the task is confirmed COMPLETED --
+      // never per-row, mid-loop. Stamping per-row (the original v4 design) is unsafe: if a worker
+      // was already correctly stamped by an EARLIER completed sync, and THIS task later gets
+      // cancelled (superseded by a still-newer upload) after having already touched that worker's
+      // row, an optimistic per-row stamp would overwrite -- and lose -- their valid prior stamp,
+      // wrongly making them ineligible even though nothing about their real status changed. Tying
+      // the stamp to the same "did we actually reach COMPLETED" gate as the task status update
+      // means a cancelled run's row-processing can never corrupt eligibility for workers it merely
+      // touched along the way. Confirmed as a real, reproduced bug (found by the v4 load-test
+      // suite's spam/churn test) before this fix -- not a hypothetical.
+      if (touchedWorkerIds.length > 0) {
+        await this.prisma.worker.updateMany({
+          where: { id: { in: touchedWorkerIds } },
+          data: { lastImportTaskId: task.id },
+        });
+      }
       await this.prisma.importTask.update({
         where: { id: task.id },
         data: {
@@ -183,14 +217,19 @@ export class CsvImportService {
     }
     // If `cancelled`, the task was already marked non-PROCESSING (CANCELLED) by whichever newer
     // upload superseded us -- leave it exactly as that upload's own `beginImportTask` left it,
-    // never overwrite it back to COMPLETED.
+    // never overwrite it back to COMPLETED, and never stamp lastImportTaskId for the rows we
+    // touched before noticing the cancellation.
 
     return result;
   }
 
   /** One row = one transaction: resolve + validate, reject a cross-company `national_id` conflict,
-   * then upsert-by-`national_id`, stamping `lastImportTaskId = taskId` on the touched worker. */
-  private async importRow(raw: CsvRawRow, companyId: number, taskId: number): Promise<'inserted' | 'updated'> {
+   * then upsert-by-`national_id`. Does NOT stamp `lastImportTaskId` here -- see `importCsv`'s
+   * bulk-stamp-at-completion step and its doc comment for why the stamp must not happen per-row. */
+  private async importRow(
+    raw: CsvRawRow,
+    companyId: number,
+  ): Promise<{ outcome: 'inserted' | 'updated'; workerId: number }> {
     return this.prisma.$transaction(async (tx) => {
       const record = toWorkerRecord(raw);
 
@@ -227,7 +266,6 @@ export class CsvImportService {
             name: workerInput.name,
             role: workerInput.role,
             status: workerInput.status,
-            lastImportTaskId: taskId,
           },
         });
         await tx.contract.upsert({
@@ -235,7 +273,7 @@ export class CsvImportService {
           create: { workerId: existing.id, ...contractColumns },
           update: { ...contractColumns },
         });
-        return 'updated';
+        return { outcome: 'updated', workerId: existing.id };
       }
 
       const created = await tx.worker.create({
@@ -245,11 +283,10 @@ export class CsvImportService {
           role: workerInput.role,
           status: workerInput.status,
           companyId,
-          lastImportTaskId: taskId,
         },
       });
       await tx.contract.create({ data: { workerId: created.id, ...contractColumns } });
-      return 'inserted';
+      return { outcome: 'inserted', workerId: created.id };
     });
   }
 
@@ -314,9 +351,16 @@ export class CsvImportService {
         },
       });
     } catch (err) {
-      if (isUniqueConstraintViolation(err) && attempt === 0) {
+      if (isUniqueConstraintViolation(err) && attempt < MAX_CANCEL_AND_CREATE_ATTEMPTS) {
         // The just-lost race means there IS now a non-terminal task to cancel, from the request
-        // that won -- re-run the full sequence once (v4 design doc, Part A's "Cancel-and-replace").
+        // that won -- re-run the full sequence (v4 design doc, Part A's "Cancel-and-replace").
+        // A single retry (attempt === 0 only) is NOT enough under genuine concurrent load: with
+        // several requests racing for the same company+kind slot, attempt 1 can itself lose to a
+        // third racer, and so on -- confirmed as a real, reproduced bug (raw 500s under the v4
+        // load-test suite's rapid-fire-reupload script) before this fix. Each collision resolves
+        // as soon as any one racer's transaction commits (microseconds), so a small bounded retry
+        // count comfortably absorbs realistic contention without risking an unbounded loop against
+        // a genuinely broken DB.
         return this.cancelAndCreateTask(companyId, pgBossJobId, initialStatus, attempt + 1, totalRows);
       }
       throw err;
