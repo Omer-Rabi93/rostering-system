@@ -1,0 +1,9 @@
+{
+  "_comment": "This file's header is shaped for a 31-day month (national_id + d01..d31, e.g. January) -- deliberately wrong when parsed against a 28-day month. availabilityCsvHeader() derives the expected header from the month argument passed to parseAvailabilityCsv, so calling it with month='2027-02' (28 days) against this 32-column header is a length/shape mismatch -- AvailabilityCsvHeaderError, a file-level error thrown before any per-row processing.",
+  "kind": "availability",
+  "call": "parseAvailabilityCsv(csvText, '2027-02') -- throws; header shape is for a 31-day month, not 2027-02's 28",
+  "fileError": {
+    "type": "AvailabilityCsvHeaderError",
+    "messageContains": "header for month 2027-02 must be exactly"
+  }
+}

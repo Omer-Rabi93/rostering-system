@@ -5,7 +5,9 @@ import type { ImportResult } from '@rostering/shared';
 
 import { EXPORT_WORKERS_CSV_URL, useImportWorkersCsvMutation } from '../../api/csv.api.js';
 import { classifyMutationError } from '../../api/errors.js';
+import { useLazyGetActiveImportTaskQuery } from '../../api/importTasks.api.js';
 import { useJobPolling } from '../../api/jobs.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 
@@ -23,22 +25,18 @@ const ERROR_COLUMNS: Column<RowError>[] = [
   { key: 'message', header: 'Message' },
 ];
 
-interface DeactivatedRow {
-  readonly nationalId: string;
-  readonly name: string;
-}
-
-const DEACTIVATED_COLUMNS: Column<DeactivatedRow>[] = [
-  { key: 'nationalId', header: 'National ID' },
-  { key: 'name', header: 'Name' },
-];
-
 /** The "Bulk import / export" card — part of the Workers page (see `WorkersPage.tsx`), not its
  * own route: the CSV panel operates on the exact same worker registry the rest of the page
  * displays, so keeping it on `/workers` (matching `docs/design/ui/mockups/01-workers.html`'s
- * layout) means an import's effect (new/updated/deactivated workers) is visible in the same list
- * a planner is already looking at, without navigating away. */
+ * layout) means an import's effect (new/updated workers) is visible in the same list a planner is
+ * already looking at, without navigating away.
+ *
+ * v4: the worker-CSV upload is scoped to the active company (`useActiveCompanyId()`), and the
+ * global deactivation sweep is gone entirely — replaced by `Worker.lastImportTaskId`-based roster-
+ * generation eligibility (see the v4 design doc, Part A), which has no UI surface of its own here.
+ */
 export function CsvPanel(): ReactElement {
+  const companyId = useActiveCompanyId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
@@ -46,6 +44,7 @@ export function CsvPanel(): ReactElement {
   const [importError, setImportError] = useState<string | null>(null);
 
   const [importCsv, importResult] = useImportWorkersCsvMutation();
+  const [checkActiveImportTask] = useLazyGetActiveImportTaskQuery();
   const jobPoll = useJobPolling(jobId);
 
   const activeDialog = useAppSelector(selectActiveDialog);
@@ -65,10 +64,10 @@ export function CsvPanel(): ReactElement {
     setPendingFile(null);
   }
 
-  async function confirmImport() {
+  async function submitImport() {
     if (!pendingFile) return;
     try {
-      const { jobId: newJobId } = await importCsv(pendingFile).unwrap();
+      const { jobId: newJobId } = await importCsv({ file: pendingFile, companyId }).unwrap();
       setImportError(null);
       setJobId(newJobId);
       dispatch(dialogOpened({ kind: 'csvImportResult', jobId: newJobId }));
@@ -85,6 +84,33 @@ export function CsvPanel(): ReactElement {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  /**
+   * v4 pre-upload check (design doc, Part A's Frontend section): before actually submitting,
+   * check whether an import is already in flight for this company+kind. If so, gate the upload
+   * behind a second confirm dialog rather than silently cancelling/replacing it out from under
+   * whoever started it. This is a UX nicety, not the correctness guarantee — the backend's
+   * cancel-and-replace logic is unconditional regardless of whether this check ran or raced, so a
+   * failed/racy check here just falls through to submitting directly.
+   */
+  async function confirmImport() {
+    if (!pendingFile) return;
+    try {
+      const activeTask = await checkActiveImportTask({ companyId, kind: 'WORKER_SYNC' }).unwrap();
+      if (activeTask) {
+        dispatch(dialogOpened({ kind: 'csvImportInProgressConfirm' }));
+        return;
+      }
+    } catch {
+      // The check itself failing shouldn't block the upload -- fall through to submitting.
+    }
+    await submitImport();
+  }
+
+  function cancelInProgressConfirm() {
+    dispatch(dialogClosed());
+    setPendingFile(null);
+  }
+
   function closeResult() {
     dispatch(dialogClosed());
     setJobId(undefined);
@@ -94,7 +120,7 @@ export function CsvPanel(): ReactElement {
   // `AvailabilityImportResult` (Availability v2's month-scoped CSV, see `AvailabilityCsvPanel.tsx`)
   // now share the `totalRows` field, so a `'totalRows' in result` check alone no longer
   // distinguishes them — `AvailabilityImportResult` would satisfy it too and fail to narrow to
-  // exactly `ImportResult`, since it's missing `inserted`/`updated`/`deactivated`.
+  // exactly `ImportResult`, since it's missing `inserted`/`updated`.
   const jobResult: ImportResult | null =
     jobPoll.data?.state === 'completed' && jobPoll.data.name === 'csv-import' && jobPoll.data.result
       ? (jobPoll.data.result as ImportResult)
@@ -104,9 +130,9 @@ export function CsvPanel(): ReactElement {
     <div className="card">
       <div className="card__title">Bulk import / export</div>
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-ink-secondary)' }}>
-        Import is a <strong>full workforce sync</strong>: any existing worker whose national ID is
-        absent from the uploaded file is set Inactive. A row present but failing validation is{' '}
-        <em>not</em> deactivated.
+        Import is a <strong>full workforce sync for this company</strong>: every row in the file is
+        inserted or updated. A worker absent from the file stays Active but is not eligible for the
+        next roster generation until they reappear in a completed sync.
       </p>
       {importError ? (
         <p className="warn-text" role="alert">
@@ -142,10 +168,10 @@ export function CsvPanel(): ReactElement {
             <p className="warn-text">
               <span aria-hidden="true">⚠</span>
               <span>
-                This file will become the authoritative worker list. <strong>Any existing worker
-                whose national ID is not in this file will be set Inactive</strong> (never deleted
-                — contract and shift history are kept). A row present in the file but failing
-                validation will <em>not</em> be deactivated.
+                This file will become the authoritative worker list for this company. A worker
+                whose national ID is not in this file <strong>stays Active</strong> but is not
+                eligible for the next roster generation until they reappear in a completed sync. A
+                row present in the file but failing validation is skipped, not applied.
               </span>
             </p>
             <div className="field-checkbox">
@@ -156,7 +182,7 @@ export function CsvPanel(): ReactElement {
                 onChange={(e) => setConfirmChecked(e.target.checked)}
               />
               <label htmlFor="csv-confirm-check">
-                I understand workers not in this file will be set Inactive.
+                I understand this file becomes the authoritative worker list for this company.
               </label>
             </div>
           </>
@@ -166,6 +192,25 @@ export function CsvPanel(): ReactElement {
         confirmDisabled={!confirmChecked || importResult.isLoading}
         onConfirm={() => void confirmImport()}
         onCancel={cancelConfirm}
+      />
+
+      <ConfirmDialog
+        isOpen={activeDialog?.kind === 'csvImportInProgressConfirm'}
+        title="Import already in progress"
+        body={
+          <p className="warn-text">
+            <span aria-hidden="true">⚠</span>
+            <span>
+              An import is still processing for this company. Uploading now will cancel it and
+              start over. Continue?
+            </span>
+          </p>
+        }
+        confirmLabel="Continue"
+        destructive
+        confirmDisabled={importResult.isLoading}
+        onConfirm={() => void submitImport()}
+        onCancel={cancelInProgressConfirm}
       />
 
       <Modal
@@ -209,10 +254,6 @@ export function CsvPanel(): ReactElement {
                 <div className="stat-tile__label">Failed</div>
                 <div className="stat-tile__value">{jobResult.failed}</div>
               </div>
-              <div className="stat-tile">
-                <div className="stat-tile__label">Deactivated</div>
-                <div className="stat-tile__value">{jobResult.deactivated}</div>
-              </div>
             </div>
 
             <h3>Row errors ({jobResult.errors.length})</h3>
@@ -226,20 +267,6 @@ export function CsvPanel(): ReactElement {
               }))}
               rowKey={(row) => row.row}
               caption={`${jobResult.errors.length} row errors`}
-            />
-
-            <h3 style={{ marginTop: 'var(--space-5)' }}>
-              Deactivated workers ({jobResult.deactivatedWorkers.length})
-            </h3>
-            <p className="field__hint">
-              Absent from this file — set Inactive automatically by the sync. Flip back to Active
-              any time.
-            </p>
-            <Table<DeactivatedRow>
-              columns={DEACTIVATED_COLUMNS}
-              rows={jobResult.deactivatedWorkers.map((w) => ({ nationalId: w.nationalId, name: w.name }))}
-              rowKey={(row) => row.nationalId}
-              caption={`${jobResult.deactivatedWorkers.length} deactivated workers`}
             />
           </>
         )}

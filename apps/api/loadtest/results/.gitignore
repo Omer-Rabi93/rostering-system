@@ -1,0 +1,5 @@
+# Output of `loadtest/scaleTiers.ts` (and any sibling loadtest scripts) -- disposable benchmark
+# artifacts from a local run, never committed. Keep this .gitignore file itself tracked so the
+# directory exists in a fresh checkout.
+*
+!.gitignore

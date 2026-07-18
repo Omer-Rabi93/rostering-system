@@ -26,8 +26,6 @@ describe('jobSchema', () => {
         inserted: 2,
         updated: 8,
         failed: 1,
-        deactivated: 1,
-        deactivatedWorkers: [{ workerId: 3, nationalId: '111111118', name: 'Old Worker' }],
         errors: [{ row: 4, nationalId: '000000000', field: 'role', message: 'Unknown role' }],
       },
     });
@@ -42,6 +40,26 @@ describe('jobSchema', () => {
       createdAt: '2026-07-17T06:00:00.000Z',
       completedAt: '2026-07-17T06:00:05.000Z',
       result: { totalRows: 12 },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a completed csv-import result carrying the removed v4 deactivation-sweep fields', () => {
+    const result = jobSchema.safeParse({
+      id: '8f1c2b3a-0000-4000-8000-000000000005',
+      name: 'csv-import',
+      state: 'completed',
+      createdAt: '2026-07-17T06:00:00.000Z',
+      completedAt: '2026-07-17T06:00:05.000Z',
+      result: {
+        totalRows: 1,
+        inserted: 1,
+        updated: 0,
+        failed: 0,
+        deactivated: 0,
+        deactivatedWorkers: [],
+        errors: [],
+      },
     });
     expect(result.success).toBe(false);
   });

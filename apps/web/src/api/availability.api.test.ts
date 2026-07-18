@@ -37,6 +37,7 @@ describe('availability.api cache invalidation', () => {
     await store.dispatch(
       availabilityApi.endpoints.replaceMonthAvailability.initiate({
         month: '2026-08',
+        companyId: 1,
         body: { '1': { '2026-08-03': ['A', 'B'] } },
       }),
     );
@@ -64,7 +65,7 @@ describe('availability.api cache invalidation', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     await store.dispatch(
-      availabilityApi.endpoints.replaceMonthAvailability.initiate({ month: '2026-08', body: {} }),
+      availabilityApi.endpoints.replaceMonthAvailability.initiate({ month: '2026-08', companyId: 1, body: {} }),
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -84,6 +85,7 @@ describe('availability.api cache invalidation', () => {
     await store.dispatch(
       availabilityApi.endpoints.importAvailabilityCsv.initiate({
         month: '2026-08',
+        companyId: 1,
         file: new File(['x'], 'a.csv', { type: 'text/csv' }),
       }),
     );

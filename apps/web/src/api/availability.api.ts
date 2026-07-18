@@ -36,6 +36,13 @@ function availabilityTag(month: Month) {
  * doesn't need to know *which* import), this job's effect is month-scoped and the `Job` schema
  * carries no month field — so the month-scoped invalidation is done by the caller (the component
  * that already knows both the jobId and the month it started the import for), not generically here.
+ *
+ * v4: both `replaceMonthAvailability` (bulk `PUT`) and `importAvailabilityCsv` gain a required
+ * `companyId`, matching `apps/api/src/routes/availability.ts`'s new company-scoping —
+ * `replaceMonthAvailability` sends it as a query param (`companyIdQuerySchema`, since the `PUT`
+ * body is already fully occupied by the `MonthAvailability` payload itself), `importAvailabilityCsv`
+ * sends it as a form field alongside `file` (`companyIdFormFieldSchema`), mirroring
+ * `csvApi.importWorkersCsv`.
  */
 export const availabilityApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -46,16 +53,21 @@ export const availabilityApi = baseApi.injectEndpoints({
 
     replaceMonthAvailability: builder.mutation<
       ReplaceMonthAvailabilityResponse,
-      { month: Month; body: MonthAvailability }
+      { month: Month; companyId: number; body: MonthAvailability }
     >({
-      query: ({ month, body }) => ({ url: `/availability/${month}`, method: 'PUT', body }),
+      query: ({ month, companyId, body }) => ({
+        url: `/availability/${month}?companyId=${companyId}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: (_result, _error, { month }) => [availabilityTag(month)],
     }),
 
-    importAvailabilityCsv: builder.mutation<EnqueueJobResponse, { month: Month; file: File }>({
-      query: ({ month, file }) => {
+    importAvailabilityCsv: builder.mutation<EnqueueJobResponse, { month: Month; companyId: number; file: File }>({
+      query: ({ month, companyId, file }) => {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('companyId', String(companyId));
         return { url: `/import/availability/${month}`, method: 'POST', body: formData };
       },
     }),

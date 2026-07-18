@@ -1,0 +1,14 @@
+{
+  "_comment": "hourly_cost_ils=\"abc\" fails record.ts's parseDecimal() before any Zod validation runs -- CsvFieldError('hourly_cost_ils', ...).",
+  "kind": "worker",
+  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "expectImportResult": {
+    "totalRows": 1,
+    "inserted": 0,
+    "updated": 0,
+    "failed": 1,
+    "failedRows": [
+      { "row": 1, "field": "hourly_cost_ils", "messageContains": "decimal number" }
+    ]
+  }
+}

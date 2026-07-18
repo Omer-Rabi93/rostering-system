@@ -7,7 +7,6 @@ function baseRecord(overrides: Partial<CsvWorkerRecord> = {}): CsvWorkerRecord {
   return {
     nationalId: '123456782',
     name: 'Dana Levi',
-    companyName: 'Shamir Security Ltd',
     role: 'SUPERVISOR',
     status: 'ACTIVE',
     hourlyCostIls: 62.5,
@@ -18,7 +17,7 @@ function baseRecord(overrides: Partial<CsvWorkerRecord> = {}): CsvWorkerRecord {
 }
 
 describe('serializeWorkersCsv', () => {
-  it('writes the exact 8-column header as the first line', () => {
+  it('writes the exact 7-column header as the first line', () => {
     const csv = serializeWorkersCsv([baseRecord()]);
     expect(csv.split('\n')[0]).toBe(CSV_COLUMNS.join(','));
   });

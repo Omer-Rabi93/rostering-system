@@ -7,7 +7,6 @@ function record(overrides: Partial<CsvWorkerRecord> = {}): CsvWorkerRecord {
   return {
     nationalId: '123456782',
     name: 'Dana Levi',
-    companyName: 'Shamir Security Ltd',
     role: 'SUPERVISOR',
     status: 'ACTIVE',
     hourlyCostIls: 62.5,
@@ -55,11 +54,6 @@ describe('CSV round-trip property (export -> import unchanged)', () => {
       const withTrigger = record({ name: `${trigger}malicious` });
       expect(roundTrip(withTrigger)).toEqual(withTrigger);
     }
-  });
-
-  it('round-trips a company name containing a comma', () => {
-    const withComma = record({ companyName: 'Shamir, Levi & Co.' });
-    expect(roundTrip(withComma)).toEqual(withComma);
   });
 
   it('round-trips a batch of multiple distinct records together', () => {

@@ -1,18 +1,40 @@
 import express, { Router } from 'express';
 import type { PgBoss } from 'pg-boss';
+import { z } from 'zod';
 import { monthAvailabilitySchema, monthSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import { BadRequestError } from '../errors.js';
+import { isUniqueConstraintViolation } from '../db/prismaErrors.js';
+import { BadRequestError, ConflictError } from '../errors.js';
 import { AvailabilityService } from '../services/availabilityService.js';
 import { AvailabilityCsvHeaderError, AvailabilityCsvRowShapeError, parseAvailabilityCsv } from '../csv/index.js';
 import { enqueueAvailabilityImport } from '../jobs/queue.js';
 import { handleSingleCsvFileUpload } from './csvUpload.js';
 
+/**
+ * v4: both the bulk `PUT` and the CSV import gain a required `companyId` -- see the v4 design
+ * doc, Part A's "Same-company nationalId matching, cross-company conflict as an error" section.
+ * `PUT`'s own JSON body is already fully occupied by the `MonthAvailability` payload itself (a
+ * date-keyed record, `monthAvailabilitySchema`), so `companyId` travels as a query param there --
+ * the same convention `routes/rosters.ts`'s `companyIdQuerySchema` already uses for its own
+ * company-scoped `GET` routes. The CSV import route's `companyId` travels as a multipart form
+ * field alongside `file` (multer parses non-file fields into `req.body`), per the design doc's
+ * "Route/frontend changes" section.
+ */
+const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() });
+const companyIdFormFieldSchema = z.object({ companyId: z.coerce.number().int().positive() });
+
 /** One row = one worker; bounds the `availability-import` job at <= this x the month's day count
  * upserts, mirroring `routes/importExport.ts`'s own `MAX_ROWS` for the worker CSV. */
 const MAX_AVAILABILITY_CSV_ROWS = 10_000;
+
+/** Bounded retry count for the route-level cancel-and-replace sequence below. See the doc comment
+ * on the `POST /import/availability/:month` handler for why a single attempt isn't enough under
+ * genuine concurrent load, and why the retry must cover BOTH `beginImportTask` and
+ * `enqueueAvailabilityImport` together, not either one independently. Matches
+ * `routes/importExport.ts`'s identical constant/reasoning. */
+const MAX_ENQUEUE_ATTEMPTS = 5;
 
 /**
  * Body-size decision (Availability v2 plan): the app-wide `express.json({ limit: '100kb' })` in
@@ -30,7 +52,7 @@ const AVAILABILITY_JSON_BODY_LIMIT = '2mb';
  * CSV import/export (`/api/import/availability/:month`, `/api/export/availability/:month`). */
 export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Router {
   const router = Router();
-  const availabilityService = new AvailabilityService(prisma);
+  const availabilityService = new AvailabilityService(prisma, boss);
 
   router.get(
     '/availability/:month',
@@ -46,8 +68,9 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
     express.json({ limit: AVAILABILITY_JSON_BODY_LIMIT }),
     asyncHandler(async (req, res) => {
       const month = monthSchema.parse(req.params.month);
+      const { companyId } = companyIdQuerySchema.parse(req.query);
       const payload = monthAvailabilitySchema(month).parse(req.body);
-      await availabilityService.replaceMonth(month, payload);
+      await availabilityService.replaceMonth(month, payload, companyId);
       res.status(200).json({ month });
     }),
   );
@@ -71,6 +94,7 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
     handleSingleCsvFileUpload,
     asyncHandler(async (req, res) => {
       const month = monthSchema.parse(req.params.month);
+      const { companyId } = companyIdFormFieldSchema.parse(req.body);
       if (!req.file) {
         throw new BadRequestError([{ path: 'file', message: 'A CSV file is required (multipart field "file")' }]);
       }
@@ -99,7 +123,43 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
         ]);
       }
 
-      const jobId = await enqueueAvailabilityImport(boss, csvText, month);
+      // v4 cancel-and-replace: create (or replace) this company's `AVAILABILITY_SYNC` `ImportTask`,
+      // THEN send the job. `beginImportTask` (a DB-level `import_tasks` row) and
+      // `enqueueAvailabilityImport` (a pg-boss job row, singletonKey-guarded) are two
+      // INDEPENDENTLY-raced resources, not one primary and one redundant backstop -- there is a real
+      // window, between "we created a fresh PENDING task" and "we actually called
+      // enqueueAvailabilityImport", during which a different concurrent request for this same
+      // company can complete its OWN full cancel-and-replace sequence and win the pg-boss slot
+      // first. A single attempt at this sequence is provably not enough under genuine concurrent
+      // load (found via the v4 load-test suite's rapid-fire-reupload script, same root cause as
+      // `routes/importExport.ts`'s identical fix) -- so retry the WHOLE sequence, as one unit, up to
+      // `MAX_ENQUEUE_ATTEMPTS` times. `beginImportTask` itself has its own bounded internal P2002
+      // retry (`AvailabilityService.cancelAndCreateTask`), but under a genuine burst that inner
+      // retry CAN also be exhausted and throw -- this loop must catch that (not just a `null` return
+      // from `enqueueAvailabilityImport`) and retry the whole sequence again, or a burst wide enough
+      // to exhaust the inner retry crashes the request instead of cleanly converging (confirmed as a
+      // real reproduced 500, not a hypothetical). `enqueueAvailabilityImport`'s positional argument
+      // order is `(boss, companyId, csv, month)` -- verified directly against `jobs/queue.ts`, not
+      // assumed.
+      let jobId: string | null = null;
+      let task: Awaited<ReturnType<typeof availabilityService.beginImportTask>> | undefined;
+      for (let attempt = 0; attempt < MAX_ENQUEUE_ATTEMPTS; attempt++) {
+        try {
+          task = await availabilityService.beginImportTask(companyId, month, rowCount);
+        } catch (err) {
+          if (isUniqueConstraintViolation(err)) continue;
+          throw err;
+        }
+        jobId = await enqueueAvailabilityImport(boss, companyId, csvText, month);
+        if (jobId) break;
+        await availabilityService.failImportTask(task.id);
+        task = undefined;
+      }
+      if (!jobId || !task) {
+        throw new ConflictError(`An availability-import job for company ${companyId} is already in flight`);
+      }
+      await availabilityService.attachImportJob(task.id, jobId);
+
       res.status(202).json({ jobId });
     }),
   );

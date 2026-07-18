@@ -200,6 +200,12 @@ dev server proxies API calls to the local API. `docker-compose.dev.yml` is a *se
 container/volume from the one-command production stack above — the two never share data, and
 both can run simultaneously without colliding.
 
+`docker-compose.dev.yml` also starts a pgAdmin container for browsing the dev database. Once it's
+up, open `http://localhost:5050` (or whatever `PGADMIN_PORT` you set in `.env`) and add a new
+server pointing at host `postgres`, port `5432`, using the same `POSTGRES_USER`/`POSTGRES_PASSWORD`
+values from `.env`. Log in to pgAdmin itself with `PGADMIN_EMAIL`/`PGADMIN_PASSWORD` from `.env`
+(dev-only placeholder credentials — never reuse them in a real/shared environment).
+
 Tests, per workspace (or `pnpm test` from the root to run all of them via Turborepo):
 
 ```bash

@@ -33,5 +33,30 @@ services:
       timeout: 3s
       retries: 30
 
+  # pgAdmin — local dev convenience only, not part of the production stack (docker-compose.yml).
+  # `PGADMIN_CONFIG_SERVER_MODE: "False"` runs it in desktop mode (auto-logged-in with the
+  # PGADMIN_DEFAULT_EMAIL/PASSWORD below, no separate hosted-login account) — fine for a
+  # loopback-only local container, not something to carry into any shared/hosted environment.
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      # Note: pgAdmin's own startup validation (python-email-validator) rejects both a bare
+      # `dev@localhost` (no period in the domain part) and any `*.local`/`*.test`/`*.invalid`
+      # domain (flagged as "special-use or reserved"), so a naive local-only placeholder email
+      # crash-loops the container. `admin@example.com` is RFC 2606's reserved example domain —
+      # obviously a placeholder, and one of the few forms this validator actually accepts.
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-dev}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - rostering-dev-pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   rostering-dev-postgres-data:
+  rostering-dev-pgadmin-data:

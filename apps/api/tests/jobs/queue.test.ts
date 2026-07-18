@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { PgBoss } from 'pg-boss';
 
 import {
+  cancelJob,
   createBoss,
   ensureQueues,
   enqueueAvailabilityImport,
@@ -47,13 +48,39 @@ describe('jobs/queue.ts (pg-boss wiring)', () => {
   });
 
   it('enqueueCsvImport returns a job id', async () => {
-    const jobId = await enqueueCsvImport(boss, 'national_id,name\n');
+    const jobId = await enqueueCsvImport(boss, 1, 'national_id,name\n');
     expect(typeof jobId).toBe('string');
   });
 
+  it('enqueueCsvImport returns null when a job for the same company is already in flight (singletonKey collision)', async () => {
+    const companyId = 9001; // scoped to this test only, to avoid colliding with other tests' companies
+    const firstJobId = await enqueueCsvImport(boss, companyId, 'national_id,name\n');
+    expect(typeof firstJobId).toBe('string');
+
+    const secondJobId = await enqueueCsvImport(boss, companyId, 'national_id,name\n');
+    expect(secondJobId).toBeNull();
+  });
+
+  it('enqueueCsvImport allows two DIFFERENT companies to enqueue concurrently (no cross-company singletonKey collision)', async () => {
+    const companyAJobId = await enqueueCsvImport(boss, 9002, 'national_id,name\n');
+    const companyBJobId = await enqueueCsvImport(boss, 9003, 'national_id,name\n');
+    expect(typeof companyAJobId).toBe('string');
+    expect(typeof companyBJobId).toBe('string');
+    expect(companyAJobId).not.toBe(companyBJobId);
+  });
+
   it('enqueueAvailabilityImport returns a job id', async () => {
-    const jobId = await enqueueAvailabilityImport(boss, 'national_id,d01\n', '2027-05');
+    const jobId = await enqueueAvailabilityImport(boss, 1, 'national_id,d01\n', '2027-05');
     expect(typeof jobId).toBe('string');
+  });
+
+  it('enqueueAvailabilityImport returns null when a job for the same company is already in flight (singletonKey collision)', async () => {
+    const companyId = 9004; // scoped to this test only
+    const firstJobId = await enqueueAvailabilityImport(boss, companyId, 'national_id,d01\n', '2027-05');
+    expect(typeof firstJobId).toBe('string');
+
+    const secondJobId = await enqueueAvailabilityImport(boss, companyId, 'national_id,d01\n', '2027-05');
+    expect(secondJobId).toBeNull();
   });
 
   it('enqueueRosterGeneration returns null when a job for the same company+month is already in flight (singletonKey collision)', async () => {
@@ -77,6 +104,22 @@ describe('jobs/queue.ts (pg-boss wiring)', () => {
     expect(typeof companyAJobId).toBe('string');
     expect(typeof companyBJobId).toBe('string');
     expect(companyAJobId).not.toBe(companyBJobId);
+  });
+
+  it('cancelJob cancels a queued (not-yet-started) job, freeing its singletonKey slot', async () => {
+    const companyId = 9005; // scoped to this test only
+    const firstJobId = await enqueueCsvImport(boss, companyId, 'national_id,name\n');
+    expect(typeof firstJobId).toBe('string');
+    if (!firstJobId) throw new Error('expected a job id');
+
+    await cancelJob(boss, QUEUES.CSV_IMPORT, firstJobId);
+
+    const job = await boss.getJobById(QUEUES.CSV_IMPORT, firstJobId);
+    expect(job?.state).toBe('cancelled');
+
+    // The singletonKey slot is free again now that the prior job reached a terminal state.
+    const secondJobId = await enqueueCsvImport(boss, companyId, 'national_id,name\n');
+    expect(typeof secondJobId).toBe('string');
   });
 
   it('registers the next-month cron schedule with the documented cron string', async () => {

@@ -3,7 +3,7 @@ import { CSV_COLUMNS } from './columns.js';
 import { CsvHeaderError, CsvRowShapeError, parseWorkersCsv } from './parse.js';
 
 const HEADER = CSV_COLUMNS.join(',');
-const SAMPLE_ROW = '123456782,Dana Levi,Shamir Security Ltd,Supervisor,Active,62.50,120,182';
+const SAMPLE_ROW = '123456782,Dana Levi,Supervisor,Active,62.50,120,182';
 
 describe('parseWorkersCsv', () => {
   it('parses a well-formed file into raw rows keyed by the documented columns', () => {

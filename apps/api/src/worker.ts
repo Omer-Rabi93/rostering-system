@@ -34,8 +34,8 @@ async function main(): Promise<void> {
   await boss.start();
   await ensureQueues(boss);
 
-  await registerCsvImportWorker(boss, createCsvImportHandler(prisma));
-  await registerAvailabilityImportWorker(boss, createAvailabilityImportHandler(prisma));
+  await registerCsvImportWorker(boss, createCsvImportHandler(prisma, boss));
+  await registerAvailabilityImportWorker(boss, createAvailabilityImportHandler(prisma, boss));
   await registerRosterGenerationWorker(boss, createRosterGenerationHandler(prisma));
   await scheduleNextMonthGeneration(boss);
 

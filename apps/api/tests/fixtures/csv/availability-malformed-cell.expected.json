@@ -1,0 +1,18 @@
+{
+  "_comment": "Month is 2027-02 (28 days, non-leap -- matches the existing AvailabilityService test suite's FEB_2027 fixture). Cell d01 = \"AD\" contains an illegal shift letter ('D' is not in A/B/C) -- AvailabilityCsvCellError('d01', ...), a per-row error (framing itself is fine: field count matches the header).",
+  "kind": "availability",
+  "month": "2027-02",
+  "call": "AvailabilityService.importCsv(csvText, month, companyId) -- requires a pre-existing worker with nationalId 009000019 under companyId",
+  "setup": {
+    "nationalId": "009000019",
+    "note": "seed a worker with this nationalId under the company the import is run for"
+  },
+  "expectImportResult": {
+    "totalRows": 1,
+    "applied": 0,
+    "failed": 1,
+    "failedRows": [
+      { "row": 1, "field": "d01", "messageContains": "Illegal shift letter" }
+    ]
+  }
+}

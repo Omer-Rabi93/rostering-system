@@ -43,6 +43,23 @@ enum AlertType {
   MIN_HOURS_SHORTFALL
 }
 
+// v4: per-company CSV import tasks (worker sync + availability sync), tracked as their own
+// entity so the queue/task lifecycle (pending/processing/completed/failed/cancelled,
+// cancel-and-replace, one-in-flight-per-company+kind) is identical between both CSV kinds --
+// see the v4 design doc, Part A ("Key design decisions" / "New ImportTask entity").
+enum ImportTaskKind {
+  WORKER_SYNC
+  AVAILABILITY_SYNC
+}
+
+enum ImportTaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model Company {
   id                   Int                   @id @default(autoincrement())
   name                 String                @db.VarChar(120) // unique case-insensitively: raw-SQL migration
@@ -51,24 +68,64 @@ model Company {
   workers              Worker[]
   staffingRequirements StaffingRequirement[]
   rosters              Roster[]
+  importTasks          ImportTask[]
 
   @@map("companies")
 }
 
+// v4: one row per CSV import attempt (worker sync or availability sync), scoped to a single
+// company. `pgBossJobId` cross-references the pg-boss job for cancel-and-replace
+// (`boss.cancel(queueName, pgBossJobId)`). `month` is only ever set for AVAILABILITY_SYNC.
+// At most one non-terminal (PENDING/PROCESSING) row may exist per (companyId, kind) -- enforced
+// by a partial unique index added by hand in this model's migration (Prisma's schema language
+// has no first-class way to express a `WHERE` clause on a `@@unique`), since the app-level
+// cancel-and-replace sequencing alone isn't sufficient under truly concurrent uploads -- see the
+// v4 design doc, Part A's "Cancel-and-replace" section.
+model ImportTask {
+  id            Int               @id @default(autoincrement())
+  companyId     Int
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  kind          ImportTaskKind
+  status        ImportTaskStatus  @default(PENDING)
+  pgBossJobId   String?
+  month         String?           @db.Char(7) // set for AVAILABILITY_SYNC only
+  totalRows     Int?
+  processedRows Int?
+  insertedCount Int?
+  updatedCount  Int?
+  failedCount   Int?
+  errors        Json?
+  createdAt     DateTime          @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  workers       Worker[]
+
+  @@index([companyId, kind, status])
+  @@index([companyId, kind, finishedAt])
+  @@map("import_tasks")
+}
+
 model Worker {
-  id           Int           @id @default(autoincrement())
-  nationalId   String        @unique @db.Char(9) // Israeli ID; checksum checked in Zod
-  name         String        @db.VarChar(120)
-  companyId    Int // ← employer, required
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  role         Role
-  status       WorkerStatus  @default(ACTIVE)
-  shareToken   String        @unique @default(uuid()) // public schedule URL token
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  contract     Contract?
-  shiftWorkers ShiftWorker[]
-  availability WorkerAvailability[]
+  id               Int           @id @default(autoincrement())
+  nationalId       String        @unique @db.Char(9) // Israeli ID; checksum checked in Zod
+  name             String        @db.VarChar(120)
+  companyId        Int // ← employer, required
+  company          Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  role             Role
+  status           WorkerStatus  @default(ACTIVE)
+  shareToken       String        @unique @default(uuid()) // public schedule URL token
+  // v4: stamped onto a worker's row every time a WORKER_SYNC CSV row matches/creates/updates
+  // them inside an ImportTask that eventually reaches COMPLETED. Only meaningful for
+  // WORKER_SYNC tasks; a worker never touched by any worker-CSV import keeps this `null`
+  // forever, which is deliberately the "manually managed, always eligible for roster
+  // generation" state -- see the v4 design doc, Part A's "Worker.lastImportTaskId" section.
+  lastImportTaskId Int?
+  lastImportTask   ImportTask?   @relation(fields: [lastImportTaskId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  contract         Contract?
+  shiftWorkers     ShiftWorker[]
+  availability     WorkerAvailability[]
 
   @@index([companyId]) // company filters/joins
   @@index([status]) // engine loads ACTIVE workers (see partial index note)

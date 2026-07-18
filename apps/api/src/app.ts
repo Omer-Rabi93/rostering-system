@@ -12,6 +12,7 @@ import { createRostersRouter } from './routes/rosters.js';
 import { createShiftWorkersRouter } from './routes/shiftWorkers.js';
 import { createPublicScheduleRouter } from './routes/publicSchedule.js';
 import { createImportExportRouter } from './routes/importExport.js';
+import { createImportTasksRouter } from './routes/importTasks.js';
 import { createJobsRouter } from './routes/jobs.js';
 
 /**
@@ -58,6 +59,7 @@ export function createApp(prisma: PrismaClient, boss: PgBoss): Express {
   // The router itself defines the full `/import/workers` + `/export/workers` paths (they don't
   // share a common resource prefix the way `/api/companies` etc. do).
   app.use('/api', createImportExportRouter(prisma, boss));
+  app.use('/api/import-tasks', createImportTasksRouter(prisma));
   app.use('/api/jobs', createJobsRouter(boss));
 
   // Public, unauthenticated worker-schedule route — per-IP rate limited since there is no auth

@@ -1,0 +1,12 @@
+-- Partial unique index: DB-level backstop for "at most one non-terminal (PENDING/PROCESSING)
+-- ImportTask per company+kind". The app-level cancel-and-replace sequencing (mark old task
+-- CANCELLED, boss.cancel() it, only then create the new one) is not sufficient on its own under
+-- truly concurrent uploads for the same company+kind -- two requests landing close together can
+-- both read "existing task is non-terminal", both cancel it, and both insert their own new
+-- PENDING task, momentarily violating "at most one non-terminal task per company+kind". This
+-- index makes the second insert fail with a unique-constraint violation instead, so the app
+-- layer can detect it and retry the cancel-then-create sequence once rather than surfacing a
+-- 500. Not expressible via Prisma's `@@unique` (no partial/`WHERE` support in the schema
+-- language), hence added here by hand as a follow-up migration rather than generated. Additive
+-- only, no data backfill needed. See the v4 design doc, Part A's "Cancel-and-replace" section.
+CREATE UNIQUE INDEX "import_tasks_company_kind_active_key" ON "import_tasks" ("companyId", "kind") WHERE "status" IN ('PENDING', 'PROCESSING');

@@ -47,7 +47,7 @@ describe('AvailabilityGrid', () => {
   ])('renders exactly %s date columns for %s', async (month, dayCount) => {
     installMockFetch([WORKERS_ROUTE([makeWorker()]), availabilityRoute(month, {})]);
 
-    renderWithProviders(<AvailabilityGrid month={month} />);
+    renderWithProviders(<AvailabilityGrid month={month} companyId={1} />);
 
     const table = await screen.findByRole('table');
     // +1 for the leading "Worker" header column.
@@ -58,7 +58,7 @@ describe('AvailabilityGrid', () => {
   it('renders a worker with zero rows in the month as all-unavailable, without crashing', async () => {
     installMockFetch([WORKERS_ROUTE([makeWorker()]), availabilityRoute('2026-08', {})]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
 
     const cell = await screen.findByTestId('avail-cell-1-2026-08-01');
     expect(cell.getAttribute('aria-label')).toContain('unavailable');
@@ -71,7 +71,7 @@ describe('AvailabilityGrid', () => {
       availabilityRoute('2026-08', {}),
     ]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     await screen.findByRole('table');
 
     const cells = screen.getAllByRole('gridcell');
@@ -92,7 +92,7 @@ describe('AvailabilityGrid', () => {
     const user = userEvent.setup();
     installMockFetch([WORKERS_ROUTE([makeWorker()]), availabilityRoute('2026-08', {})]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     const cell = await screen.findByTestId('avail-cell-1-2026-08-03');
     expect(cell.getAttribute('aria-label')).toContain('unavailable');
 
@@ -117,7 +117,7 @@ describe('AvailabilityGrid', () => {
       { method: 'PUT', match: '/api/availability/2026-08', respond: () => ({ status: 200, body: { month: '2026-08' } }) },
     ]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     const cell = await screen.findByTestId('avail-cell-1-2026-08-03');
     cell.focus();
     await user.keyboard('b');
@@ -126,7 +126,7 @@ describe('AvailabilityGrid', () => {
 
     await waitFor(() => expect(screen.getByText(/Availability saved/)).toBeInTheDocument());
 
-    const putIndex = calls.findIndex((c) => c.method === 'PUT' && c.path === '/api/availability/2026-08');
+    const putIndex = calls.findIndex((c) => c.method === 'PUT' && c.path === '/api/availability/2026-08?companyId=1');
     expect(putIndex).toBeGreaterThanOrEqual(0);
     const putRequest = fetchMock.mock.calls[putIndex]?.[0] as { body?: string };
     const payload = JSON.parse(String(putRequest.body)) as unknown;
@@ -141,7 +141,7 @@ describe('AvailabilityGrid', () => {
       { method: 'PUT', match: '/api/availability/2026-08', respond: () => ({ status: 200, body: { month: '2026-08' } }) },
     ]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     const cell = await screen.findByTestId('avail-cell-1-2026-08-01');
     expect(cell.getAttribute('aria-label')).toContain('available shift A, B');
 
@@ -151,7 +151,7 @@ describe('AvailabilityGrid', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(screen.getByText(/Availability saved/)).toBeInTheDocument());
 
-    const putIndex = calls.findIndex((c) => c.method === 'PUT' && c.path === '/api/availability/2026-08');
+    const putIndex = calls.findIndex((c) => c.method === 'PUT' && c.path === '/api/availability/2026-08?companyId=1');
     const putRequest = fetchMock.mock.calls[putIndex]?.[0] as { body?: string };
     expect(JSON.parse(String(putRequest.body))).toEqual({});
   });
@@ -168,7 +168,7 @@ describe('AvailabilityGrid', () => {
       },
     ]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -183,7 +183,7 @@ describe('AvailabilityGrid', () => {
       { method: 'PUT', match: '/api/availability/2026-08', respond: () => ({ status: 500, body: { message: 'boom' } }) },
     ]);
 
-    renderWithProviders(<AvailabilityGrid month="2026-08" />);
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 

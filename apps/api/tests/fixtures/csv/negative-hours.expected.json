@@ -1,0 +1,14 @@
+{
+  "_comment": "min_monthly_hours=-10 parses fine as an integer (toWorkerRecord's parseInteger only rejects non-numeric/non-integer strings) but fails contractSchema's z.number().int().nonnegative() -- a ZodError surfaces as {field: 'minMonthlyHours', message: 'Number must be greater than or equal to 0'} (verified against the installed zod@3.25.76 build directly, not assumed).",
+  "kind": "worker",
+  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "expectImportResult": {
+    "totalRows": 1,
+    "inserted": 0,
+    "updated": 0,
+    "failed": 1,
+    "failedRows": [
+      { "row": 1, "field": "minMonthlyHours", "messageContains": "greater than or equal to 0" }
+    ]
+  }
+}

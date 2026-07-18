@@ -7,7 +7,6 @@ function baseRecord(overrides: Partial<CsvWorkerRecord> = {}): CsvWorkerRecord {
   return {
     nationalId: '123456782',
     name: 'Dana Levi',
-    companyName: 'Shamir Security Ltd',
     role: 'SUPERVISOR',
     status: 'ACTIVE',
     hourlyCostIls: 62.5,
@@ -18,7 +17,7 @@ function baseRecord(overrides: Partial<CsvWorkerRecord> = {}): CsvWorkerRecord {
 }
 
 describe('fromWorkerRecord / toWorkerRecord (display mapping, no availability columns)', () => {
-  it('produces exactly the 8 documented CSV columns, no more, no fewer', () => {
+  it('produces exactly the 7 documented CSV columns, no more, no fewer', () => {
     const raw = fromWorkerRecord(baseRecord());
     expect(Object.keys(raw).sort()).toEqual([...CSV_COLUMNS].sort());
   });

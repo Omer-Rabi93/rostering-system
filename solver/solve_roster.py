@@ -206,7 +206,23 @@ def solve(problem: ProblemInput) -> dict[str, Any]:
     solver.parameters.random_seed = RANDOM_SEED
     solver.parameters.num_search_workers = NUM_SEARCH_WORKERS
     solver.parameters.max_time_in_seconds = MAX_TIME_IN_SECONDS
-    solver.solve(model)  # never INFEASIBLE -- slacks absorb any shortage
+    status = solver.solve(model)  # never INFEASIBLE -- slacks absorb any shortage
+
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        # The model is built so a feasible solution should always exist (slack variables absorb
+        # any coverage/min-hours shortage rather than making the model infeasible -- see the
+        # objective above), but on a large enough problem `max_time_in_seconds` can still expire
+        # before the solver has recorded ANY solution (status UNKNOWN). Calling solver.value(...)
+        # below with no solution recorded raises an opaque IndexError deep inside OR-Tools --
+        # fail loudly and specifically instead, so the caller (Node's runSolver.ts) gets a clear
+        # SolverProcessError via the non-zero exit code, not a crash indistinguishable from any
+        # other bug.
+        print(
+            f"solver did not find a solution within {MAX_TIME_IN_SECONDS}s "
+            f"(status: {solver.status_name(status)})",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     assignments = [
         {"workerId": worker_id, "date": date, "shift": shift}

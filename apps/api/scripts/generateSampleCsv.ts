@@ -8,7 +8,6 @@ import { serializeWorkersCsv, type CsvWorkerRecord } from '../src/csv/index.js';
 const records: CsvWorkerRecord[] = SEED_WORKERS.map((w) => ({
   nationalId: w.nationalId,
   name: w.name,
-  companyName: w.companyName,
   role: w.role,
   status: w.status,
   hourlyCostIls: w.hourlyCostIls,

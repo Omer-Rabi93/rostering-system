@@ -1,0 +1,9 @@
+{
+  "_comment": "Zero-byte file. csv-parse tokenizes it to zero records, so parseWorkersCsv()'s own `const [header] = records` destructure sees `header === undefined` and throws CsvHeaderError('CSV file is empty; expected a header row') -- a file-level error, before any per-row processing.",
+  "kind": "worker",
+  "call": "parseWorkersCsv(csvText) -- throws before importCsv's per-row loop is reached",
+  "fileError": {
+    "type": "CsvHeaderError",
+    "messageContains": "empty"
+  }
+}

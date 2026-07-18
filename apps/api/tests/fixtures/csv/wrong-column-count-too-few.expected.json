@@ -1,0 +1,9 @@
+{
+  "_comment": "Data row has 6 fields against a 7-column header (max_monthly_hours missing) -- this is a FILE-LEVEL framing problem, not a per-row one: parseWorkersCsv() throws CsvRowShapeError synchronously, before CsvImportService.importCsv ever creates an ImportTask or enters the per-row loop. Shape is deliberately different from the failedRows-array fixtures above.",
+  "kind": "worker",
+  "call": "parseWorkersCsv(csvText) -- throws before importCsv's per-row loop is reached",
+  "fileError": {
+    "type": "CsvRowShapeError",
+    "messageContains": "has 6 fields, expected 7"
+  }
+}
