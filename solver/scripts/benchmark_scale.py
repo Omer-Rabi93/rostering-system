@@ -123,8 +123,24 @@ def main() -> None:
     # gets exactly the same wall-clock budget, regardless of what its own TIME_BUDGET_BANDS says.
     solve_roster.compute_time_budget_seconds = lambda _worker_count: args.time_limit
 
+    # `solve_roster.solve()` calls `sys.exit(1)` (after printing to stderr) when CP-SAT returns
+    # neither OPTIMAL nor FEASIBLE within the time budget -- a real, meaningful outcome for this
+    # benchmark ("this technique doesn't even find a first solution within the cap"), not a crash
+    # to propagate. Catch it here so the harness still prints a comparable report instead of dying.
     start = time.monotonic()
-    result = solve_roster.solve(problem)
+    try:
+        result = solve_roster.solve(problem)
+    except SystemExit:
+        wall_time_s = time.monotonic() - start
+        report = {
+            "label": args.label,
+            "worker_count": args.workers,
+            "time_limit_s": args.time_limit,
+            "wall_time_s": round(wall_time_s, 2),
+            "status": "no_solution_within_time_limit",
+        }
+        print(json.dumps(report))
+        return
     wall_time_s = time.monotonic() - start
 
     coverage_alerts = [a for a in result["alerts"] if a["type"] == "unfillable_slot"]
@@ -135,6 +151,7 @@ def main() -> None:
         "worker_count": args.workers,
         "time_limit_s": args.time_limit,
         "wall_time_s": round(wall_time_s, 2),
+        "status": "ok",
         "assignments": len(result["assignments"]),
         "coverage_shortfall_total": sum(a["missing"] for a in coverage_alerts),
         "coverage_shortfall_slots": len(coverage_alerts),
