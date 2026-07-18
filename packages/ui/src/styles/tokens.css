@@ -1,0 +1,229 @@
+/*
+ * Rostering System — Design tokens (runnable form of design-tokens.md)
+ * Linked by every file under mockups/*.html. When Phase 8 implements
+ * packages/ui, this file (or a 1:1 TS token object) becomes the theme source.
+ *
+ * Theming: prefers-color-scheme drives the default; a `data-theme="dark"` or
+ * `data-theme="light"` attribute on <html> overrides it either way, for a
+ * future in-app theme toggle.
+ */
+
+:root {
+  /* ---- neutrals & surfaces (light default) ---- */
+  --color-page: #f9f9f7;
+  --color-surface: #fcfcfb;
+  --color-surface-raised: #ffffff;
+  --color-ink-primary: #0b0b0b;
+  --color-ink-secondary: #52514e;
+  /* Was #898781 (3.5:1 against --color-surface/--color-page — fails WCAG AA's 4.5:1 for normal
+     text; found via the Phase 11 axe pass on every page that renders muted text at real body-text
+     sizes, e.g. the public schedule page's day-of-week label and header subtitle). Darkened for
+     LIGHT mode only: #898781 already clears 4.5:1 against both dark-mode surfaces (~4.85-5.4:1),
+     so the dark-mode declarations below are intentionally left unchanged. */
+  --color-ink-muted: #6b6a64;
+  --color-border: rgba(11, 11, 11, 0.10);
+  --color-border-strong: #c3c2b7;
+  --color-gridline: #e1e0d9;
+  /* Was #2a78d6 (4.41:1 as white button text's background, 3.88:1 as this same color used as text
+     on --color-shift-a-bg — both fail WCAG AA's 4.5:1; same Phase 11 axe pass). Darkened for LIGHT
+     mode only — a single shared token satisfies both the white-on-button and text-on-badge
+     contrast constraints in light mode. The Phase 11 report flagged DARK mode's shared
+     #3987e5 value as a likely SEPARATE gap where those two constraints pull in opposite
+     directions (a button/fill background needs to be dark enough for white text; the same hue
+     used as text on a dark badge/nav background needs to be light enough to read); the Phase 12
+     dark-mode audit computed it out and confirmed the conflict is real (3.64:1 white-on-button vs.
+     4.16:1 text-on-badge, both against WCAG AA's 4.5:1 floor) — see --color-brand-text below for
+     the split this required. */
+  --color-focus-ring: #1f66c0;
+  --color-brand: #1f66c0;
+  --color-brand-ink: #ffffff;
+  /* Text-on-dark-surface twin of --color-brand — used wherever the brand hue is TEXT rather than a
+     fill (generic links, the topbar's "current page" nav link, `.state-nav a:hover`), so it can
+     move independently of --color-brand's own dark-mode value below. Equal to --color-brand in
+     LIGHT mode, where one value already clears 4.5:1 in both roles (see the comment above). */
+  --color-brand-text: #1f66c0;
+
+  /* ---- shift accents ---- */
+  --color-shift-a: #1f66c0; /* 00:00-08:00, night */
+  --color-shift-a-bg: #e9f1fc;
+  /* Text-on-dark-surface twin of --color-shift-a — badge--shift-a's text color only.
+     --color-shift-a itself stays the raw/vivid hue (used as a background too, e.g.
+     `.btn--primary:hover`); same value/reasoning as --color-brand-text (this is, not
+     coincidentally, the exact same hue under a different semantic name). */
+  --color-shift-a-text: #1f66c0;
+  /* #b07800/#128a5f were each already labeled "text-safe darker step" of a raw brand hue but
+     still measured under 4.5:1 against their own -bg token (3.42:1 / 3.87:1 respectively) — one
+     more darkening step, found by the same Phase 11 axe pass, light mode only (--color-shift-b's
+     dark-mode value was already fine at 4.58:1; --color-shift-c's dark-mode value was NOT — see
+     its dark-block comment below, added by the Phase 12 dark-mode audit). */
+  --color-shift-b: #8a5c00; /* 08:00-16:00, day  (text-safe darker step of #eda100) */
+  --color-shift-b-bg: #fdf2dc;
+  --color-shift-c: #0c6a4a; /* 16:00-24:00, dusk (text-safe darker step of #1baf7a) */
+  --color-shift-c-bg: #e3f6ee;
+
+  /* ---- status / alert severity ---- */
+  /* Was #0ca30c (2.99:1 against --color-status-good-bg — the worst violation this pass found).
+     Light mode only, same reasoning as --color-brand/--color-shift-b/-c above; dark mode's
+     --color-status-good was independently re-checked in the Phase 12 audit (4.70:1, passes). */
+  --color-status-good: #0a7a0a;
+  --color-status-good-bg: #e6f6e6;
+  --color-status-warning: #96650a; /* text-safe darker step of #fab219 for on-light text */
+  --color-status-warning-accent: #fab219; /* raw hue for bars/icons/dots at large sizes */
+  --color-status-warning-bg: #fdf1dc;
+  /* Was #d03b3b (4.10:1 against --color-status-blocking-bg, e.g. the Delete button's red-on-light
+     text). Light mode only, same reasoning as above; dark mode's --color-status-blocking was
+     independently re-checked in the Phase 12 audit (5.06:1, passes). */
+  --color-status-blocking: #c02b2b;
+  --color-status-blocking-bg: #fbe9e9;
+
+  /* ---- role colors ---- */
+  --color-role-guard: #52514e;
+  --color-role-guard-bg: #ececea;
+  --color-role-supervisor: #4a3aa7;
+  --color-role-supervisor-bg: #ece9f9;
+  --color-role-screener: #a3336a; /* text-safe darker step of #e87ba4 — dark mode's
+    --color-role-screener was NOT fine (4.25:1); see its dark-block comment below. */
+  --color-role-screener-bg: #fbe8f1;
+
+  /* ---- spacing ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- typography ---- */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+
+  /* ---- radius / elevation / motion ---- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, .06), 0 1px 1px rgba(11, 11, 11, .04);
+  --shadow-modal: 0 20px 48px rgba(11, 11, 11, .24);
+  --motion-fast: 120ms ease-out;
+  --motion-base: 200ms ease-out;
+}
+
+/* Dark values, expressed twice on purpose:
+   1) @media (prefers-color-scheme: dark) — the default signal (no toggle yet)
+   2) :root[data-theme="dark"]            — explicit override, wins in both
+      directions once a future in-app theme toggle stamps this attribute.
+   :root[data-theme="light"] forces light even when the OS prefers dark. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: #0d0d0d;
+    --color-surface: #1a1a19;
+    --color-surface-raised: #232322;
+    --color-ink-primary: #ffffff;
+    --color-ink-secondary: #c3c2b7;
+    --color-ink-muted: #898781;
+    --color-border: rgba(255, 255, 255, 0.10);
+    --color-border-strong: #383835;
+    --color-gridline: #2c2c2a;
+    --color-focus-ring: #3987e5;
+    /* Was #3987e5 (3.64:1 as white --color-brand-ink text's background — .btn--primary,
+       .skip-link — below WCAG AA's 4.5:1; Phase 12 dark-mode audit). Darkened; TEXT usages of this
+       hue now read --color-brand-text (below) instead so they don't inherit this darkening. */
+    --color-brand: #2e6ebb;
+    --color-brand-ink: #ffffff;
+    /* Was #3987e5 (4.16:1 as text on --color-shift-a-bg — .topbar__nav a[aria-current="page"],
+       .state-nav a:hover — below 4.5:1; same audit). Lightened, independently of --color-brand
+       above (see its comment): this is the "text" role of the same conflicted token. */
+    --color-brand-text: #6aa5eb;
+
+    --color-shift-a: #3987e5;
+    --color-shift-a-bg: #16273b;
+    /* Same value/reasoning as --color-brand-text — badge--shift-a's text (--color-shift-a itself,
+       used as a background in `.btn--primary:hover`, is intentionally left at the raw #3987e5). */
+    --color-shift-a-text: #6aa5eb;
+    --color-shift-b: #c98500;
+    --color-shift-b-bg: #362a08;
+    /* Was #199e70 (4.30:1 as badge--shift-c text on --color-shift-c-bg — below 4.5:1; Phase 12
+       dark-mode audit). Only used as text (no background/fill role like --color-shift-a), so a
+       single in-place value change is enough — no split needed. */
+    --color-shift-c: #30a77e;
+    --color-shift-c-bg: #0f2e23;
+
+    --color-status-good: #0ca30c;
+    --color-status-good-bg: #10280f;
+    --color-status-warning: #fab219;
+    --color-status-warning-accent: #fab219;
+    --color-status-warning-bg: #362b0e;
+    --color-status-blocking: #e66767;
+    --color-status-blocking-bg: #391414;
+
+    --color-role-guard: #c3c2b7;
+    --color-role-guard-bg: #2a2a28;
+    --color-role-supervisor: #9085e9;
+    --color-role-supervisor-bg: #241f3f;
+    /* Was #d55181 (4.25:1 as badge--role-screener text on --color-role-screener-bg — below 4.5:1;
+       Phase 12 dark-mode audit). Only used as text, single in-place value change. */
+    --color-role-screener: #d9628d;
+    --color-role-screener-bg: #34121f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-page: #0d0d0d;
+  --color-surface: #1a1a19;
+  --color-surface-raised: #232322;
+  --color-ink-primary: #ffffff;
+  --color-ink-secondary: #c3c2b7;
+  --color-ink-muted: #898781;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-strong: #383835;
+  --color-gridline: #2c2c2a;
+  --color-focus-ring: #3987e5;
+  /* See the @media (prefers-color-scheme: dark) block above for why --color-brand and
+     --color-brand-text/--color-shift-a-text diverge, and why --color-shift-c/--color-role-screener
+     moved — same Phase 12 dark-mode audit findings, kept in sync here. */
+  --color-brand: #2e6ebb;
+  --color-brand-ink: #ffffff;
+  --color-brand-text: #6aa5eb;
+
+  --color-shift-a: #3987e5;
+  --color-shift-a-bg: #16273b;
+  --color-shift-a-text: #6aa5eb;
+  --color-shift-b: #c98500;
+  --color-shift-b-bg: #362a08;
+  --color-shift-c: #30a77e;
+  --color-shift-c-bg: #0f2e23;
+
+  --color-status-good: #0ca30c;
+  --color-status-good-bg: #10280f;
+  --color-status-warning: #fab219;
+  --color-status-warning-accent: #fab219;
+  --color-status-warning-bg: #362b0e;
+  --color-status-blocking: #e66767;
+  --color-status-blocking-bg: #391414;
+
+  --color-role-guard: #c3c2b7;
+  --color-role-guard-bg: #2a2a28;
+  --color-role-supervisor: #9085e9;
+  --color-role-supervisor-bg: #241f3f;
+  --color-role-screener: #d9628d;
+  --color-role-screener-bg: #34121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}

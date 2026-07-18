@@ -192,6 +192,16 @@ any path. Soft rules (min/max monthly hours) surface as alerts that the planner 
 acknowledge before a roster can be saved. There are no worker logins: workers get a read-only,
 printable schedule page.</p>
 
+<div class="decision"><strong>Design revision (2026-07-17, "Availability v2"):</strong> worker
+availability was corrected from a weekly pattern (7 weekdays × 3 shifts, stored on <code>Contract</code>)
+to <strong>date-specific</strong> availability — a new <code>WorkerAvailability</code> table with one
+row per <em>(worker, exact calendar date)</em>, entered per target month before generation. This
+better matches the source requirements (per-real-date entry, not a recurring weekly default) and
+touches the data model, the CP-SAT solver's decision-variable creation, <code>RosterValidator</code>'s
+<code>withinAvailability</code> rule, the REST API, and the CSV import/export surface (worker CSV
+dropped its 21 <code>avail_*</code> columns; a new month-scoped availability CSV was added). Every
+section below reflects the current (v2) model; no weekly-matrix behavior remains.</div>
+
 <nav class="toc">
   <strong>Contents</strong>
   <ol>
@@ -236,11 +246,14 @@ printable schedule page.</p>
   </tr>
   <tr>
     <td><strong>CSV Import/Export</strong></td>
-    <td>One combined workers+contracts schema; export is re-importable unmodified. Availability is
-    encoded as 21 boolean columns (<code>avail_sun_a</code> … <code>avail_sat_c</code>). Import validates
-    per row, upserts by Israeli ID, and returns a per-row error report — one bad row never aborts the batch.
-    Import is a <strong>full sync</strong>: existing workers whose ID is absent from the file are set
-    Inactive (never deleted — contract and shift history kept).</td>
+    <td>Two independent CSV schemas. The worker CSV is a combined workers+contracts sync (8 columns,
+    no availability data); export is re-importable unmodified, import validates per row, upserts by
+    Israeli ID, and returns a per-row error report — one bad row never aborts the batch. Import is a
+    <strong>full sync</strong>: existing workers whose ID is absent from the file are set Inactive
+    (never deleted — contract and shift history kept). A separate, month-scoped availability CSV
+    (<code>national_id</code> + one <code>dNN</code> column per calendar date of the target month)
+    imports/exports <code>WorkerAvailability</code> rows for that month only, with per-row errors but
+    <em>no</em> sync-deactivation sweep — see <a href="#csv-jobs">CSV Schema &amp; Jobs Detail</a>.</td>
   </tr>
   <tr>
     <td><strong>Background Workers</strong></td>
@@ -280,9 +293,14 @@ permissions or audit trail in this version; the schema leaves room to add both l
   </tr>
   <tr>
     <td><strong>Contract</strong></td>
-    <td>hourly cost (ILS), availability matrix (7 weekdays × 3 shifts, booleans),
-    min monthly hours, max monthly hours</td>
+    <td>hourly cost (ILS), min monthly hours, max monthly hours</td>
     <td>belongs to Worker</td>
+  </tr>
+  <tr>
+    <td><strong>WorkerAvailability</strong></td>
+    <td>date, shift subset (non-empty ordered subset of A/B/C)</td>
+    <td>belongs to Worker; one row per <em>(worker, calendar date)</em> — <strong>absence of a row
+    means unavailable that date</strong>, there is no weekly default or fallback</td>
   </tr>
   <tr>
     <td><strong>StaffingRequirement</strong></td>
@@ -347,8 +365,10 @@ rather than filled slot by slot:</p>
 <ul>
   <li><strong>Decision variables.</strong> Booleans <code>x[w,d,s] ∈ {0,1}</code> — worker
   <code>w</code> assigned to day <code>d</code>, shift <code>s</code>. A variable is only created
-  where the worker's contract availability allows that weekday + shift, which prunes the model
-  before solving even starts.</li>
+  where worker <code>w</code> has a <code>WorkerAvailability</code> row for the exact calendar date
+  <code>d</code> whose shift subset contains <code>s</code> — a per-date, not per-weekday, lookup —
+  which prunes the model before solving even starts. A worker with no availability rows in the
+  month contributes no variables at all.</li>
   <li><strong>Hard constraints.</strong> (a) <em>Role coverage per slot:</em> for each
   day × shift × role, the sum of <code>x</code> over workers of that role plus a shortfall slack
   equals the required headcount; (b) <em>≤ 2 shifts</em> per worker per calendar day;
@@ -369,7 +389,7 @@ rather than filled slot by slot:</p>
 
 <p><strong>Manual edits never touch the solver.</strong> Every move/add/remove on the calendar goes
 through the server-side TypeScript <code>RosterValidator</code>: hard violations (third shift in a
-day, outside availability) are rejected outright; min/max-hours breaches return a warning the UI
+day, outside the worker's availability for that exact date) are rejected outright; min/max-hours breaches return a warning the UI
 turns into a confirm dialog, and alerts are recomputed so the save gate always reflects the current
 grid.</p>
 
@@ -668,9 +688,21 @@ model Contract {                                    // table: contracts
   hourlyCostIls   Decimal  @db.Decimal(8, 2)        // NOT NULL, ≥ 0 (Zod)
   minMonthlyHours Int                               // NOT NULL, 0 ≤ min ≤ max (Zod)
   maxMonthlyHours Int
-  availability    Json     @db.JsonB                // 7×3 boolean matrix, Zod-validated on write
   updatedAt       DateTime @updatedAt
   @@map("contracts")
+}
+
+model WorkerAvailability {                          // table: worker_availability
+  id        Int      @id @default(autoincrement())
+  workerId  Int
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date                        // exact calendar date, not a weekday
+  shifts    String                                   // canonical shift subset, e.g. "A", "AB", "ABC"
+  @@unique([workerId, date])                          // ← one row per worker × date; absence of a
+                                                      //   row IS the "unavailable that date" state
+  @@index([date])                                     // month-window queries (planner grid, solver
+                                                      //   problem-builder, CSV export)
+  @@map("worker_availability")
 }
 
 model StaffingRequirement {                         // table: staffing_requirements
@@ -773,10 +805,13 @@ stays accurate even if the worker is later promoted or reassigned.</div>
 (<code>pgboss.job</code>, <code>pgboss.archive</code>, <code>pgboss.schedule</code>, …) on first
 start; it lives outside Prisma and needs no hand-written job table.</p>
 
-<div class="decision"><strong>Design decision:</strong> the 21-boolean availability matrix is stored
-as one <code>jsonb</code> column (shape enforced by Zod on every write) rather than 21 columns — the
-engine always reads a contract whole and never queries by a single availability cell, and the CSV
-layer flattens/unflattens it at the boundary.</div>
+<div class="decision"><strong>Design decision:</strong> availability is date-specific, not a weekly
+pattern — the previous design's 21-boolean weekly matrix (stored as one <code>jsonb</code> column on
+<code>Contract</code>) has been replaced by a <code>WorkerAvailability</code> table with one row per
+<em>(worker, calendar date)</em> and a canonical shift-subset string per row. Absence of a row means
+unavailable that date; there is no default or fallback. This matches how planners actually think
+about a specific month's roster (date-by-date, not "every Sunday") and lets the engine, validator,
+and CSV layer all key off the exact date instead of deriving a weekday from it.</div>
 
 <h2 id="api">REST API Reference</h2>
 
@@ -823,10 +858,29 @@ and resubmits the identical request with <code>?confirm=true</code>.</p>
   <tr><td><code>GET /api/workers/:id/contract</code></td><td>Read contract</td><td>—</td>
       <td><code>200</code> Contract</td><td><code>404</code></td></tr>
   <tr><td><code>PUT /api/workers/:id/contract</code></td><td>Create/replace contract (upsert)</td>
-      <td><code>hourlyCostIls</code>, <code>minMonthlyHours</code>, <code>maxMonthlyHours</code>,
-      <code>availability[7][3]</code></td>
+      <td><code>hourlyCostIls</code>, <code>minMonthlyHours</code>, <code>maxMonthlyHours</code></td>
       <td><code>200</code> Contract</td>
-      <td><code>400</code> min &gt; max, negative values, bad matrix shape; <code>404</code></td></tr>
+      <td><code>400</code> min &gt; max, negative values; <code>404</code></td></tr>
+  <tr><td><code>GET /api/availability/:month</code></td><td>All <code>WorkerAvailability</code> rows
+      for the month, grouped per worker (planner grid data source)</td><td>—</td>
+      <td><code>200</code> map of <code>workerId → {date: shifts}</code></td>
+      <td><code>400</code> malformed <code>:month</code></td></tr>
+  <tr><td><code>PUT /api/availability/:month</code></td><td>Full-replace availability for the month
+      in one transaction (delete month window + insert payload)</td>
+      <td>map of <code>workerId → {date: shifts}</code> (route-scoped 2&nbsp;MB JSON body limit,
+      not the app-wide 100&nbsp;KB default)</td>
+      <td><code>200</code> updated map</td>
+      <td><code>400</code> malformed <code>:month</code>, out-of-month date, illegal shift subset,
+      unknown <code>workerId</code>, or entry count over <code>MAX_AVAILABILITY_ENTRIES</code></td></tr>
+  <tr><td><code>POST /api/import/availability/:month</code></td><td>Month-scoped availability CSV
+      bulk import</td>
+      <td>multipart <code>file</code></td>
+      <td><code>202</code> <code>{jobId}</code></td>
+      <td><code>400</code> not CSV / header day-count mismatch for <code>:month</code> / over size
+      limit</td></tr>
+  <tr><td><code>GET /api/export/availability/:month</code></td><td>Month-scoped availability CSV
+      export (re-importable)</td><td>—</td>
+      <td><code>200</code> <code>text/csv</code></td><td><code>400</code> malformed <code>:month</code></td></tr>
   <tr><td><code>GET /api/staffing-requirements</code></td><td>Read headcount matrix</td><td>—</td>
       <td><code>200</code> rows[≤9]</td><td>—</td></tr>
   <tr><td><code>PUT /api/staffing-requirements</code></td><td>Replace full role × shift matrix</td>
@@ -875,9 +929,11 @@ and resubmits the identical request with <code>?confirm=true</code>.</p>
       <code>POST …/share-link/rotate</code>) the worker's public schedule URL</td><td>—</td>
       <td><code>200</code> <code>{url: "/schedule/&lt;token&gt;"}</code></td>
       <td><code>404</code></td></tr>
-  <tr><td><code>GET /schedule/:token?month=YYYY-MM</code></td><td>Public read-only worker schedule
-      (no auth; print stylesheet)</td><td>—</td>
-      <td><code>200</code> page/JSON, published rosters only</td>
+  <tr><td><code>GET /api/schedule/:token?month=YYYY-MM</code></td><td>Public read-only worker
+      schedule data (no auth; consumed by the frontend's own <code>/schedule/:token</code> SPA
+      route, which is not this endpoint — kept under <code>/api</code> specifically so the two
+      don't collide on one literal path)</td><td>—</td>
+      <td><code>200</code> JSON, published rosters only</td>
       <td><code>404</code> unknown token (indistinguishable from no data)</td></tr>
   <tr><td><code>GET /api/rosters/:month/cost-summary</code></td><td>Projected labor cost — roster
       total, per worker, and grouped per company (reporting)</td><td>—</td>
@@ -914,10 +970,11 @@ from ortools.sat.python import cp_model
 def solve(p):                                     # p: month, workers+contracts, requirements
     m = cp_model.CpModel()
 
-    # Decision vars x[w,d,s] — created ONLY where the contract allows (prunes the model)
+    # Decision vars x[w,d,s] — created ONLY where the worker has a WorkerAvailability row for the
+    # EXACT date d whose shift subset contains s (date-keyed, not weekday-keyed; prunes the model)
     x = {(w.id, d, s): m.new_bool_var(f"x_{w.id}_{d}_{s}")
          for w in p.workers for (d, s) in p.slots
-         if w.availability[weekday(d)][s]}
+         if s in p.availability.get(w.id, {}).get(d, [])}
 
     # HARD (a): role coverage per day × shift × role, with shortfall slack
     short = {}
@@ -980,7 +1037,8 @@ warnings that require <code>?confirm=true</code>.</p>
 
 const HARD_RULES = [
   maxTwoShiftsPerDay,        // would be the worker's 3rd shift on that calendar date
-  withinAvailability,        // contract.availability[weekday][shift] must be true
+  withinAvailability,        // a WorkerAvailability row for the edit's EXACT date must exist and
+                              // its shift subset must contain the slot's shift
   roleMatchesSlot,           // worker.role === slot.role
   workerIsActive,            // status === ACTIVE
   noDuplicateSlot,           // (shift_id, worker_id) — also the shift_workers primary key
@@ -995,7 +1053,11 @@ function validateEdit(edit: Edit, ctx: MonthContext): Verdict { /* run HARD, the
 
 <h2 id="csv-jobs">CSV Schema &amp; Jobs Detail</h2>
 
-<h3>CSV columns (import and export — identical, so export re-imports unmodified)</h3>
+<h3>Worker CSV columns (import and export — identical, so export re-imports unmodified)</h3>
+
+<p>Availability v2: this worker CSV carries <strong>no availability data at all</strong> — a
+previous design revision's 21 <code>avail_*</code> boolean columns have been removed entirely.
+Availability is date-specific and lives in the separate month-scoped CSV below.</p>
 
 <table>
   <tr><th style="width:34%">Column</th><th>Type / allowed values</th></tr>
@@ -1011,14 +1073,12 @@ function validateEdit(edit: Edit, ctx: MonthContext): Verdict { /* run HARD, the
   <tr><td><code>hourly_cost_ils</code></td><td>decimal ≥ 0, dot separator (e.g. <code>62.50</code>)</td></tr>
   <tr><td><code>min_monthly_hours</code>, <code>max_monthly_hours</code></td>
       <td>integers, <code>0 ≤ min ≤ max</code></td></tr>
-  <tr><td><code>avail_sun_a</code> … <code>avail_sat_c</code></td>
-      <td>21 boolean columns (<code>1</code>/<code>0</code>), ordered Sun→Sat, each day A,B,C</td></tr>
 </table>
 
-<p>Header row (one line, 29 columns) and one sample row:</p>
+<p>Header row (one line, 8 columns) and one sample row:</p>
 
-<pre><code>national_id,name,company_name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours,avail_sun_a,avail_sun_b,avail_sun_c,avail_mon_a,avail_mon_b,avail_mon_c,avail_tue_a,avail_tue_b,avail_tue_c,avail_wed_a,avail_wed_b,avail_wed_c,avail_thu_a,avail_thu_b,avail_thu_c,avail_fri_a,avail_fri_b,avail_fri_c,avail_sat_a,avail_sat_b,avail_sat_c
-123456782,Dana Levi,Shamir Security Ltd,Supervisor,Active,62.50,120,182,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,0,0,0,0</code></pre>
+<pre><code>national_id,name,company_name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
+123456782,Dana Levi,Shamir Security Ltd,Supervisor,Active,62.50,120,182</code></pre>
 
 <p><strong>Full-sync semantics:</strong> each row is validated in full (Zod + ID checksum);
 <code>company_name</code> is resolved to an existing company by case-insensitive name or a new
@@ -1047,6 +1107,44 @@ partial file would silently deactivate everyone omitted, the UI's import panel s
 up front and requires an explicit confirmation ("workers not in this file will be deactivated")
 before upload; the completion report lists every deactivated worker by name so the action is
 visible and reversible (re-import a full file, or flip the worker back to Active in the UI).</div>
+
+<h3>Availability CSV columns (Availability v2 — separate month-scoped schema)</h3>
+
+<p><code>POST /api/import/availability/:month</code> and <code>GET /api/export/availability/:month</code>
+speak a month-scoped format, independent of the worker CSV above: <code>national_id</code> plus one
+<code>dNN</code> column per calendar date of the target month (<code>d01</code> … <code>d28</code>/
+<code>d29</code>/<code>d30</code>/<code>d31</code>, count depends on the month). Header row for a
+31-day month and one sample row:</p>
+
+<pre><code>national_id,d01,d02,...,d31
+123456782,ABC,ABC,,A,AB,,,ABC,...</code></pre>
+
+<p>Each <code>dNN</code> cell is either empty (no <code>WorkerAvailability</code> row for that date
+— unavailable) or a canonical shift-subset string in <code>A</code>&lt;<code>B</code>&lt;<code>C</code>
+order with no duplicates (<code>A</code>, <code>B</code>, <code>C</code>, <code>AB</code>,
+<code>AC</code>, <code>BC</code>, <code>ABC</code>); anything else (<code>AD</code>, <code>AA</code>,
+<code>BA</code>) is a per-row error. Import rejects a file whose header day-count/order does not
+exactly match <code>:month</code> before anything is enqueued — a 31-day export imported against a
+30-day target month is a 400, not a partial import.</p>
+
+<p><strong>Import semantics differ from the worker CSV in one key way: there is no sync-deactivation
+sweep.</strong> Each row (one worker) is validated and applied in its own transaction — a row that
+passes <strong>replaces</strong> that worker's <code>WorkerAvailability</code> rows for the whole
+target month with exactly what the row specifies; a row that fails (unknown <code>national_id</code>,
+illegal cell) is reported with its 1-based row number without aborting the batch; and a worker whose
+<code>national_id</code> is simply absent from the file keeps whatever availability rows they already
+have — nothing is deactivated by an availability import.</p>
+
+<pre><code>type AvailabilityImportResult = {
+  totalRows: number; applied: number; failed: number;
+  errors: Array&lt;{ row: number; nationalId?: string; field?: string; message: string }&gt;;
+};</code></pre>
+
+<div class="decision"><strong>Design decision:</strong> the availability CSV is deliberately a
+separate endpoint/file from the worker CSV, not extra columns bolted onto it, because the two have
+different scopes (whole-workforce sync vs. one month's dates) and different import semantics
+(deactivation sweep vs. none) — conflating them would force one file format to awkwardly serve two
+different "what does an absent row mean" rules.</div>
 
 <h3>pg-boss specifics</h3>
 

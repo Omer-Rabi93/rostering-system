@@ -1,0 +1,37 @@
+## Local dev/test Postgres ONLY.
+##
+## This is NOT the production stack (that's Phase 7's root docker-compose.yml
+## with nginx + api replicas + worker + postgres on an internal-only network).
+## This file exists purely so `apps/api` has a real Postgres to run
+## `prisma migrate`, the seed script, and integration tests against on a
+## developer's machine or in CI.
+##
+## Usage:
+##   docker compose -f docker-compose.dev.yml up -d
+##
+## Reads POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_PORT from
+## a root `.env` file (gitignored, see `.env.example` for the documented
+## placeholder values). Falls back to throwaway dev-only defaults if `.env`
+## is absent so a fresh checkout can still `docker compose up` immediately.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-dbname}
+    ports:
+      # Bind to loopback only — never expose the dev database on 0.0.0.0.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - rostering-dev-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-dbname}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  rostering-dev-postgres-data:

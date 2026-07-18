@@ -1,0 +1,126 @@
+## Production-shaped stack (Phase 7). NOT the same thing as `docker-compose.dev.yml` (Phase 3's
+## throwaway dev-only Postgres for `apps/api` tests/seed on the host) — this file's `postgres`
+## service is a SEPARATE container/volume, reachable only from other containers on this
+## project's own internal network, never from the host.
+##
+## `name: rostering-prod` below pins this stack to its own Compose project namespace, distinct
+## from docker-compose.dev.yml's default `rostering-system` project name — so container names
+## (e.g. this file's postgres container vs. the dev container `rostering-system-postgres-1`),
+## networks, and volumes never collide even though both files can be up on the same machine at
+## the same time (they intentionally are, in this repo's own dev workflow).
+##
+## Reads POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB from the same gitignored root `.env`
+## docker-compose.dev.yml uses (see `.env.example`) — reusing those values is fine precisely
+## because this stack's Postgres is a distinct container/volume from the dev one; no credential
+## or data is shared between them. DATABASE_URL is NOT reused from `.env` as-is (that copy points
+## at `localhost`, which only makes sense from the host) — it's rebuilt below from the same parts
+## with the internal service hostname `postgres` instead.
+##
+## Usage:
+##   docker compose up --build --scale api=2
+##   docker compose down            # add -v to also drop the postgres volume
+
+name: rostering-prod
+
+x-database-url: &database-url
+  DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-dbname}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-dbname}
+    # No `ports:` — intentionally NOT published to the host. Reachable only from other
+    # containers on this compose project's internal network (by service name `postgres`).
+    volumes:
+      - rostering-prod-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-dbname}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: runs `prisma migrate deploy` against `postgres` and exits. `api` and `worker`
+  # both wait on this via `condition: service_completed_successfully` before starting, so
+  # migrations are applied exactly once per `up`, before anything queries the schema.
+  # Uses infra/api.Dockerfile's `builder` target specifically because that's the only stage
+  # with the Prisma CLI + prisma/migrations available (the `runtime` target that `api`/`worker`
+  # actually run is pruned to production dependencies only and has neither).
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/api.Dockerfile
+      target: builder
+    # Invokes the installed Prisma CLI binary directly rather than via `pnpm exec`/corepack:
+    # the `builder` stage's non-root `app` user (home /app) never ran `corepack prepare` itself
+    # (that happened earlier, as root, in the `base` stage) so a `pnpm ...` invocation at
+    # container start re-triggers a network fetch of pnpm under $HOME/.cache — unnecessary and
+    # a needless startup dependency on the npm registry. Calling node_modules/.bin/prisma needs
+    # neither pnpm nor corepack at runtime.
+    working_dir: /app/apps/api
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      <<: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/api.Dockerfile
+      target: runtime
+    environment:
+      <<: *database-url
+      PORT: "3000"
+    # No `ports:` — nginx reaches every replica over the internal network via Docker DNS
+    # (see infra/nginx.conf's `upstream api { least_conn; server api:3000; }`), so replicas
+    # never compete for a host port. `docker compose up --scale api=2` works unmodified.
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    # HEALTHCHECK is baked into infra/api.Dockerfile (hits its own /api/health); no override
+    # needed here, just relied on by `nginx`'s `depends_on: condition: service_healthy` below.
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/worker.Dockerfile
+      target: runtime
+    environment:
+      <<: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    # No HTTP server to heathcheck (pg-boss worker only polls Postgres) — see
+    # infra/worker.Dockerfile's closing comment. `restart: unless-stopped` covers crash recovery.
+
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/web.Dockerfile
+    ports:
+      # The ONLY published port in the whole stack.
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+
+volumes:
+  rostering-prod-postgres-data:

@@ -1,0 +1,14 @@
+/*
+ * `@rostering/ui` theme entrypoint. Consumers (apps/web) import this once,
+ * e.g. `import '@rostering/ui/styles.css'`, to get the design tokens
+ * (`tokens.css`, copied verbatim from the approved `docs/design/ui/tokens.css`)
+ * and the reference component visual styles (`kit.css`, copied verbatim from
+ * `docs/design/ui/kit.css`) that every component in this package is styled
+ * against via matching class names (`.badge`, `.field`, `.modal`, ...).
+ *
+ * These two files are intentionally byte-for-byte copies of the approved
+ * Phase D design deliverables — Phase 8 does not re-derive the visual system,
+ * it implements React components whose class names match this CSS.
+ */
+@import './tokens.css';
+@import './kit.css';

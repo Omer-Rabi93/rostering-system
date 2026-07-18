@@ -1,0 +1,47 @@
+# Keep the Docker build context small and reproducible. This is intentionally close to
+# .gitignore, but Docker ignores .gitignore entirely (build context is filesystem-based, not
+# git-based), so it needs its own file.
+#
+# Critically, this excludes apps/api/src/generated (the Prisma client) so every image build
+# regenerates it fresh via `prisma generate` inside the Linux build stage — a host-generated
+# client on a developer's Mac must never leak into the image.
+
+# macOS / IDE
+.DS_Store
+.idea/
+
+# git
+.git/
+.gitignore
+
+# Dependencies / build outputs (reinstalled/rebuilt inside the image)
+node_modules/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+coverage/
+
+# Secrets — never sent to the Docker daemon, never baked into an image layer
+.env
+.env.*
+!.env.example
+
+# Prisma client is generated fresh inside the container (see comment above)
+apps/api/src/generated/
+
+# Python solver virtualenv / caches — the worker image builds its own venv
+solver/.venv/
+solver/__pycache__/
+solver/**/__pycache__/
+solver/.pytest_cache/
+*.pyc
+
+# turbo prune scratch output, if ever run locally
+out/
+
+# Docs/notes/samples not needed at runtime
+.notes/
+docs/
+samples/
+.claude/

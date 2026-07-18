@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Companies — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <span class="topbar__brand">ICTS Rostering</span>
+  <nav aria-label="Primary">
+    <ul class="topbar__nav">
+      <li><a href="01-workers.html">Workers</a></li>
+      <li><a href="02-companies.html" aria-current="page">Companies</a></li>
+      <li><a href="03-staffing-requirements.html">Requirements</a></li>
+      <li><a href="04-roster-calendar.html">Roster</a></li>
+      <li><a href="05-cost-dashboard.html">Cost Dashboard</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main" class="page page--narrow">
+  <div class="page-header">
+    <div>
+      <h1>Companies</h1>
+      <p>The employer each worker belongs to — grouping and cost reporting only. Rostering always pools workers globally regardless of company.</p>
+    </div>
+    <button class="btn btn--primary" type="button" data-open-modal="modal-company-create">+ New company</button>
+  </div>
+
+  <nav class="state-nav" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal</a>
+    <a href="#state-empty">2. Empty</a>
+    <a href="#state-error">3. Errors (duplicate name / delete blocked)</a>
+  </nav>
+
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head"><span class="tag">State</span><strong>Normal — populated list</strong></div>
+    <div class="state-section__body">
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>3 companies</caption>
+          <thead>
+            <tr><th><button class="sort-btn" type="button">Name ▾</button></th><th class="num">Workers</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Shamir Security Ltd</td>
+              <td class="num">8</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-company-edit">Rename</button>
+                <button class="btn btn--danger btn--sm" type="button" data-open-modal="modal-delete-blocked">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Magen Guard Co.</td>
+              <td class="num">6</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-company-edit">Rename</button>
+                <button class="btn btn--danger btn--sm" type="button" data-open-modal="modal-delete-blocked">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Harel Protective Services</td>
+              <td class="num">0</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-company-edit">Rename</button>
+                <button class="btn btn--danger btn--sm" type="button" data-open-modal="modal-delete-ok">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="annotation">Delete is only destructive when the worker count is 0 — the row above ("Harel Protective Services") opens a plain confirm; the other two open the blocked-explanation dialog (409).</p>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-empty">
+    <div class="state-section__head"><span class="tag">State</span><strong>Empty — no companies yet</strong></div>
+    <div class="state-section__body">
+      <div class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">🏢</div>
+        <div class="empty-state__title">No companies yet</div>
+        <p class="empty-state__body">Companies group workers by employer for cost reporting. Add at least one before creating workers, since every worker requires a company.</p>
+        <button class="btn btn--primary" type="button" data-open-modal="modal-company-create">+ New company</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-error">
+    <div class="state-section__head"><span class="tag">State</span><strong>Error — duplicate name &amp; delete-with-workers</strong></div>
+    <div class="state-section__body">
+      <button class="btn btn--secondary" type="button" data-open-modal="modal-company-error">Open “New company” with a duplicate-name error</button>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL: create company -->
+<div class="modal-overlay" id="modal-company-create" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mcc2-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mcc2-title">New company</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="c-name">Company name <span class="req" aria-hidden="true">*</span></label>
+        <input class="field__input" id="c-name" maxlength="120" aria-describedby="c-name-hint">
+        <p class="field__hint" id="c-name-hint">Must be unique (case-insensitive).</p>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: rename company -->
+<div class="modal-overlay" id="modal-company-edit" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mce-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mce-title">Rename company</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="c-name2">Company name <span class="req" aria-hidden="true">*</span></label>
+        <input class="field__input" id="c-name2" value="Shamir Security Ltd" maxlength="120">
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: new company with duplicate-name error -->
+<div class="modal-overlay" id="modal-company-error" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mce2-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mce2-title">New company</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="c-name3">Company name <span class="req" aria-hidden="true">*</span></label>
+        <input class="field__input" id="c-name3" value="shamir security ltd" aria-invalid="true" aria-describedby="c-name3-error">
+        <p class="field__error" id="c-name3-error">A company named “Shamir Security Ltd” already exists (names are case-insensitive).</p>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: delete blocked (409, has workers) -->
+<div class="modal-overlay" id="modal-delete-blocked" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mdb2-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mdb2-title">Can’t delete this company</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">⚠</span><span><strong>Shamir Security Ltd</strong> still has 8 workers assigned. Reassign or deactivate them before deleting this company.</span></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" type="button" data-close-modal>OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: delete OK (0 workers) -->
+<div class="modal-overlay" id="modal-delete-ok" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mdo-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mdo-title">Delete “Harel Protective Services”?</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p>This company has no workers. This action can’t be undone.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--danger" type="button" data-close-modal>Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-region" id="toast-region" aria-live="polite" role="status"></div>
+<script src="../kit.js"></script>
+</body>
+</html>

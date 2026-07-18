@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roster Calendar — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <span class="topbar__brand">ICTS Rostering</span>
+  <nav aria-label="Primary">
+    <ul class="topbar__nav">
+      <li><a href="01-workers.html">Workers</a></li>
+      <li><a href="02-companies.html">Companies</a></li>
+      <li><a href="03-staffing-requirements.html">Requirements</a></li>
+      <li><a href="04-roster-calendar.html" aria-current="page">Roster</a></li>
+      <li><a href="05-cost-dashboard.html">Cost Dashboard</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main" class="page">
+  <div class="page-header">
+    <div>
+      <h1>Roster — August 2026</h1>
+      <p>Month-wide grid: one column per day, 3 rows per day (Shift A / B / C). Click or keyboard-activate a slot to add, move, or remove a worker. The engine and every manual edit share one <code>RosterValidator</code> — nothing invalid is ever persisted.</p>
+    </div>
+  </div>
+
+  <nav class="state-nav" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal (generated draft + alerts)</a>
+    <a href="#state-empty">2. Empty (not generated) + generating</a>
+    <a href="#state-error">3. Manual-edit errors (422 blocked / 409 confirm) + regenerate-published</a>
+  </nav>
+
+  <!-- ============================= STATE: NORMAL ============================= -->
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head"><span class="tag">State</span><strong>Normal — generated draft, 3 open alerts</strong></div>
+    <div class="state-section__body">
+
+      <div class="split-layout">
+        <div>
+          <div class="calendar">
+            <div class="calendar__toolbar">
+              <div class="field" style="margin-bottom:0;">
+                <label class="field__label visually-hidden" for="cal-month">Month</label>
+                <select id="cal-month" class="field__input"><option>August 2026</option></select>
+              </div>
+              <div class="toolbar" style="margin:0;">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-regenerate-confirm">Regenerate…</button>
+              </div>
+            </div>
+
+            <div class="calendar-scroll">
+              <table class="cal-table" data-cal-grid aria-label="August 2026 roster grid, Shift A B C per day">
+                <caption class="visually-hidden">August 2026 shift assignments. Grid scrolls horizontally to all 31 days; showing Aug 1–10.</caption>
+                <thead>
+                  <tr>
+                    <th class="cal-day-head" scope="col"><span class="visually-hidden">Shift</span></th>
+                    <th class="cal-day-head" scope="col">Sat<br>Aug 1</th>
+                    <th class="cal-day-head" scope="col">Sun<br>Aug 2</th>
+                    <th class="cal-day-head" scope="col">Mon<br>Aug 3</th>
+                    <th class="cal-day-head" scope="col">Tue<br>Aug 4</th>
+                    <th class="cal-day-head" scope="col">Wed<br>Aug 5</th>
+                    <th class="cal-day-head" scope="col">Thu<br>Aug 6</th>
+                    <th class="cal-day-head is-weekend" scope="col">Fri<br>Aug 7</th>
+                    <th class="cal-day-head is-weekend" scope="col">Sat<br>Aug 8</th>
+                    <th class="cal-day-head" scope="col">Sun<br>Aug 9</th>
+                    <th class="cal-day-head" scope="col">Mon<br>Aug 10</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th class="cal-shift-row-head" scope="row"><span class="badge badge--shift-a">A · 00–08</span></th>
+                    <td class="cal-cell" data-cal-cell tabindex="0" role="gridcell" aria-label="Aug 1, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">O. Cohen</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 2, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">M. Ben-David</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 3, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 4, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">O. Cohen</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 5, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 6, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">O. Cohen</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 7, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">O. Cohen</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 8, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 9, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">M. Ben-David</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 10, Shift A, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">O. Cohen</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="cal-shift-row-head" scope="row"><span class="badge badge--shift-b">B · 08–16</span></th>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 1, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">Y. Peretz</span><span class="cal-chip">M. Ben-David</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 2, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">Y. Peretz</span><span class="cal-chip">O. Cohen</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 3, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">M. Ben-David</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 4, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">Y. Peretz</span><span class="cal-chip">O. Cohen</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 5, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">Y. Peretz</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 6, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">O. Cohen</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 7, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">Y. Peretz</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 8, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">O. Cohen</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 9, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">Y. Peretz</span><span class="cal-chip">+1</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 10, Shift B, 3 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">O. Cohen</span><span class="cal-chip">+1</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="cal-shift-row-head" scope="row"><span class="badge badge--shift-c">C · 16–24</span></th>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 1, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">D. Levi</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 2, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 3, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">M. Ben-David</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 4, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">M. Ben-David</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 5, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell has-alert" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 6, Shift C, 1 worker, unfillable-slot alert: 1 Supervisor short" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span>
+                      <span class="cal-cell-empty-hint">1 Supervisor short</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 7, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 8, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">M. Ben-David</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 9, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">O. Cohen</span><span class="cal-chip">Y. Peretz</span>
+                    </td>
+                    <td class="cal-cell" data-cal-cell tabindex="-1" role="gridcell" aria-label="Aug 10, Shift C, 2 workers, no alerts" data-open-modal="modal-slot-edit">
+                      <span class="cal-chip">D. Levi</span><span class="cal-chip">M. Ben-David</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="cal-legend">
+              <span class="cal-legend__item"><span class="badge badge--shift-a">A</span> 00:00–08:00</span>
+              <span class="cal-legend__item"><span class="badge badge--shift-b">B</span> 08:00–16:00</span>
+              <span class="cal-legend__item"><span class="badge badge--shift-c">C</span> 16:00–24:00</span>
+              <span class="cal-legend__item"><span class="cal-legend__swatch" style="box-shadow: inset 0 0 0 2px var(--color-status-warning); background:var(--color-surface);"></span> unfillable-slot alert on this cell</span>
+            </div>
+          </div>
+          <p class="annotation">
+            <strong>A11y — CalendarGrid:</strong> one cell has <code>tabindex="0"</code> at a time (roving tabindex, rest are <code>-1</code>); arrow keys move the roving cell, <code>Enter</code>/<code>Space</code> opens the edit dialog for the focused cell (try it — click a cell, then use arrow keys, then press Enter). Each cell's <code>aria-label</code> states date, shift, worker count, and alert status, so the ring color is never the only signal. See <code>kit.js → initRovingGrid</code> for the working implementation.
+          </p>
+        </div>
+
+        <aside class="side-panel" aria-label="Alerts">
+          <div class="card">
+            <div class="card__title">Generate</div>
+            <button class="btn btn--primary" type="button" style="width:100%;" data-open-modal="modal-regenerate-confirm">Regenerate this month…</button>
+          </div>
+
+          <div class="card">
+            <div class="card__title">Alerts (3)</div>
+            <div id="gate-status" class="gate-status gate-status--blocked" role="status" aria-live="polite">
+              ⚠ 3 unacknowledged — Publish disabled
+            </div>
+            <div class="alert-checklist" id="alert-checklist" style="margin-top:var(--space-3);">
+              <div class="alert-item alert-item--warning">
+                <input type="checkbox" id="alert-1" data-alert-ack>
+                <div class="alert-item__body">
+                  <label class="alert-item__title" for="alert-1">Acknowledge: Aug 6, Shift C — Supervisor coverage short by 1</label>
+                  <div class="alert-item__detail">unfillable_slot · required 1, filled 0</div>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" title="Jump to this slot on the grid">Jump to slot</button>
+              </div>
+              <div class="alert-item alert-item--warning">
+                <input type="checkbox" id="alert-2" data-alert-ack>
+                <div class="alert-item__body">
+                  <label class="alert-item__title" for="alert-2">Acknowledge: Yossi Peretz — 8 hours short of contracted minimum</label>
+                  <div class="alert-item__detail">min_hours_shortfall · contracted min 160h, scheduled 152h</div>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" title="Jump to this worker's shifts">Jump to worker</button>
+              </div>
+              <div class="alert-item alert-item--warning">
+                <input type="checkbox" id="alert-3" data-alert-ack>
+                <div class="alert-item__body">
+                  <label class="alert-item__title" for="alert-3">Acknowledge: Maya Ben-David — 4 hours short of contracted minimum</label>
+                  <div class="alert-item__detail">min_hours_shortfall · contracted min 130h, scheduled 126h</div>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" title="Jump to this worker's shifts">Jump to worker</button>
+              </div>
+            </div>
+            <button class="btn btn--primary" id="publish-btn" type="button" style="width:100%; margin-top:var(--space-4);" disabled>Publish roster</button>
+            <p class="field__hint" style="margin-top:var(--space-2);">Try checking all three alerts — the gate status and Publish button update live.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: EMPTY / GENERATING ============================= -->
+  <section class="state-section" id="state-empty">
+    <div class="state-section__head"><span class="tag">State</span><strong>Empty (not generated yet) &amp; job-in-progress</strong></div>
+    <div class="state-section__body">
+      <div class="empty-state" style="margin-bottom:var(--space-6);">
+        <div class="empty-state__icon" aria-hidden="true">📅</div>
+        <div class="empty-state__title">No roster for September 2026 yet</div>
+        <p class="empty-state__body">Generate a draft from active workers, their contracts, and the current staffing requirements. You'll review alerts before publishing.</p>
+        <button class="btn btn--primary" type="button" data-open-modal="modal-generating">Generate roster</button>
+      </div>
+      <div class="job-progress job-progress--active" id="gen-progress">
+        <div class="spinner" aria-hidden="true"></div>
+        <div style="flex:1;">
+          <div data-job-text role="status" aria-live="polite">Generating roster for September 2026…</div>
+          <div class="job-progress__bar"><span style="width:35%"></span></div>
+        </div>
+      </div>
+      <p class="annotation">While a generation job is in flight, a second click of Generate for the <em>same month</em> is rejected (409, one in-flight job per month) — the UI keeps showing this job's progress instead of starting another.</p>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: ERROR ============================= -->
+  <section class="state-section" id="state-error">
+    <div class="state-section__head"><span class="tag">State</span><strong>Manual-edit errors &amp; regenerate-published confirm</strong></div>
+    <div class="state-section__body">
+      <div class="toolbar">
+        <button class="btn btn--secondary" type="button" data-open-modal="modal-edit-blocked">Preview: 422 hard-rule block (3rd shift / unavailable / inactive)</button>
+        <button class="btn btn--secondary" type="button" data-open-modal="modal-edit-confirm">Preview: 409 soft-warning confirm (exceeds max hours)</button>
+        <button class="btn btn--secondary" type="button" data-open-modal="modal-publish-blocked">Preview: Publish blocked (unacknowledged alerts)</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================= MODAL: slot edit ============================= -->
+<div class="modal-overlay" id="modal-slot-edit" hidden aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mse-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mse-title">Aug 6 — Shift C (16:00–24:00)</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p><span class="badge badge--severity-warning">⚠ Understaffed</span> Required: 2 General Guard, 1 Supervisor, 1 Screener. Filled: 1 General Guard (Dana Levi). Missing: 1 Supervisor, 1 General Guard, 1 Screener.</p>
+      <h3>Assigned</h3>
+      <ul style="list-style:none; padding:0; margin: 0 0 var(--space-4);">
+        <li style="display:flex; align-items:center; justify-content:space-between; padding:var(--space-2) 0; border-bottom:1px solid var(--color-border);">
+          <span><span class="badge badge--role-guard">General Guard</span> Dana Levi</span>
+          <button class="btn btn--ghost btn--sm" type="button">Remove</button>
+        </li>
+      </ul>
+      <h3>Add a worker</h3>
+      <div class="field">
+        <label class="field__label" for="slot-add-worker">Eligible workers</label>
+        <select class="field__input" id="slot-add-worker">
+          <option>Omer Cohen — General Guard (available)</option>
+          <option>Maya Ben-David — Screener (available)</option>
+          <option disabled>Yossi Peretz — General Guard (already 2 shifts today)</option>
+          <option disabled>Rivka Azoulay — Supervisor (unavailable this shift)</option>
+        </select>
+        <p class="field__hint">Ineligible workers are greyed out as a hint — the server still re-validates on submit.</p>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Add to shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: 422 hard block ============================= -->
+<div class="modal-overlay" id="modal-edit-blocked" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="meb-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="meb-title">Can’t make this assignment</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">🚫</span><span><strong>Blocked (422)</strong> — Yossi Peretz already has 2 shifts on Aug 6. A worker can never be assigned a 3rd shift on the same calendar day. This rule has no override.</span></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" type="button" data-close-modal>OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: 409 soft confirm ============================= -->
+<div class="modal-overlay" id="modal-edit-confirm" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mec-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mec-title">Confirm this assignment</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">⚠</span><span>Adding Omer Cohen to Aug 6 · Shift C would put him at <strong>190 hours</strong> this month, above his contracted max of <strong>186</strong>. You can still save this — the alert will be recorded and must be acknowledged before publishing.</span></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Save anyway</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: publish blocked ============================= -->
+<div class="modal-overlay" id="modal-publish-blocked" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mpb-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mpb-title">Can’t publish yet</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p>3 alerts are still unacknowledged. Review and check off each one in the side panel before publishing.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" type="button" data-close-modal>OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: regenerate published confirm ============================= -->
+<div class="modal-overlay" id="modal-regenerate-confirm" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mrc-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mrc-title">Regenerate August 2026?</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">⚠</span><span>This month is currently <span class="badge badge--status-published">Published</span>. Regenerating reopens it as a <span class="badge badge--status-draft">Draft</span>, replaces every assignment, and re-runs the alert/acknowledgment gate — publish again once you've reviewed the new alerts.</span></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--danger" type="button" data-close-modal>Regenerate as draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: generating (from empty state) ============================= -->
+<div class="modal-overlay" id="modal-generating" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mg-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mg-title">Generating September 2026</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="job-progress job-progress--active" id="gen-progress-2">
+        <div class="spinner" aria-hidden="true"></div>
+        <div style="flex:1;">
+          <div data-job-text role="status" aria-live="polite">Solving with CP-SAT…</div>
+          <div class="job-progress__bar"><span style="width:10%"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Run in background</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-region" id="toast-region" aria-live="polite" role="status"></div>
+<script src="../kit.js"></script>
+<script>
+  // Demo: AlertChecklist gates Publish — same logic the real page will run off
+  // the Roster RTK Query cache (alerts[].acknowledged) instead of local state.
+  (function () {
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-alert-ack]'));
+    var gate = document.getElementById('gate-status');
+    var publishBtn = document.getElementById('publish-btn');
+    function update() {
+      var remaining = boxes.filter(function (b) { return !b.checked; }).length;
+      boxes.forEach(function (b) {
+        b.closest('.alert-item').classList.toggle('is-acked', b.checked);
+      });
+      if (remaining === 0) {
+        gate.className = 'gate-status gate-status--ready';
+        gate.textContent = '✓ All clear — ready to publish';
+        publishBtn.disabled = false;
+      } else {
+        gate.className = 'gate-status gate-status--blocked';
+        gate.textContent = '⚠ ' + remaining + ' unacknowledged — Publish disabled';
+        publishBtn.disabled = true;
+      }
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', update); });
+    publishBtn.addEventListener('click', function () {
+      if (!publishBtn.disabled) RosterKit.toast('toast-region', 'August 2026 published.', 'success');
+    });
+  })();
+
+  document.querySelectorAll('[data-open-modal="modal-generating"]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      RosterKit.simulateJobProgress(document.getElementById('gen-progress-2'));
+    });
+  });
+</script>
+</body>
+</html>

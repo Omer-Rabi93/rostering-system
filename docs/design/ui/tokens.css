@@ -1,0 +1,172 @@
+/*
+ * Rostering System — Design tokens (runnable form of design-tokens.md)
+ * Linked by every file under mockups/*.html. When Phase 8 implements
+ * packages/ui, this file (or a 1:1 TS token object) becomes the theme source.
+ *
+ * Theming: prefers-color-scheme drives the default; a `data-theme="dark"` or
+ * `data-theme="light"` attribute on <html> overrides it either way, for a
+ * future in-app theme toggle.
+ */
+
+:root {
+  /* ---- neutrals & surfaces (light default) ---- */
+  --color-page: #f9f9f7;
+  --color-surface: #fcfcfb;
+  --color-surface-raised: #ffffff;
+  --color-ink-primary: #0b0b0b;
+  --color-ink-secondary: #52514e;
+  --color-ink-muted: #898781;
+  --color-border: rgba(11, 11, 11, 0.10);
+  --color-border-strong: #c3c2b7;
+  --color-gridline: #e1e0d9;
+  --color-focus-ring: #2a78d6;
+  --color-brand: #2a78d6;
+  --color-brand-ink: #ffffff;
+
+  /* ---- shift accents ---- */
+  --color-shift-a: #2a78d6; /* 00:00-08:00, night */
+  --color-shift-a-bg: #e9f1fc;
+  --color-shift-b: #b07800; /* 08:00-16:00, day  (text-safe darker step of #eda100) */
+  --color-shift-b-bg: #fdf2dc;
+  --color-shift-c: #128a5f; /* 16:00-24:00, dusk (text-safe darker step of #1baf7a) */
+  --color-shift-c-bg: #e3f6ee;
+
+  /* ---- status / alert severity ---- */
+  --color-status-good: #0ca30c;
+  --color-status-good-bg: #e6f6e6;
+  --color-status-warning: #96650a; /* text-safe darker step of #fab219 for on-light text */
+  --color-status-warning-accent: #fab219; /* raw hue for bars/icons/dots at large sizes */
+  --color-status-warning-bg: #fdf1dc;
+  --color-status-blocking: #d03b3b;
+  --color-status-blocking-bg: #fbe9e9;
+
+  /* ---- role colors ---- */
+  --color-role-guard: #52514e;
+  --color-role-guard-bg: #ececea;
+  --color-role-supervisor: #4a3aa7;
+  --color-role-supervisor-bg: #ece9f9;
+  --color-role-screener: #a3336a; /* text-safe darker step of #e87ba4 */
+  --color-role-screener-bg: #fbe8f1;
+
+  /* ---- spacing ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- typography ---- */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+
+  /* ---- radius / elevation / motion ---- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, .06), 0 1px 1px rgba(11, 11, 11, .04);
+  --shadow-modal: 0 20px 48px rgba(11, 11, 11, .24);
+  --motion-fast: 120ms ease-out;
+  --motion-base: 200ms ease-out;
+}
+
+/* Dark values, expressed twice on purpose:
+   1) @media (prefers-color-scheme: dark) — the default signal (no toggle yet)
+   2) :root[data-theme="dark"]            — explicit override, wins in both
+      directions once a future in-app theme toggle stamps this attribute.
+   :root[data-theme="light"] forces light even when the OS prefers dark. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: #0d0d0d;
+    --color-surface: #1a1a19;
+    --color-surface-raised: #232322;
+    --color-ink-primary: #ffffff;
+    --color-ink-secondary: #c3c2b7;
+    --color-ink-muted: #898781;
+    --color-border: rgba(255, 255, 255, 0.10);
+    --color-border-strong: #383835;
+    --color-gridline: #2c2c2a;
+    --color-focus-ring: #3987e5;
+    --color-brand: #3987e5;
+    --color-brand-ink: #ffffff;
+
+    --color-shift-a: #3987e5;
+    --color-shift-a-bg: #16273b;
+    --color-shift-b: #c98500;
+    --color-shift-b-bg: #362a08;
+    --color-shift-c: #199e70;
+    --color-shift-c-bg: #0f2e23;
+
+    --color-status-good: #0ca30c;
+    --color-status-good-bg: #10280f;
+    --color-status-warning: #fab219;
+    --color-status-warning-accent: #fab219;
+    --color-status-warning-bg: #362b0e;
+    --color-status-blocking: #e66767;
+    --color-status-blocking-bg: #391414;
+
+    --color-role-guard: #c3c2b7;
+    --color-role-guard-bg: #2a2a28;
+    --color-role-supervisor: #9085e9;
+    --color-role-supervisor-bg: #241f3f;
+    --color-role-screener: #d55181;
+    --color-role-screener-bg: #34121f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-page: #0d0d0d;
+  --color-surface: #1a1a19;
+  --color-surface-raised: #232322;
+  --color-ink-primary: #ffffff;
+  --color-ink-secondary: #c3c2b7;
+  --color-ink-muted: #898781;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-strong: #383835;
+  --color-gridline: #2c2c2a;
+  --color-focus-ring: #3987e5;
+  --color-brand: #3987e5;
+  --color-brand-ink: #ffffff;
+
+  --color-shift-a: #3987e5;
+  --color-shift-a-bg: #16273b;
+  --color-shift-b: #c98500;
+  --color-shift-b-bg: #362a08;
+  --color-shift-c: #199e70;
+  --color-shift-c-bg: #0f2e23;
+
+  --color-status-good: #0ca30c;
+  --color-status-good-bg: #10280f;
+  --color-status-warning: #fab219;
+  --color-status-warning-accent: #fab219;
+  --color-status-warning-bg: #362b0e;
+  --color-status-blocking: #e66767;
+  --color-status-blocking-bg: #391414;
+
+  --color-role-guard: #c3c2b7;
+  --color-role-guard-bg: #2a2a28;
+  --color-role-supervisor: #9085e9;
+  --color-role-supervisor-bg: #241f3f;
+  --color-role-screener: #d55181;
+  --color-role-screener-bg: #34121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}

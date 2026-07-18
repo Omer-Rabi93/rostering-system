@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost Dashboard — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <span class="topbar__brand">ICTS Rostering</span>
+  <nav aria-label="Primary">
+    <ul class="topbar__nav">
+      <li><a href="01-workers.html">Workers</a></li>
+      <li><a href="02-companies.html">Companies</a></li>
+      <li><a href="03-staffing-requirements.html">Requirements</a></li>
+      <li><a href="04-roster-calendar.html">Roster</a></li>
+      <li><a href="05-cost-dashboard.html" aria-current="page">Cost Dashboard</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main" class="page">
+  <div class="page-header">
+    <div>
+      <h1>Cost Dashboard — August 2026</h1>
+      <p>Projected labor cost computed at read time from <code>shift_workers</code>: hours = shifts × 8, cost = hours × hourly rate. Read-only — a v1 enhancement for budget visibility (no editing here).</p>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label class="field__label visually-hidden" for="cost-month">Month</label>
+      <select id="cost-month" class="field__input"><option>August 2026</option></select>
+    </div>
+  </div>
+
+  <nav class="state-nav" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal (published month)</a>
+    <a href="#state-empty">2. Empty (not generated)</a>
+    <a href="#state-error">3. Load error</a>
+  </nav>
+
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head"><span class="tag">State</span><strong>Normal — roster total, per-company, per-worker</strong></div>
+    <div class="state-section__body">
+
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-tile__label">Roster total (August 2026)</div>
+          <div class="stat-tile__value">₪612,480</div>
+          <div class="stat-tile__sub">744 shifts · 5,952 hours · 14 workers</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">Avg. cost per shift</div>
+          <div class="stat-tile__value">₪823</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">Avg. cost per worker</div>
+          <div class="stat-tile__value">₪43,748</div>
+        </div>
+      </div>
+
+      <h2>By company</h2>
+      <div class="table-wrap" style="margin-bottom:var(--space-6);">
+        <table class="data-table">
+          <thead>
+            <tr><th><button class="sort-btn" type="button">Company</button></th><th class="num">Workers</th><th class="num">Shifts</th><th class="num">Hours</th><th class="num"><button class="sort-btn" type="button">Cost (ILS) ▾</button></th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Shamir Security Ltd</td><td class="num">8</td><td class="num">416</td><td class="num">3,328</td><td class="num">₪342,920</td></tr>
+            <tr><td>Magen Guard Co.</td><td class="num">6</td><td class="num">328</td><td class="num">2,624</td><td class="num">₪269,560</td></tr>
+          </tbody>
+          <tfoot>
+            <tr><td>Total</td><td class="num">14</td><td class="num">744</td><td class="num">5,952</td><td class="num">₪612,480</td></tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <h2>By worker</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption class="visually-hidden">Per-worker cost breakdown, sorted by cost descending</caption>
+          <thead>
+            <tr><th><button class="sort-btn" type="button">Name</button></th><th>Company</th><th>Role</th><th class="num">Shifts</th><th class="num">Hours</th><th class="num" aria-sort="descending"><button class="sort-btn" type="button">Cost (ILS) ▾</button></th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dana Levi</td><td>Shamir Security Ltd</td><td><span class="badge badge--role-supervisor">Supervisor</span></td><td class="num">56</td><td class="num">448</td><td class="num">₪28,000</td></tr>
+            <tr><td>Omer Cohen</td><td>Shamir Security Ltd</td><td><span class="badge badge--role-guard">General Guard</span></td><td class="num">55</td><td class="num">440</td><td class="num">₪21,120</td></tr>
+            <tr><td>Maya Ben-David</td><td>Magen Guard Co.</td><td><span class="badge badge--role-screener">Screener</span></td><td class="num">53</td><td class="num">424</td><td class="num">₪23,320</td></tr>
+            <tr><td>Yossi Peretz</td><td>Magen Guard Co.</td><td><span class="badge badge--role-guard">General Guard</span></td><td class="num">50</td><td class="num">400</td><td class="num">₪18,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="annotation">Sortable columns behave like the Workers table — <code>&lt;th aria-sort&gt;</code> + a <code>&lt;button&gt;</code>, never a bare clickable <code>&lt;th&gt;</code>. Numeric columns use <code>tabular-nums</code> so digits align.</p>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-empty">
+    <div class="state-section__head"><span class="tag">State</span><strong>Empty — month not generated yet</strong></div>
+    <div class="state-section__body">
+      <div class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">💰</div>
+        <div class="empty-state__title">No cost data for October 2026</div>
+        <p class="empty-state__body">Cost is computed from a generated roster's assignments. Generate October's roster first.</p>
+        <a class="btn btn--primary" href="04-roster-calendar.html" role="button">Go to Roster</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-error">
+    <div class="state-section__head"><span class="tag">State</span><strong>Error — cost summary failed to load</strong></div>
+    <div class="state-section__body">
+      <div class="toast toast--error" role="alert">
+        <span class="toast__icon" aria-hidden="true">✕</span>
+        <span>Couldn’t load cost data for August 2026. <button class="btn btn--ghost btn--sm" type="button" style="text-decoration:underline;">Retry</button></span>
+      </div>
+      <p class="field__hint" style="margin-top:var(--space-2);">Generic message only — no stack trace or query detail is ever surfaced to the client, per the API's error-handling contract.</p>
+    </div>
+  </section>
+</main>
+
+<div class="toast-region" id="toast-region" aria-live="polite" role="status"></div>
+<script src="../kit.js"></script>
+</body>
+</html>

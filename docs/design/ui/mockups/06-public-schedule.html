@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Public Worker Schedule — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+<style>
+  /* This page intentionally does NOT use the authenticated topbar/nav — it is
+     served at /schedule/:token with no login and must not reuse any
+     authenticated app shell or client-side auth state. */
+  .public-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .public-header__brand { font-size: var(--text-sm); color: var(--color-ink-muted); }
+  .schedule-card { max-width: 720px; margin: 0 auto; }
+  .schedule-meta { display:flex; gap: var(--space-6); flex-wrap:wrap; margin-bottom: var(--space-5); font-size: var(--text-sm); color: var(--color-ink-secondary); }
+  .schedule-meta strong { color: var(--color-ink-primary); }
+  .day-row { display:flex; align-items:center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); }
+  .day-row:last-child { border-bottom: none; }
+  .day-row__date { width: 130px; font-weight: 600; flex: none; }
+  .day-row__date .dow { color: var(--color-ink-muted); font-weight: 400; font-size: var(--text-xs); display:block; }
+
+  /* -------- Print stylesheet: the actual deliverable for "Notification/print" -------- */
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; padding: 0; }
+    .schedule-card { max-width: none; box-shadow: none; border: none; }
+    .print-only { display: block !important; }
+    a[href]::after { content: ""; } /* don't print raw URLs after links */
+    .state-section { border: none; margin: 0; }
+    .state-section__head { display: none; }
+    .state-section__body { padding: 0; }
+  }
+  .print-only { display: none; }
+</style>
+</head>
+<body>
+
+<header class="public-header no-print">
+  <span class="public-header__brand">ICTS Rostering — read-only worker schedule (no login)</span>
+  <button class="btn btn--secondary btn--sm" type="button" onclick="window.print()">🖶 Print</button>
+</header>
+
+<main id="main" class="page">
+  <nav class="state-nav no-print" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal (published month)</a>
+    <a href="#state-empty">2. Empty (no published shifts this month)</a>
+    <a href="#state-404">3. Unknown / rotated token (404)</a>
+    <a href="#state-print">4. Print preview note</a>
+  </nav>
+
+  <!-- ============================= STATE: NORMAL ============================= -->
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head no-print"><span class="tag">State</span><strong>Normal — published schedule</strong></div>
+    <div class="state-section__body">
+      <div class="card schedule-card">
+        <div class="print-only" style="margin-bottom:var(--space-4);">
+          <h1 style="font-size:var(--text-3xl); margin-bottom:2px;">Dana Levi</h1>
+          <p style="color:var(--color-ink-secondary);">Monthly schedule — August 2026 · Printed 2026-07-17</p>
+        </div>
+
+        <div class="toolbar no-print" style="justify-content: space-between;">
+          <h1 style="margin:0;">Dana Levi</h1>
+          <div class="field" style="margin-bottom:0;">
+            <label class="field__label visually-hidden" for="pub-month">Month</label>
+            <select id="pub-month" class="field__input">
+              <option>August 2026</option>
+              <option>July 2026</option>
+              <option disabled>September 2026 (not yet published)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="schedule-meta no-print">
+          <span>Month: <strong>August 2026</strong></span>
+          <span>Total shifts: <strong>19</strong></span>
+          <span>Total hours: <strong>152</strong></span>
+        </div>
+
+        <div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Saturday</span>Aug 1</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Sunday</span>Aug 2</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Monday</span>Aug 3</div>
+            <span class="badge badge--shift-b">B · 08–16</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Tuesday</span>Aug 4</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Wednesday</span>Aug 5</div>
+            <span style="color:var(--color-ink-muted); font-size:var(--text-sm);">Off</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Thursday</span>Aug 6</div>
+            <span class="badge badge--shift-c">C · 16–24</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Friday</span>Aug 7</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Saturday</span>Aug 8</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Sunday</span>Aug 9</div>
+            <span style="color:var(--color-ink-muted); font-size:var(--text-sm);">Off</span>
+          </div>
+          <div class="day-row">
+            <div class="day-row__date"><span class="dow">Monday</span>Aug 10</div>
+            <span class="badge badge--shift-a">A · 00–08</span>
+          </div>
+        </div>
+        <p class="field__hint no-print" style="margin-top:var(--space-3);">…continues to Aug 31. This page shows only <em>this worker's own</em> shifts for <em>published</em> months — never national ID, hourly rate, or any other worker's assignments.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: EMPTY ============================= -->
+  <section class="state-section" id="state-empty">
+    <div class="state-section__head no-print"><span class="tag">State</span><strong>Empty — no published shifts this month</strong></div>
+    <div class="state-section__body">
+      <div class="card schedule-card">
+        <div class="toolbar no-print" style="justify-content: space-between;">
+          <h1 style="margin:0;">Omer Cohen</h1>
+          <div class="field" style="margin-bottom:0;">
+            <label class="field__label visually-hidden" for="pub-month2">Month</label>
+            <select id="pub-month2" class="field__input"><option>June 2026</option></select>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state__icon" aria-hidden="true">🗓️</div>
+          <div class="empty-state__title">No shifts published for June 2026</div>
+          <p class="empty-state__body">Nothing to show yet — check back once the schedule for this month is published. This page never shows draft/unpublished rosters.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: 404 ============================= -->
+  <section class="state-section" id="state-404">
+    <div class="state-section__head no-print"><span class="tag">State</span><strong>Unknown or rotated token (404)</strong></div>
+    <div class="state-section__body">
+      <div class="card schedule-card" style="text-align:center;">
+        <div class="empty-state" style="border:none;">
+          <div class="empty-state__icon" aria-hidden="true">🔒</div>
+          <div class="empty-state__title">This link isn’t valid</div>
+          <p class="empty-state__body">The schedule link you followed doesn’t exist or has been rotated. Ask your planner for a fresh link.</p>
+        </div>
+      </div>
+      <p class="annotation">A rotated token 404s identically to a never-issued one — the response is indistinguishable either way, so a stale link can never be used to probe which tokens are/were valid.</p>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: PRINT ============================= -->
+  <section class="state-section" id="state-print">
+    <div class="state-section__head no-print"><span class="tag">State</span><strong>Print stylesheet</strong></div>
+    <div class="state-section__body">
+      <p>Use your browser's print preview (or <code>Cmd/Ctrl+P</code>) on this page — <code>.no-print</code> elements (topbar, print button, month picker, state navigation) disappear, and a print-only header with the worker's name and print date appears above the schedule. Test spec: Playwright's <code>page.emulateMedia({ media: 'print' })</code> should show the schedule list fully readable with app chrome hidden.</p>
+    </div>
+  </section>
+</main>
+
+<script src="../kit.js"></script>
+</body>
+</html>

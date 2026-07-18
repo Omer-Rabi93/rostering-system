@@ -1,0 +1,37 @@
+/*
+ * Print stylesheet for the public worker-schedule page (`/schedule/:token`).
+ *
+ * Per `docs/design/ui/README.md`'s "Open items for reviewer sign-off": the public schedule page
+ * intentionally does NOT share the authenticated app shell's `.topbar`/nav chrome (no authenticated
+ * chrome on an unauthenticated page) — it is its own distinct layout, not a themed variant of the
+ * authenticated shell. This stylesheet is scoped to that page only (imported by the Phase 9
+ * `PublicSchedule` page component, not globally) and follows the same rule at print time: whatever
+ * minimal page-level controls the Phase 9 implementation adds (a month picker, a "print" button)
+ * live under `.no-print` and are hidden when printing, so only the worker's monthly schedule
+ * itself remains visible and readable — this is groundwork for Phase 9, which owns the actual
+ * page markup these selectors target.
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* Phase 9 (`PublicSchedulePage.tsx` + `publicSchedule.css`): the print-only header
+   * (worker name + print date) replaces the on-screen toolbar/month-picker, and the schedule
+   * card drops its screen-only card chrome (max-width/border) so it reads as a plain printed
+   * page. */
+  .print-only {
+    display: block !important;
+  }
+
+  .schedule-card {
+    max-width: none;
+    box-shadow: none;
+    border: none;
+  }
+}

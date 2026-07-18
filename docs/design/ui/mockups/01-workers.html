@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workers — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <span class="topbar__brand">ICTS Rostering</span>
+  <nav aria-label="Primary">
+    <ul class="topbar__nav">
+      <li><a href="01-workers.html" aria-current="page">Workers</a></li>
+      <li><a href="02-companies.html">Companies</a></li>
+      <li><a href="03-staffing-requirements.html">Requirements</a></li>
+      <li><a href="04-roster-calendar.html">Roster</a></li>
+      <li><a href="05-cost-dashboard.html">Cost Dashboard</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main" class="page">
+  <div class="page-header">
+    <div>
+      <h1>Workers</h1>
+      <p>Full registry of workers and their contracts. Inactive workers are kept for history but never appear in rostering.</p>
+    </div>
+    <button class="btn btn--primary" type="button" data-open-modal="modal-worker-create">+ New worker</button>
+  </div>
+
+  <nav class="state-nav" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal (list)</a>
+    <a href="#state-empty">2. Empty</a>
+    <a href="#state-error">3. Form validation error</a>
+    <a href="#state-csv">4. CSV import (confirm + report)</a>
+  </nav>
+
+  <!-- ============================= STATE: NORMAL ============================= -->
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head"><span class="tag">State</span><strong>Normal — populated list</strong></div>
+    <div class="state-section__body">
+
+      <div class="toolbar filters" role="search" aria-label="Filter workers">
+        <div class="field" style="margin-bottom:0;">
+          <label class="field__label" for="f-status">Status</label>
+          <select id="f-status" class="field__input">
+            <option>All</option><option>Active</option><option>Inactive</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field__label" for="f-role">Role</label>
+          <select id="f-role" class="field__input">
+            <option>All roles</option><option>General Guard</option><option>Supervisor</option><option>Screener</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field__label" for="f-company">Company</label>
+          <select id="f-company" class="field__input">
+            <option>All companies</option><option>Shamir Security Ltd</option><option>Magen Guard Co.</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0; min-width:220px;">
+          <label class="field__label" for="f-search">Search</label>
+          <input id="f-search" class="field__input" type="search" placeholder="Name or national ID">
+        </div>
+        <button class="btn btn--secondary" type="button">Clear filters</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption>12 workers — filtered from 14 total</caption>
+          <thead>
+            <tr>
+              <th><button class="sort-btn" type="button">Name ▾</button></th>
+              <th>National ID</th>
+              <th>Company</th>
+              <th aria-sort="none"><button class="sort-btn" type="button">Role</button></th>
+              <th aria-sort="none"><button class="sort-btn" type="button">Status</button></th>
+              <th class="num">Hourly cost</th>
+              <th class="num">Min / Max hrs</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dana Levi</td>
+              <td>123456782</td>
+              <td>Shamir Security Ltd</td>
+              <td><span class="badge badge--role-supervisor">Supervisor</span></td>
+              <td><span class="badge badge--status-active">Active</span></td>
+              <td class="num">₪62.50</td>
+              <td class="num">120 / 182</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-worker-edit">Edit</button>
+                <button class="btn btn--ghost btn--sm" type="button" data-open-modal="modal-share-link">Share link</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Omer Cohen</td>
+              <td>987654321</td>
+              <td>Shamir Security Ltd</td>
+              <td><span class="badge badge--role-guard">General Guard</span></td>
+              <td><span class="badge badge--status-active">Active</span></td>
+              <td class="num">₪48.00</td>
+              <td class="num">140 / 186</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-worker-edit">Edit</button>
+                <button class="btn btn--ghost btn--sm" type="button" data-open-modal="modal-share-link">Share link</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Maya Ben-David</td>
+              <td>555666773</td>
+              <td>Magen Guard Co.</td>
+              <td><span class="badge badge--role-screener">Screener</span></td>
+              <td><span class="badge badge--status-active">Active</span></td>
+              <td class="num">₪55.00</td>
+              <td class="num">130 / 180</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-worker-edit">Edit</button>
+                <button class="btn btn--ghost btn--sm" type="button" data-open-modal="modal-share-link">Share link</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Yossi Peretz</td>
+              <td>111223344</td>
+              <td>Magen Guard Co.</td>
+              <td><span class="badge badge--role-guard">General Guard</span></td>
+              <td><span class="badge badge--status-inactive">Inactive</span></td>
+              <td class="num">₪45.00</td>
+              <td class="num">100 / 160</td>
+              <td class="row-actions">
+                <button class="btn btn--secondary btn--sm" type="button" data-open-modal="modal-worker-edit">Edit</button>
+                <button class="btn btn--danger btn--sm" type="button" data-open-modal="modal-delete-blocked">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="annotation">
+        <strong>A11y:</strong> the table has a real <code>&lt;caption&gt;</code> announcing row count; sortable headers are
+        <code>&lt;button&gt;</code>s inside <code>&lt;th aria-sort="..."&gt;</code>; role/status render as <code>Badge</code> text, never color alone.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: EMPTY ============================= -->
+  <section class="state-section" id="state-empty">
+    <div class="state-section__head"><span class="tag">State</span><strong>Empty — no results</strong></div>
+    <div class="state-section__body">
+      <div class="toolbar filters">
+        <div class="field" style="margin-bottom:0;">
+          <label class="field__label" for="f-status2">Status</label>
+          <select id="f-status2" class="field__input"><option>Active</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field__label" for="f-company2">Company</label>
+          <select id="f-company2" class="field__input"><option>Magen Guard Co.</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0; min-width:220px;">
+          <label class="field__label" for="f-search2">Search</label>
+          <input id="f-search2" class="field__input" type="search" value="zzz-no-match">
+        </div>
+      </div>
+      <div class="empty-state" role="status">
+        <div class="empty-state__icon" aria-hidden="true">🔍</div>
+        <div class="empty-state__title">No workers match these filters</div>
+        <p class="empty-state__body">Try clearing a filter or search term. If you expect results, check the Status filter — inactive workers are hidden by default.</p>
+        <button class="btn btn--secondary" type="button">Clear filters</button>
+      </div>
+      <p class="annotation">Distinct from the "no workers at all" first-run case, which instead reads "No workers yet" and offers <strong>+ New worker</strong> as the primary action (same <code>EmptyState</code> component, different <code>title</code>/<code>action</code> props).</p>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: ERROR / VALIDATION ============================= -->
+  <section class="state-section" id="state-error">
+    <div class="state-section__head"><span class="tag">State</span><strong>Error / validation — worker form</strong></div>
+    <div class="state-section__body">
+      <p>Open the form to see live validation. This mirrors what the create/edit <code>Modal</code> looks like mid-error (invalid Israeli ID, min &gt; max hours, and a simulated 409 duplicate-ID response from the API).</p>
+      <button class="btn btn--secondary" type="button" data-open-modal="modal-worker-error">Open form with errors</button>
+    </div>
+  </section>
+
+  <!-- ============================= STATE: CSV ============================= -->
+  <section class="state-section" id="state-csv">
+    <div class="state-section__head"><span class="tag">State</span><strong>CSV import — confirm + result report</strong></div>
+    <div class="state-section__body">
+      <div class="card">
+        <div class="card__title">Bulk import / export</div>
+        <p style="font-size:var(--text-sm); color:var(--color-ink-secondary);">Import is a <strong>full workforce sync</strong>: any existing worker whose national ID is absent from the uploaded file is set Inactive. A row present but failing validation is <em>not</em> deactivated.</p>
+        <div class="toolbar">
+          <div class="field" style="margin-bottom:0;">
+            <label class="field__label" for="csv-file">CSV file</label>
+            <input id="csv-file" class="field__input" type="file" accept=".csv">
+          </div>
+          <button class="btn btn--primary" type="button" data-open-modal="modal-csv-confirm">Import</button>
+          <span class="spacer"></span>
+          <a class="btn btn--secondary" href="#" role="button">Export current workers (.csv)</a>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <button class="btn btn--secondary" type="button" data-open-modal="modal-csv-result">Preview: import result report</button>
+      <button class="btn btn--secondary" type="button" data-open-modal="modal-job-progress">Preview: import job in progress</button>
+    </div>
+  </section>
+</main>
+
+<!-- ============================= MODAL: create worker ============================= -->
+<div class="modal-overlay" id="modal-worker-create" hidden aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mwc-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mwc-title">New worker</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <form novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label" for="w-nid">National ID <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="w-nid" name="nationalId" required maxlength="9" inputmode="numeric"
+                   aria-describedby="w-nid-hint">
+            <p class="field__hint" id="w-nid-hint">9-digit Israeli ID, checksum-validated. Shorter values are zero-padded.</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-name">Full name <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="w-name" name="name" required maxlength="120">
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-company">Company <span class="req" aria-hidden="true">*</span></label>
+            <select class="field__input" id="w-company" name="companyId" required>
+              <option value="">Select a company…</option>
+              <option>Shamir Security Ltd</option>
+              <option>Magen Guard Co.</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-role">Role <span class="req" aria-hidden="true">*</span></label>
+            <select class="field__input" id="w-role" name="role" required>
+              <option>General Guard</option><option>Supervisor</option><option>Screener</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-status">Status <span class="req" aria-hidden="true">*</span></label>
+            <select class="field__input" id="w-status" name="status" required>
+              <option>Active</option><option>Inactive</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-cost">Hourly cost, ILS <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="w-cost" name="hourlyCostIls" required inputmode="decimal" placeholder="e.g. 55.00">
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-min">Min monthly hours <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="w-min" name="minMonthlyHours" required inputmode="numeric">
+          </div>
+          <div class="field">
+            <label class="field__label" for="w-max">Max monthly hours <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="w-max" name="maxMonthlyHours" required inputmode="numeric">
+          </div>
+        </div>
+
+        <h3>Availability</h3>
+        <p class="field__hint" style="margin-top:-6px;">Client-side greying/hints only — the server is the source of truth for eligibility.</p>
+        <table class="avail-matrix">
+          <caption class="visually-hidden">Weekly availability by day and shift</caption>
+          <thead>
+            <tr><th scope="col"><span class="visually-hidden">Day</span></th><th scope="col">Shift A<br><span class="field__hint">00–08</span></th><th scope="col">Shift B<br><span class="field__hint">08–16</span></th><th scope="col">Shift C<br><span class="field__hint">16–24</span></th></tr>
+          </thead>
+          <tbody>
+            <!-- one row per weekday; each checkbox has its own accessible name -->
+            <tr><th scope="row">Sunday</th>
+              <td data-shift="A"><input type="checkbox" checked aria-label="Available Sunday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" checked aria-label="Available Sunday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Sunday, Shift C"></td></tr>
+            <tr><th scope="row">Monday</th>
+              <td data-shift="A"><input type="checkbox" checked aria-label="Available Monday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" checked aria-label="Available Monday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Monday, Shift C"></td></tr>
+            <tr><th scope="row">Tuesday</th>
+              <td data-shift="A"><input type="checkbox" checked aria-label="Available Tuesday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" checked aria-label="Available Tuesday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Tuesday, Shift C"></td></tr>
+            <tr><th scope="row">Wednesday</th>
+              <td data-shift="A"><input type="checkbox" checked aria-label="Available Wednesday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" checked aria-label="Available Wednesday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Wednesday, Shift C"></td></tr>
+            <tr><th scope="row">Thursday</th>
+              <td data-shift="A"><input type="checkbox" aria-label="Available Thursday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" aria-label="Available Thursday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Thursday, Shift C"></td></tr>
+            <tr><th scope="row">Friday</th>
+              <td data-shift="A"><input type="checkbox" aria-label="Available Friday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" aria-label="Available Friday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Friday, Shift C"></td></tr>
+            <tr><th scope="row">Saturday</th>
+              <td data-shift="A"><input type="checkbox" aria-label="Available Saturday, Shift A"></td>
+              <td data-shift="B"><input type="checkbox" aria-label="Available Saturday, Shift B"></td>
+              <td data-shift="C"><input type="checkbox" aria-label="Available Saturday, Shift C"></td></tr>
+          </tbody>
+        </table>
+      </form>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Save worker</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: edit worker (reuses same form shape) ============================= -->
+<div class="modal-overlay" id="modal-worker-edit" hidden aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mwe-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mwe-title">Edit worker — Dana Levi</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p style="font-size:var(--text-sm); color:var(--color-ink-secondary);">Same fields as “New worker”, pre-filled. Omitted here for brevity — see the New worker dialog for the full field set including the availability matrix.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: worker form with validation errors ============================= -->
+<div class="modal-overlay" id="modal-worker-error" hidden aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mwer-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mwer-title">New worker</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="toast toast--error" role="alert" style="margin-bottom:var(--space-4);">
+        <span class="toast__icon" aria-hidden="true">✕</span>
+        <span><strong>Could not save.</strong> National ID 123456782 already belongs to another worker (409).</span>
+      </div>
+      <form novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label" for="we-nid">National ID <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="we-nid" value="12345678A" aria-invalid="true" aria-describedby="we-nid-error we-nid-hint">
+            <p class="field__hint" id="we-nid-hint">9-digit Israeli ID, checksum-validated.</p>
+            <p class="field__error" id="we-nid-error">Invalid Israeli ID — checksum failed.</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="we-name">Full name <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="we-name" value="">
+          </div>
+          <div class="field">
+            <label class="field__label" for="we-min">Min monthly hours <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="we-min" value="190" aria-invalid="true" aria-describedby="we-minmax-error">
+          </div>
+          <div class="field">
+            <label class="field__label" for="we-max">Max monthly hours <span class="req" aria-hidden="true">*</span></label>
+            <input class="field__input" id="we-max" value="180" aria-invalid="true" aria-describedby="we-minmax-error">
+            <p class="field__error" id="we-minmax-error">Min monthly hours (190) must be less than or equal to max (180).</p>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button">Save worker</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: delete blocked (409, shift history) ============================= -->
+<div class="modal-overlay" id="modal-delete-blocked" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mdb-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mdb-title">Can’t delete this worker</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">⚠</span><span>Yossi Peretz has shift history and can’t be permanently deleted. Set them to <strong>Inactive</strong> instead — their contract and history are kept, and they’re excluded from future rostering.</span></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Set Inactive</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: share link ============================= -->
+<div class="modal-overlay" id="modal-share-link" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="msl-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="msl-title">Dana Levi — public schedule link</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="share-url">Read-only URL (no login required)</label>
+        <input class="field__input" id="share-url" readonly value="https://roster.example.com/schedule/8f1c2a9e-…">
+        <p class="field__hint">Anyone with this link can see this worker’s own <em>published</em> schedule — nothing else.</p>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--danger" type="button">Rotate link (invalidates old URL)</button>
+      <button class="btn btn--primary" type="button" data-close-modal>Copy link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: CSV full-sync confirm ============================= -->
+<div class="modal-overlay" id="modal-csv-confirm" hidden aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mcc-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mcc-title">Confirm import — full workforce sync</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="warn-text"><span aria-hidden="true">⚠</span><span>This file will become the authoritative worker list. <strong>Any existing worker whose national ID is not in this file will be set Inactive</strong> (never deleted — contract and shift history are kept). A row present in the file but failing validation will <em>not</em> be deactivated.</span></p>
+      <div class="field-checkbox">
+        <input type="checkbox" id="csv-confirm-check">
+        <label for="csv-confirm-check">I understand workers not in this file will be set Inactive.</label>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Cancel</button>
+      <button class="btn btn--danger" type="button" data-open-modal="modal-job-progress">Import file.csv</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: job progress ============================= -->
+<div class="modal-overlay" id="modal-job-progress" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="mjp-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mjp-title">Importing workers.csv</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="job-progress" id="csv-job-progress">
+        <div class="spinner" aria-hidden="true"></div>
+        <div style="flex:1;">
+          <div data-job-text role="status" aria-live="polite">Validating rows…</div>
+          <div class="job-progress__bar"><span style="width:8%"></span></div>
+        </div>
+      </div>
+      <p class="annotation">Polls <code>GET /api/jobs/:id</code> every 1.5s. The progress text is in a <code>role="status" aria-live="polite"</code> region so screen readers hear updates without focus moving.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-close-modal>Run in background</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= MODAL: CSV import result ============================= -->
+<div class="modal-overlay" id="modal-csv-result" hidden aria-hidden="true">
+  <div class="modal modal--lg" role="dialog" aria-modal="true" aria-labelledby="mcr-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="mcr-title">Import complete — workers.csv</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="stat-grid" style="margin-bottom:var(--space-5);">
+        <div class="stat-tile"><div class="stat-tile__label">Total rows</div><div class="stat-tile__value">14</div></div>
+        <div class="stat-tile"><div class="stat-tile__label">Inserted</div><div class="stat-tile__value">2</div></div>
+        <div class="stat-tile"><div class="stat-tile__label">Updated</div><div class="stat-tile__value">10</div></div>
+        <div class="stat-tile"><div class="stat-tile__label">Failed</div><div class="stat-tile__value" style="color:var(--color-status-blocking)">1</div></div>
+        <div class="stat-tile"><div class="stat-tile__label">Deactivated</div><div class="stat-tile__value" style="color:var(--color-status-warning)">2</div></div>
+      </div>
+
+      <h3>Row errors (1)</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th class="num">Row</th><th>National ID</th><th>Field</th><th>Message</th></tr></thead>
+          <tbody>
+            <tr><td class="num">9</td><td>02345678</td><td>national_id</td><td>Invalid Israeli ID — checksum failed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:var(--space-5);">Deactivated workers (2)</h3>
+      <p class="field__hint">Absent from this file — set Inactive automatically by the sync. Flip back to Active any time.</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>National ID</th><th>Name</th></tr></thead>
+          <tbody>
+            <tr><td>111223344</td><td>Yossi Peretz</td></tr>
+            <tr><td>222334455</td><td>Rivka Azoulay</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" type="button" data-close-modal>Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-region" id="toast-region" aria-live="polite" role="status"></div>
+
+<script src="../kit.js"></script>
+<script>
+  document.getElementById('modal-job-progress').addEventListener('transitionend', function(){});
+  // Demo: simulate the import job progressing once the progress modal opens.
+  document.querySelectorAll('[data-open-modal="modal-job-progress"]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById('csv-job-progress');
+      el.classList.add('job-progress--active');
+      RosterKit.simulateJobProgress(el);
+    });
+  });
+</script>
+</body>
+</html>

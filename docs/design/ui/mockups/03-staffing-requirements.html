@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staffing Requirements — Rostering System UI mockup</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../kit.css">
+<style>
+  .req-matrix { border-collapse: collapse; }
+  .req-matrix th, .req-matrix td { border: 1px solid var(--color-border); padding: var(--space-3); text-align: center; }
+  .req-matrix thead th { background: var(--color-page); font-size: var(--text-sm); }
+  .req-matrix tbody th { text-align: left; background: var(--color-page); }
+  .req-matrix input { width: 72px; text-align: center; font-variant-numeric: tabular-nums; }
+  .req-matrix td.col-a { background: color-mix(in srgb, var(--color-shift-a-bg) 55%, transparent); }
+  .req-matrix td.col-b { background: color-mix(in srgb, var(--color-shift-b-bg) 55%, transparent); }
+  .req-matrix td.col-c { background: color-mix(in srgb, var(--color-shift-c-bg) 55%, transparent); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <span class="topbar__brand">ICTS Rostering</span>
+  <nav aria-label="Primary">
+    <ul class="topbar__nav">
+      <li><a href="01-workers.html">Workers</a></li>
+      <li><a href="02-companies.html">Companies</a></li>
+      <li><a href="03-staffing-requirements.html" aria-current="page">Requirements</a></li>
+      <li><a href="04-roster-calendar.html">Roster</a></li>
+      <li><a href="05-cost-dashboard.html">Cost Dashboard</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main" class="page page--narrow">
+  <div class="page-header">
+    <div>
+      <h1>Staffing Requirements</h1>
+      <p>Required headcount per role × shift. The scheduling engine treats every cell as a hard coverage target; shortfalls become <code>unfillable_slot</code> alerts on the roster.</p>
+    </div>
+  </div>
+
+  <nav class="state-nav" aria-label="Jump to mockup state">
+    <strong>Screen states:</strong>
+    <a href="#state-normal">1. Normal (editable matrix)</a>
+    <a href="#state-error">2. Validation error</a>
+    <a href="#state-saved">3. Saved confirmation</a>
+  </nav>
+
+  <section class="state-section" id="state-normal">
+    <div class="state-section__head"><span class="tag">State</span><strong>Normal — edit and save (full-matrix replace)</strong></div>
+    <div class="state-section__body">
+      <form novalidate>
+        <table class="req-matrix">
+          <caption class="visually-hidden">Required headcount per role and shift</caption>
+          <thead>
+            <tr>
+              <th scope="col"><span class="visually-hidden">Role</span></th>
+              <th scope="col"><span class="badge badge--shift-a">A</span><br><span class="field__hint">00–08</span></th>
+              <th scope="col"><span class="badge badge--shift-b">B</span><br><span class="field__hint">08–16</span></th>
+              <th scope="col"><span class="badge badge--shift-c">C</span><br><span class="field__hint">16–24</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><span class="badge badge--role-guard">General Guard</span></th>
+              <td class="col-a"><label class="visually-hidden" for="rq-guard-a">General Guard required, Shift A</label><input id="rq-guard-a" type="number" min="0" value="2"></td>
+              <td class="col-b"><label class="visually-hidden" for="rq-guard-b">General Guard required, Shift B</label><input id="rq-guard-b" type="number" min="0" value="2"></td>
+              <td class="col-c"><label class="visually-hidden" for="rq-guard-c">General Guard required, Shift C</label><input id="rq-guard-c" type="number" min="0" value="2"></td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="badge badge--role-supervisor">Supervisor</span></th>
+              <td class="col-a"><label class="visually-hidden" for="rq-sup-a">Supervisor required, Shift A</label><input id="rq-sup-a" type="number" min="0" value="1"></td>
+              <td class="col-b"><label class="visually-hidden" for="rq-sup-b">Supervisor required, Shift B</label><input id="rq-sup-b" type="number" min="0" value="1"></td>
+              <td class="col-c"><label class="visually-hidden" for="rq-sup-c">Supervisor required, Shift C</label><input id="rq-sup-c" type="number" min="0" value="1"></td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="badge badge--role-screener">Screener</span></th>
+              <td class="col-a"><label class="visually-hidden" for="rq-scr-a">Screener required, Shift A</label><input id="rq-scr-a" type="number" min="0" value="0"></td>
+              <td class="col-b"><label class="visually-hidden" for="rq-scr-b">Screener required, Shift B</label><input id="rq-scr-b" type="number" min="0" value="1"></td>
+              <td class="col-c"><label class="visually-hidden" for="rq-scr-c">Screener required, Shift C</label><input id="rq-scr-c" type="number" min="0" value="1"></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="field__hint" style="margin-top:var(--space-3);">Total required per shift: A = 3 · B = 4 · C = 4 workers.</p>
+        <div class="toolbar" style="margin-top:var(--space-4);">
+          <button class="btn btn--primary" type="button" data-open-modal="modal-saved">Save requirements</button>
+          <button class="btn btn--secondary" type="button">Reset to last saved</button>
+        </div>
+      </form>
+      <p class="annotation"><strong>A11y:</strong> each numeric cell has its own visually-hidden <code>&lt;label&gt;</code> naming role + shift (e.g. “Supervisor required, Shift B”) — a sighted user reads it from row/column headers, a screen-reader user gets the same information per-cell since table header association isn’t reliably announced by every AT/browser combination for data cells.</p>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-error">
+    <div class="state-section__head"><span class="tag">State</span><strong>Validation error — negative headcount</strong></div>
+    <div class="state-section__body">
+      <div class="toast toast--error" role="alert" style="margin-bottom:var(--space-4);">
+        <span class="toast__icon" aria-hidden="true">✕</span>
+        <span>Save failed (400) — one or more cells are invalid.</span>
+      </div>
+      <table class="req-matrix">
+        <caption class="visually-hidden">Required headcount per role and shift</caption>
+        <thead>
+          <tr><th scope="col"><span class="visually-hidden">Role</span></th>
+              <th scope="col"><span class="badge badge--shift-a">A</span></th>
+              <th scope="col"><span class="badge badge--shift-b">B</span></th>
+              <th scope="col"><span class="badge badge--shift-c">C</span></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row"><span class="badge badge--role-guard">General Guard</span></th>
+            <td class="col-a"><label class="visually-hidden" for="rqe-guard-a">General Guard required, Shift A</label>
+              <input id="rqe-guard-a" type="number" value="-1" aria-invalid="true" aria-describedby="rqe-guard-a-error"></td>
+            <td class="col-b"><label class="visually-hidden" for="rqe-guard-b">General Guard required, Shift B</label><input id="rqe-guard-b" type="number" value="2"></td>
+            <td class="col-c"><label class="visually-hidden" for="rqe-guard-c">General Guard required, Shift C</label><input id="rqe-guard-c" type="number" value="2"></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="field__error" id="rqe-guard-a-error" style="margin-top:var(--space-2);">General Guard / Shift A: headcount can’t be negative.</p>
+      <p class="annotation">The error text sits below the matrix (one shared <code>role="alert"</code> region) because the matrix itself has no per-row error slot; the offending cell is still individually marked with <code>aria-invalid</code> + a red border, and <code>aria-describedby</code> points at this specific message rather than a generic one.</p>
+    </div>
+  </section>
+
+  <section class="state-section" id="state-saved">
+    <div class="state-section__head"><span class="tag">State</span><strong>Saved confirmation</strong></div>
+    <div class="state-section__body">
+      <button class="btn btn--secondary" type="button" data-open-modal="modal-saved">Preview save-success toast</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="modal-saved" hidden aria-hidden="true">
+  <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="ms-title" tabindex="-1">
+    <div class="modal__header">
+      <h2 id="ms-title">Requirements saved</h2>
+      <button class="modal__close" type="button" data-close-modal aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal__body">
+      <p>The full role × shift matrix was replaced. This does not retroactively change any already-generated roster — regenerate a month to apply the new requirements.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" type="button" data-close-modal>OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-region" id="toast-region" aria-live="polite" role="status"></div>
+<script src="../kit.js"></script>
+</body>
+</html>

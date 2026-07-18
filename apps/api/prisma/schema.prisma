@@ -1,0 +1,168 @@
+// Prisma schema for the Rostering System.
+//
+// Models, enums, fields, relations, and indexes below are transcribed verbatim
+// from docs/design/rostering-system-design.html ("Database Schema" section).
+// The `generator`/`datasource` blocks are the only parts NOT dictated by the
+// design doc (which assumed an older Prisma major); they are wired to satisfy
+// Prisma 7's requirements (explicit generator output, url supplied via
+// prisma.config.ts) — see the report for details.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  GENERAL_GUARD
+  SUPERVISOR
+  SCREENER
+}
+
+enum ShiftType {
+  A // 00:00–08:00
+  B // 08:00–16:00
+  C // 16:00–24:00
+}
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RosterStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AlertType {
+  UNFILLABLE_SLOT
+  MIN_HOURS_SHORTFALL
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120) // unique case-insensitively: raw-SQL migration
+  // CREATE UNIQUE INDEX ON companies (lower(name))
+  createdAt DateTime @default(now())
+  workers   Worker[]
+
+  @@map("companies")
+}
+
+model Worker {
+  id           Int           @id @default(autoincrement())
+  nationalId   String        @unique @db.Char(9) // Israeli ID; checksum checked in Zod
+  name         String        @db.VarChar(120)
+  companyId    Int // ← employer, required
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  role         Role
+  status       WorkerStatus  @default(ACTIVE)
+  shareToken   String        @unique @default(uuid()) // public schedule URL token
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  contract     Contract?
+  shiftWorkers ShiftWorker[]
+  availability WorkerAvailability[]
+
+  @@index([companyId]) // company filters/joins
+  @@index([status]) // engine loads ACTIVE workers (see partial index note)
+  @@map("workers")
+}
+
+model Contract {
+  id              Int      @id @default(autoincrement())
+  workerId        Int      @unique // ← one contract per worker
+  worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  hourlyCostIls   Decimal  @db.Decimal(8, 2) // NOT NULL, ≥ 0 (Zod)
+  minMonthlyHours Int // NOT NULL, 0 ≤ min ≤ max (Zod)
+  maxMonthlyHours Int
+  updatedAt       DateTime @updatedAt
+
+  @@map("contracts")
+}
+
+// Availability v2: one row per (worker, calendar date) with the non-empty subset of shifts the
+// worker can work that exact date. ABSENCE of a row = unavailable that date — an empty subset is
+// never stored (the row is deleted instead). Replaces the old `contracts.availability` weekly
+// pattern (dropped in the `availability_v2` migration).
+model WorkerAvailability {
+  id        Int      @id @default(autoincrement())
+  workerId  Int
+  // Cascade, matching `Contract`'s delete rule: availability rows are worker-owned auxiliary data
+  // with no independent historical value. Roster history stays protected because deleting a worker
+  // WITH history is already blocked by `ShiftWorker`'s `onDelete: Restrict` (the deactivate-flow);
+  // only a history-less worker can be deleted at all, and then their availability goes with them.
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  shifts    String   @db.VarChar(3) // canonical subset of "ABC" (e.g. "A", "AB", "ABC"); Zod-validated on write
+  updatedAt DateTime @updatedAt
+
+  @@unique([workerId, date]) // one entry per worker per calendar date
+  @@index([date]) // month-window queries (date BETWEEN first and last of month)
+  @@map("worker_availability")
+}
+
+model StaffingRequirement {
+  id            Int       @id @default(autoincrement())
+  role          Role
+  shift         ShiftType
+  requiredCount Int // NOT NULL, ≥ 0
+
+  @@unique([role, shift]) // ← one row per role × shift (≤ 9 rows)
+  @@map("staffing_requirements")
+}
+
+model Roster {
+  id          Int          @id @default(autoincrement())
+  month       String       @unique @db.Char(7) // ← "YYYY-MM"; one roster per month
+  status      RosterStatus @default(DRAFT)
+  generatedAt DateTime?
+  publishedAt DateTime?
+  shifts      Shift[]
+  alerts      Alert[]
+
+  @@map("rosters")
+}
+
+model Shift {
+  id        Int           @id @default(autoincrement())
+  rosterId  Int
+  roster    Roster        @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
+  shiftType ShiftType
+  workers   ShiftWorker[]
+
+  @@unique([rosterId, date, shiftType]) // ← one row per calendar slot of the month
+  @@index([rosterId, date]) // calendar-grid reads
+  @@map("shifts")
+}
+
+model ShiftWorker {
+  shiftId  Int
+  shift    Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  workerId Int
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  role     Role // ← snapshot of worker.role at assignment time
+
+  @@id([shiftId, workerId]) // ← same worker never twice in one slot;
+  //   8 h each: cost = count × 8 × rate
+  @@index([workerId]) // per-worker schedule + daily-cap checks
+  @@map("shift_workers")
+}
+
+model Alert {
+  id             Int       @id @default(autoincrement())
+  rosterId       Int
+  roster         Roster    @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  type           AlertType
+  detail         Json      @db.JsonB // {date,shift,role} or {workerId,deficitHours}
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+
+  @@index([rosterId])
+  @@map("alerts")
+}

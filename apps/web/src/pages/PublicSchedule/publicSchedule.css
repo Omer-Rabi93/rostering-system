@@ -1,0 +1,64 @@
+/*
+ * Public worker-schedule page (`/schedule/:token`) — small page-local additions on top of the
+ * shared `@rostering/ui/styles.css` (tokens + kit component styles, still used here for `.card`,
+ * `.field`, `.btn`, `.badge`, `.empty-state`). Copied from `docs/design/ui/mockups/06-public-schedule.html`'s
+ * in-page `<style>` block verbatim — kept separate from `kit.css` because this page never renders
+ * the authenticated `.topbar`/nav shell (see `docs/design/ui/README.md`'s "no authenticated chrome
+ * on an unauthenticated page" rule), so these rules belong to this page alone, not the shared kit.
+ */
+.public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.public-header__brand {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+.schedule-card {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.schedule-meta {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-ink-secondary);
+}
+.schedule-meta strong {
+  color: var(--color-ink-primary);
+}
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.day-row:last-child {
+  border-bottom: none;
+}
+.day-row__date {
+  width: 130px;
+  font-weight: 600;
+  flex: none;
+}
+.day-row__date .dow {
+  color: var(--color-ink-muted);
+  font-weight: 400;
+  font-size: var(--text-xs);
+  display: block;
+}
+
+.print-only {
+  display: none;
+}
+
+/* Print rules (`.no-print` hidden, `.print-only` shown, `.schedule-card` chrome dropped) live in
+ * `../../styles/print.css` — the Phase 8 groundwork this page imports and extends, per the
+ * implementation plan, rather than duplicating an `@media print` block here. */

@@ -1,0 +1,1717 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e4]:
+    - generic [ref=e5]: ICTS Rostering
+    - navigation "Primary" [ref=e6]:
+      - list [ref=e7]:
+        - listitem [ref=e8]:
+          - link "Workers" [ref=e9] [cursor=pointer]:
+            - /url: /workers
+        - listitem [ref=e10]:
+          - link "Companies" [ref=e11] [cursor=pointer]:
+            - /url: /companies
+        - listitem [ref=e12]:
+          - link "Requirements" [ref=e13] [cursor=pointer]:
+            - /url: /requirements
+        - listitem [ref=e14]:
+          - link "Roster" [ref=e15] [cursor=pointer]:
+            - /url: /roster/2026-07
+        - listitem [ref=e16]:
+          - link "Cost Dashboard" [ref=e17] [cursor=pointer]:
+            - /url: /cost/2026-07
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - heading "Roster — August 2026" [level=1] [ref=e22]
+          - paragraph [ref=e23]: "Month-wide grid: one column per day, 3 rows per day (Shift A / B / C). Click or keyboard-activate a slot to add, move, or remove a worker."
+        - generic [ref=e24]:
+          - generic [ref=e25]: Month
+          - textbox "Month" [ref=e26]: 2026-08
+      - tablist "Roster page sections" [ref=e27]:
+        - tab "Roster grid" [ref=e28] [cursor=pointer]
+        - tab "Availability" [active] [selected] [ref=e29] [cursor=pointer]
+      - generic [ref=e30]:
+        - generic [ref=e31]: Availability — 2026-08
+        - paragraph [ref=e32]:
+          - text: One row per active worker, one column per date. Focus a cell and press
+          - strong [ref=e33]: A
+          - text: ","
+          - strong [ref=e34]: B
+          - text: ", or"
+          - strong [ref=e35]: C
+          - text: to toggle that shift; arrow keys/Home/End move between cells. A blank cell means unavailable that date.
+        - table "2026-08 availability grid, one row per active worker" [ref=e37]:
+          - rowgroup [ref=e38]:
+            - row "Worker Aug 1 Aug 2 Aug 3 Aug 4 Aug 5 Aug 6 Aug 7 Aug 8 Aug 9 Aug 10 Aug 11 Aug 12 Aug 13 Aug 14 Aug 15 Aug 16 Aug 17 Aug 18 Aug 19 Aug 20 Aug 21 Aug 22 Aug 23 Aug 24 Aug 25 Aug 26 Aug 27 Aug 28 Aug 29 Aug 30 Aug 31" [ref=e39]:
+              - columnheader "Worker" [ref=e40]
+              - columnheader "Aug 1" [ref=e41]
+              - columnheader "Aug 2" [ref=e42]
+              - columnheader "Aug 3" [ref=e43]
+              - columnheader "Aug 4" [ref=e44]
+              - columnheader "Aug 5" [ref=e45]
+              - columnheader "Aug 6" [ref=e46]
+              - columnheader "Aug 7" [ref=e47]
+              - columnheader "Aug 8" [ref=e48]
+              - columnheader "Aug 9" [ref=e49]
+              - columnheader "Aug 10" [ref=e50]
+              - columnheader "Aug 11" [ref=e51]
+              - columnheader "Aug 12" [ref=e52]
+              - columnheader "Aug 13" [ref=e53]
+              - columnheader "Aug 14" [ref=e54]
+              - columnheader "Aug 15" [ref=e55]
+              - columnheader "Aug 16" [ref=e56]
+              - columnheader "Aug 17" [ref=e57]
+              - columnheader "Aug 18" [ref=e58]
+              - columnheader "Aug 19" [ref=e59]
+              - columnheader "Aug 20" [ref=e60]
+              - columnheader "Aug 21" [ref=e61]
+              - columnheader "Aug 22" [ref=e62]
+              - columnheader "Aug 23" [ref=e63]
+              - columnheader "Aug 24" [ref=e64]
+              - columnheader "Aug 25" [ref=e65]
+              - columnheader "Aug 26" [ref=e66]
+              - columnheader "Aug 27" [ref=e67]
+              - columnheader "Aug 28" [ref=e68]
+              - columnheader "Aug 29" [ref=e69]
+              - columnheader "Aug 30" [ref=e70]
+              - columnheader "Aug 31" [ref=e71]
+          - rowgroup [ref=e72]:
+            - row [ref=e73]:
+              - rowheader "Noa Levi All None" [ref=e74]:
+                - generic [ref=e75]:
+                  - generic [ref=e76]: Noa Levi
+                  - generic [ref=e77]:
+                    - button "All" [ref=e78] [cursor=pointer]
+                    - button "None" [ref=e79] [cursor=pointer]
+              - gridcell "Noa Levi, Aug 1, available shift A, B, C" [selected] [ref=e80] [cursor=pointer]:
+                - generic [ref=e81] [cursor=pointer]:
+                  - generic [ref=e82] [cursor=pointer]: A
+                  - generic [ref=e83] [cursor=pointer]: B
+                  - generic [ref=e84] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 2, available shift A, B, C" [ref=e85] [cursor=pointer]:
+                - generic [ref=e86] [cursor=pointer]:
+                  - generic [ref=e87] [cursor=pointer]: A
+                  - generic [ref=e88] [cursor=pointer]: B
+                  - generic [ref=e89] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 3, available shift A, B, C" [ref=e90] [cursor=pointer]:
+                - generic [ref=e91] [cursor=pointer]:
+                  - generic [ref=e92] [cursor=pointer]: A
+                  - generic [ref=e93] [cursor=pointer]: B
+                  - generic [ref=e94] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 4, available shift A, B, C" [ref=e95] [cursor=pointer]:
+                - generic [ref=e96] [cursor=pointer]:
+                  - generic [ref=e97] [cursor=pointer]: A
+                  - generic [ref=e98] [cursor=pointer]: B
+                  - generic [ref=e99] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 5, available shift A, B, C" [ref=e100] [cursor=pointer]:
+                - generic [ref=e101] [cursor=pointer]:
+                  - generic [ref=e102] [cursor=pointer]: A
+                  - generic [ref=e103] [cursor=pointer]: B
+                  - generic [ref=e104] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 6, available shift A, B, C" [ref=e105] [cursor=pointer]:
+                - generic [ref=e106] [cursor=pointer]:
+                  - generic [ref=e107] [cursor=pointer]: A
+                  - generic [ref=e108] [cursor=pointer]: B
+                  - generic [ref=e109] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 7, available shift A, B, C" [ref=e110] [cursor=pointer]:
+                - generic [ref=e111] [cursor=pointer]:
+                  - generic [ref=e112] [cursor=pointer]: A
+                  - generic [ref=e113] [cursor=pointer]: B
+                  - generic [ref=e114] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 8, available shift A, B, C" [ref=e115] [cursor=pointer]:
+                - generic [ref=e116] [cursor=pointer]:
+                  - generic [ref=e117] [cursor=pointer]: A
+                  - generic [ref=e118] [cursor=pointer]: B
+                  - generic [ref=e119] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 9, available shift A, B, C" [ref=e120] [cursor=pointer]:
+                - generic [ref=e121] [cursor=pointer]:
+                  - generic [ref=e122] [cursor=pointer]: A
+                  - generic [ref=e123] [cursor=pointer]: B
+                  - generic [ref=e124] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 10, available shift A, B, C" [ref=e125] [cursor=pointer]:
+                - generic [ref=e126] [cursor=pointer]:
+                  - generic [ref=e127] [cursor=pointer]: A
+                  - generic [ref=e128] [cursor=pointer]: B
+                  - generic [ref=e129] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 11, available shift A, B, C" [ref=e130] [cursor=pointer]:
+                - generic [ref=e131] [cursor=pointer]:
+                  - generic [ref=e132] [cursor=pointer]: A
+                  - generic [ref=e133] [cursor=pointer]: B
+                  - generic [ref=e134] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 12, available shift A, B, C" [ref=e135] [cursor=pointer]:
+                - generic [ref=e136] [cursor=pointer]:
+                  - generic [ref=e137] [cursor=pointer]: A
+                  - generic [ref=e138] [cursor=pointer]: B
+                  - generic [ref=e139] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 13, available shift A, B, C" [ref=e140] [cursor=pointer]:
+                - generic [ref=e141] [cursor=pointer]:
+                  - generic [ref=e142] [cursor=pointer]: A
+                  - generic [ref=e143] [cursor=pointer]: B
+                  - generic [ref=e144] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 14, available shift A, B, C" [ref=e145] [cursor=pointer]:
+                - generic [ref=e146] [cursor=pointer]:
+                  - generic [ref=e147] [cursor=pointer]: A
+                  - generic [ref=e148] [cursor=pointer]: B
+                  - generic [ref=e149] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 15, available shift A, B, C" [ref=e150] [cursor=pointer]:
+                - generic [ref=e151] [cursor=pointer]:
+                  - generic [ref=e152] [cursor=pointer]: A
+                  - generic [ref=e153] [cursor=pointer]: B
+                  - generic [ref=e154] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 16, available shift A, B, C" [ref=e155] [cursor=pointer]:
+                - generic [ref=e156] [cursor=pointer]:
+                  - generic [ref=e157] [cursor=pointer]: A
+                  - generic [ref=e158] [cursor=pointer]: B
+                  - generic [ref=e159] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 17, available shift A, B, C" [ref=e160] [cursor=pointer]:
+                - generic [ref=e161] [cursor=pointer]:
+                  - generic [ref=e162] [cursor=pointer]: A
+                  - generic [ref=e163] [cursor=pointer]: B
+                  - generic [ref=e164] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 18, available shift A, B, C" [ref=e165] [cursor=pointer]:
+                - generic [ref=e166] [cursor=pointer]:
+                  - generic [ref=e167] [cursor=pointer]: A
+                  - generic [ref=e168] [cursor=pointer]: B
+                  - generic [ref=e169] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 19, available shift A, B, C" [ref=e170] [cursor=pointer]:
+                - generic [ref=e171] [cursor=pointer]:
+                  - generic [ref=e172] [cursor=pointer]: A
+                  - generic [ref=e173] [cursor=pointer]: B
+                  - generic [ref=e174] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 20, available shift A, B, C" [ref=e175] [cursor=pointer]:
+                - generic [ref=e176] [cursor=pointer]:
+                  - generic [ref=e177] [cursor=pointer]: A
+                  - generic [ref=e178] [cursor=pointer]: B
+                  - generic [ref=e179] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 21, available shift A, B, C" [ref=e180] [cursor=pointer]:
+                - generic [ref=e181] [cursor=pointer]:
+                  - generic [ref=e182] [cursor=pointer]: A
+                  - generic [ref=e183] [cursor=pointer]: B
+                  - generic [ref=e184] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 22, available shift A, B, C" [ref=e185] [cursor=pointer]:
+                - generic [ref=e186] [cursor=pointer]:
+                  - generic [ref=e187] [cursor=pointer]: A
+                  - generic [ref=e188] [cursor=pointer]: B
+                  - generic [ref=e189] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 23, available shift A, B, C" [ref=e190] [cursor=pointer]:
+                - generic [ref=e191] [cursor=pointer]:
+                  - generic [ref=e192] [cursor=pointer]: A
+                  - generic [ref=e193] [cursor=pointer]: B
+                  - generic [ref=e194] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 24, available shift A, B, C" [ref=e195] [cursor=pointer]:
+                - generic [ref=e196] [cursor=pointer]:
+                  - generic [ref=e197] [cursor=pointer]: A
+                  - generic [ref=e198] [cursor=pointer]: B
+                  - generic [ref=e199] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 25, available shift A, B, C" [ref=e200] [cursor=pointer]:
+                - generic [ref=e201] [cursor=pointer]:
+                  - generic [ref=e202] [cursor=pointer]: A
+                  - generic [ref=e203] [cursor=pointer]: B
+                  - generic [ref=e204] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 26, available shift A, B, C" [ref=e205] [cursor=pointer]:
+                - generic [ref=e206] [cursor=pointer]:
+                  - generic [ref=e207] [cursor=pointer]: A
+                  - generic [ref=e208] [cursor=pointer]: B
+                  - generic [ref=e209] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 27, available shift A, B, C" [ref=e210] [cursor=pointer]:
+                - generic [ref=e211] [cursor=pointer]:
+                  - generic [ref=e212] [cursor=pointer]: A
+                  - generic [ref=e213] [cursor=pointer]: B
+                  - generic [ref=e214] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 28, available shift A, B, C" [ref=e215] [cursor=pointer]:
+                - generic [ref=e216] [cursor=pointer]:
+                  - generic [ref=e217] [cursor=pointer]: A
+                  - generic [ref=e218] [cursor=pointer]: B
+                  - generic [ref=e219] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 29, available shift A, B, C" [ref=e220] [cursor=pointer]:
+                - generic [ref=e221] [cursor=pointer]:
+                  - generic [ref=e222] [cursor=pointer]: A
+                  - generic [ref=e223] [cursor=pointer]: B
+                  - generic [ref=e224] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 30, available shift A, B, C" [ref=e225] [cursor=pointer]:
+                - generic [ref=e226] [cursor=pointer]:
+                  - generic [ref=e227] [cursor=pointer]: A
+                  - generic [ref=e228] [cursor=pointer]: B
+                  - generic [ref=e229] [cursor=pointer]: C
+              - gridcell "Noa Levi, Aug 31, available shift A, B, C" [ref=e230] [cursor=pointer]:
+                - generic [ref=e231] [cursor=pointer]:
+                  - generic [ref=e232] [cursor=pointer]: A
+                  - generic [ref=e233] [cursor=pointer]: B
+                  - generic [ref=e234] [cursor=pointer]: C
+            - row [ref=e235]:
+              - rowheader "Avi Cohen All None" [ref=e236]:
+                - generic [ref=e237]:
+                  - generic [ref=e238]: Avi Cohen
+                  - generic [ref=e239]:
+                    - button "All" [ref=e240] [cursor=pointer]
+                    - button "None" [ref=e241] [cursor=pointer]
+              - gridcell "Avi Cohen, Aug 1, available shift A, B" [ref=e242] [cursor=pointer]:
+                - generic [ref=e243] [cursor=pointer]:
+                  - generic [ref=e244] [cursor=pointer]: A
+                  - generic [ref=e245] [cursor=pointer]: B
+                  - generic [ref=e246] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 2, available shift A, B" [ref=e247] [cursor=pointer]:
+                - generic [ref=e248] [cursor=pointer]:
+                  - generic [ref=e249] [cursor=pointer]: A
+                  - generic [ref=e250] [cursor=pointer]: B
+                  - generic [ref=e251] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 3, available shift A, B" [ref=e252] [cursor=pointer]:
+                - generic [ref=e253] [cursor=pointer]:
+                  - generic [ref=e254] [cursor=pointer]: A
+                  - generic [ref=e255] [cursor=pointer]: B
+                  - generic [ref=e256] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 4, available shift A, B" [ref=e257] [cursor=pointer]:
+                - generic [ref=e258] [cursor=pointer]:
+                  - generic [ref=e259] [cursor=pointer]: A
+                  - generic [ref=e260] [cursor=pointer]: B
+                  - generic [ref=e261] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 5, available shift A, B" [ref=e262] [cursor=pointer]:
+                - generic [ref=e263] [cursor=pointer]:
+                  - generic [ref=e264] [cursor=pointer]: A
+                  - generic [ref=e265] [cursor=pointer]: B
+                  - generic [ref=e266] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 6, available shift A, B" [ref=e267] [cursor=pointer]:
+                - generic [ref=e268] [cursor=pointer]:
+                  - generic [ref=e269] [cursor=pointer]: A
+                  - generic [ref=e270] [cursor=pointer]: B
+                  - generic [ref=e271] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 7, available shift A, B" [ref=e272] [cursor=pointer]:
+                - generic [ref=e273] [cursor=pointer]:
+                  - generic [ref=e274] [cursor=pointer]: A
+                  - generic [ref=e275] [cursor=pointer]: B
+                  - generic [ref=e276] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 8, available shift A, B" [ref=e277] [cursor=pointer]:
+                - generic [ref=e278] [cursor=pointer]:
+                  - generic [ref=e279] [cursor=pointer]: A
+                  - generic [ref=e280] [cursor=pointer]: B
+                  - generic [ref=e281] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 9, available shift A, B" [ref=e282] [cursor=pointer]:
+                - generic [ref=e283] [cursor=pointer]:
+                  - generic [ref=e284] [cursor=pointer]: A
+                  - generic [ref=e285] [cursor=pointer]: B
+                  - generic [ref=e286] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 10, available shift A, B" [ref=e287] [cursor=pointer]:
+                - generic [ref=e288] [cursor=pointer]:
+                  - generic [ref=e289] [cursor=pointer]: A
+                  - generic [ref=e290] [cursor=pointer]: B
+                  - generic [ref=e291] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 11, available shift A, B" [ref=e292] [cursor=pointer]:
+                - generic [ref=e293] [cursor=pointer]:
+                  - generic [ref=e294] [cursor=pointer]: A
+                  - generic [ref=e295] [cursor=pointer]: B
+                  - generic [ref=e296] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 12, available shift A, B" [ref=e297] [cursor=pointer]:
+                - generic [ref=e298] [cursor=pointer]:
+                  - generic [ref=e299] [cursor=pointer]: A
+                  - generic [ref=e300] [cursor=pointer]: B
+                  - generic [ref=e301] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 13, available shift A, B" [ref=e302] [cursor=pointer]:
+                - generic [ref=e303] [cursor=pointer]:
+                  - generic [ref=e304] [cursor=pointer]: A
+                  - generic [ref=e305] [cursor=pointer]: B
+                  - generic [ref=e306] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 14, available shift A, B" [ref=e307] [cursor=pointer]:
+                - generic [ref=e308] [cursor=pointer]:
+                  - generic [ref=e309] [cursor=pointer]: A
+                  - generic [ref=e310] [cursor=pointer]: B
+                  - generic [ref=e311] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 15, available shift A, B" [ref=e312] [cursor=pointer]:
+                - generic [ref=e313] [cursor=pointer]:
+                  - generic [ref=e314] [cursor=pointer]: A
+                  - generic [ref=e315] [cursor=pointer]: B
+                  - generic [ref=e316] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 16, available shift A, B" [ref=e317] [cursor=pointer]:
+                - generic [ref=e318] [cursor=pointer]:
+                  - generic [ref=e319] [cursor=pointer]: A
+                  - generic [ref=e320] [cursor=pointer]: B
+                  - generic [ref=e321] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 17, available shift A, B" [ref=e322] [cursor=pointer]:
+                - generic [ref=e323] [cursor=pointer]:
+                  - generic [ref=e324] [cursor=pointer]: A
+                  - generic [ref=e325] [cursor=pointer]: B
+                  - generic [ref=e326] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 18, available shift A, B" [ref=e327] [cursor=pointer]:
+                - generic [ref=e328] [cursor=pointer]:
+                  - generic [ref=e329] [cursor=pointer]: A
+                  - generic [ref=e330] [cursor=pointer]: B
+                  - generic [ref=e331] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 19, available shift A, B" [ref=e332] [cursor=pointer]:
+                - generic [ref=e333] [cursor=pointer]:
+                  - generic [ref=e334] [cursor=pointer]: A
+                  - generic [ref=e335] [cursor=pointer]: B
+                  - generic [ref=e336] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 20, available shift A, B" [ref=e337] [cursor=pointer]:
+                - generic [ref=e338] [cursor=pointer]:
+                  - generic [ref=e339] [cursor=pointer]: A
+                  - generic [ref=e340] [cursor=pointer]: B
+                  - generic [ref=e341] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 21, available shift A, B" [ref=e342] [cursor=pointer]:
+                - generic [ref=e343] [cursor=pointer]:
+                  - generic [ref=e344] [cursor=pointer]: A
+                  - generic [ref=e345] [cursor=pointer]: B
+                  - generic [ref=e346] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 22, available shift A, B" [ref=e347] [cursor=pointer]:
+                - generic [ref=e348] [cursor=pointer]:
+                  - generic [ref=e349] [cursor=pointer]: A
+                  - generic [ref=e350] [cursor=pointer]: B
+                  - generic [ref=e351] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 23, available shift A, B" [ref=e352] [cursor=pointer]:
+                - generic [ref=e353] [cursor=pointer]:
+                  - generic [ref=e354] [cursor=pointer]: A
+                  - generic [ref=e355] [cursor=pointer]: B
+                  - generic [ref=e356] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 24, available shift A, B" [ref=e357] [cursor=pointer]:
+                - generic [ref=e358] [cursor=pointer]:
+                  - generic [ref=e359] [cursor=pointer]: A
+                  - generic [ref=e360] [cursor=pointer]: B
+                  - generic [ref=e361] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 25, available shift A, B" [ref=e362] [cursor=pointer]:
+                - generic [ref=e363] [cursor=pointer]:
+                  - generic [ref=e364] [cursor=pointer]: A
+                  - generic [ref=e365] [cursor=pointer]: B
+                  - generic [ref=e366] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 26, available shift A, B" [ref=e367] [cursor=pointer]:
+                - generic [ref=e368] [cursor=pointer]:
+                  - generic [ref=e369] [cursor=pointer]: A
+                  - generic [ref=e370] [cursor=pointer]: B
+                  - generic [ref=e371] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 27, available shift A, B" [ref=e372] [cursor=pointer]:
+                - generic [ref=e373] [cursor=pointer]:
+                  - generic [ref=e374] [cursor=pointer]: A
+                  - generic [ref=e375] [cursor=pointer]: B
+                  - generic [ref=e376] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 28, available shift A, B" [ref=e377] [cursor=pointer]:
+                - generic [ref=e378] [cursor=pointer]:
+                  - generic [ref=e379] [cursor=pointer]: A
+                  - generic [ref=e380] [cursor=pointer]: B
+                  - generic [ref=e381] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 29, available shift A, B" [ref=e382] [cursor=pointer]:
+                - generic [ref=e383] [cursor=pointer]:
+                  - generic [ref=e384] [cursor=pointer]: A
+                  - generic [ref=e385] [cursor=pointer]: B
+                  - generic [ref=e386] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 30, available shift A, B" [ref=e387] [cursor=pointer]:
+                - generic [ref=e388] [cursor=pointer]:
+                  - generic [ref=e389] [cursor=pointer]: A
+                  - generic [ref=e390] [cursor=pointer]: B
+                  - generic [ref=e391] [cursor=pointer]: C
+              - gridcell "Avi Cohen, Aug 31, available shift A, B" [ref=e392] [cursor=pointer]:
+                - generic [ref=e393] [cursor=pointer]:
+                  - generic [ref=e394] [cursor=pointer]: A
+                  - generic [ref=e395] [cursor=pointer]: B
+                  - generic [ref=e396] [cursor=pointer]: C
+            - row [ref=e397]:
+              - rowheader "Dana Mizrahi All None" [ref=e398]:
+                - generic [ref=e399]:
+                  - generic [ref=e400]: Dana Mizrahi
+                  - generic [ref=e401]:
+                    - button "All" [ref=e402] [cursor=pointer]
+                    - button "None" [ref=e403] [cursor=pointer]
+              - gridcell "Dana Mizrahi, Aug 1, available shift A, B, C" [ref=e404] [cursor=pointer]:
+                - generic [ref=e405] [cursor=pointer]:
+                  - generic [ref=e406] [cursor=pointer]: A
+                  - generic [ref=e407] [cursor=pointer]: B
+                  - generic [ref=e408] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 2, available shift A, B, C" [ref=e409] [cursor=pointer]:
+                - generic [ref=e410] [cursor=pointer]:
+                  - generic [ref=e411] [cursor=pointer]: A
+                  - generic [ref=e412] [cursor=pointer]: B
+                  - generic [ref=e413] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 3, available shift A, B, C" [ref=e414] [cursor=pointer]:
+                - generic [ref=e415] [cursor=pointer]:
+                  - generic [ref=e416] [cursor=pointer]: A
+                  - generic [ref=e417] [cursor=pointer]: B
+                  - generic [ref=e418] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 4, available shift A, B, C" [ref=e419] [cursor=pointer]:
+                - generic [ref=e420] [cursor=pointer]:
+                  - generic [ref=e421] [cursor=pointer]: A
+                  - generic [ref=e422] [cursor=pointer]: B
+                  - generic [ref=e423] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 5, available shift A, B, C" [ref=e424] [cursor=pointer]:
+                - generic [ref=e425] [cursor=pointer]:
+                  - generic [ref=e426] [cursor=pointer]: A
+                  - generic [ref=e427] [cursor=pointer]: B
+                  - generic [ref=e428] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 6, available shift A, B, C" [ref=e429] [cursor=pointer]:
+                - generic [ref=e430] [cursor=pointer]:
+                  - generic [ref=e431] [cursor=pointer]: A
+                  - generic [ref=e432] [cursor=pointer]: B
+                  - generic [ref=e433] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 7, available shift A, B, C" [ref=e434] [cursor=pointer]:
+                - generic [ref=e435] [cursor=pointer]:
+                  - generic [ref=e436] [cursor=pointer]: A
+                  - generic [ref=e437] [cursor=pointer]: B
+                  - generic [ref=e438] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 8, available shift A, B, C" [ref=e439] [cursor=pointer]:
+                - generic [ref=e440] [cursor=pointer]:
+                  - generic [ref=e441] [cursor=pointer]: A
+                  - generic [ref=e442] [cursor=pointer]: B
+                  - generic [ref=e443] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 9, available shift A, B, C" [ref=e444] [cursor=pointer]:
+                - generic [ref=e445] [cursor=pointer]:
+                  - generic [ref=e446] [cursor=pointer]: A
+                  - generic [ref=e447] [cursor=pointer]: B
+                  - generic [ref=e448] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 10, available shift A, B, C" [ref=e449] [cursor=pointer]:
+                - generic [ref=e450] [cursor=pointer]:
+                  - generic [ref=e451] [cursor=pointer]: A
+                  - generic [ref=e452] [cursor=pointer]: B
+                  - generic [ref=e453] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 11, available shift A, B, C" [ref=e454] [cursor=pointer]:
+                - generic [ref=e455] [cursor=pointer]:
+                  - generic [ref=e456] [cursor=pointer]: A
+                  - generic [ref=e457] [cursor=pointer]: B
+                  - generic [ref=e458] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 12, available shift A, B, C" [ref=e459] [cursor=pointer]:
+                - generic [ref=e460] [cursor=pointer]:
+                  - generic [ref=e461] [cursor=pointer]: A
+                  - generic [ref=e462] [cursor=pointer]: B
+                  - generic [ref=e463] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 13, available shift A, B, C" [ref=e464] [cursor=pointer]:
+                - generic [ref=e465] [cursor=pointer]:
+                  - generic [ref=e466] [cursor=pointer]: A
+                  - generic [ref=e467] [cursor=pointer]: B
+                  - generic [ref=e468] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 14, available shift A, B, C" [ref=e469] [cursor=pointer]:
+                - generic [ref=e470] [cursor=pointer]:
+                  - generic [ref=e471] [cursor=pointer]: A
+                  - generic [ref=e472] [cursor=pointer]: B
+                  - generic [ref=e473] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 15, available shift A, B, C" [ref=e474] [cursor=pointer]:
+                - generic [ref=e475] [cursor=pointer]:
+                  - generic [ref=e476] [cursor=pointer]: A
+                  - generic [ref=e477] [cursor=pointer]: B
+                  - generic [ref=e478] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 16, available shift A, B, C" [ref=e479] [cursor=pointer]:
+                - generic [ref=e480] [cursor=pointer]:
+                  - generic [ref=e481] [cursor=pointer]: A
+                  - generic [ref=e482] [cursor=pointer]: B
+                  - generic [ref=e483] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 17, available shift A, B, C" [ref=e484] [cursor=pointer]:
+                - generic [ref=e485] [cursor=pointer]:
+                  - generic [ref=e486] [cursor=pointer]: A
+                  - generic [ref=e487] [cursor=pointer]: B
+                  - generic [ref=e488] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 18, available shift A, B, C" [ref=e489] [cursor=pointer]:
+                - generic [ref=e490] [cursor=pointer]:
+                  - generic [ref=e491] [cursor=pointer]: A
+                  - generic [ref=e492] [cursor=pointer]: B
+                  - generic [ref=e493] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 19, available shift A, B, C" [ref=e494] [cursor=pointer]:
+                - generic [ref=e495] [cursor=pointer]:
+                  - generic [ref=e496] [cursor=pointer]: A
+                  - generic [ref=e497] [cursor=pointer]: B
+                  - generic [ref=e498] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 20, available shift A, B, C" [ref=e499] [cursor=pointer]:
+                - generic [ref=e500] [cursor=pointer]:
+                  - generic [ref=e501] [cursor=pointer]: A
+                  - generic [ref=e502] [cursor=pointer]: B
+                  - generic [ref=e503] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 21, available shift A, B, C" [ref=e504] [cursor=pointer]:
+                - generic [ref=e505] [cursor=pointer]:
+                  - generic [ref=e506] [cursor=pointer]: A
+                  - generic [ref=e507] [cursor=pointer]: B
+                  - generic [ref=e508] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 22, available shift A, B, C" [ref=e509] [cursor=pointer]:
+                - generic [ref=e510] [cursor=pointer]:
+                  - generic [ref=e511] [cursor=pointer]: A
+                  - generic [ref=e512] [cursor=pointer]: B
+                  - generic [ref=e513] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 23, available shift A, B, C" [ref=e514] [cursor=pointer]:
+                - generic [ref=e515] [cursor=pointer]:
+                  - generic [ref=e516] [cursor=pointer]: A
+                  - generic [ref=e517] [cursor=pointer]: B
+                  - generic [ref=e518] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 24, available shift A, B, C" [ref=e519] [cursor=pointer]:
+                - generic [ref=e520] [cursor=pointer]:
+                  - generic [ref=e521] [cursor=pointer]: A
+                  - generic [ref=e522] [cursor=pointer]: B
+                  - generic [ref=e523] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 25, available shift A, B, C" [ref=e524] [cursor=pointer]:
+                - generic [ref=e525] [cursor=pointer]:
+                  - generic [ref=e526] [cursor=pointer]: A
+                  - generic [ref=e527] [cursor=pointer]: B
+                  - generic [ref=e528] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 26, available shift A, B, C" [ref=e529] [cursor=pointer]:
+                - generic [ref=e530] [cursor=pointer]:
+                  - generic [ref=e531] [cursor=pointer]: A
+                  - generic [ref=e532] [cursor=pointer]: B
+                  - generic [ref=e533] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 27, available shift A, B, C" [ref=e534] [cursor=pointer]:
+                - generic [ref=e535] [cursor=pointer]:
+                  - generic [ref=e536] [cursor=pointer]: A
+                  - generic [ref=e537] [cursor=pointer]: B
+                  - generic [ref=e538] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 28, available shift A, B, C" [ref=e539] [cursor=pointer]:
+                - generic [ref=e540] [cursor=pointer]:
+                  - generic [ref=e541] [cursor=pointer]: A
+                  - generic [ref=e542] [cursor=pointer]: B
+                  - generic [ref=e543] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 29, available shift A, B, C" [ref=e544] [cursor=pointer]:
+                - generic [ref=e545] [cursor=pointer]:
+                  - generic [ref=e546] [cursor=pointer]: A
+                  - generic [ref=e547] [cursor=pointer]: B
+                  - generic [ref=e548] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 30, available shift A, B, C" [ref=e549] [cursor=pointer]:
+                - generic [ref=e550] [cursor=pointer]:
+                  - generic [ref=e551] [cursor=pointer]: A
+                  - generic [ref=e552] [cursor=pointer]: B
+                  - generic [ref=e553] [cursor=pointer]: C
+              - gridcell "Dana Mizrahi, Aug 31, available shift A, B, C" [ref=e554] [cursor=pointer]:
+                - generic [ref=e555] [cursor=pointer]:
+                  - generic [ref=e556] [cursor=pointer]: A
+                  - generic [ref=e557] [cursor=pointer]: B
+                  - generic [ref=e558] [cursor=pointer]: C
+            - row [ref=e559]:
+              - rowheader "Yossi Peretz All None" [ref=e560]:
+                - generic [ref=e561]:
+                  - generic [ref=e562]: Yossi Peretz
+                  - generic [ref=e563]:
+                    - button "All" [ref=e564] [cursor=pointer]
+                    - button "None" [ref=e565] [cursor=pointer]
+              - gridcell "Yossi Peretz, Aug 1, unavailable" [ref=e566] [cursor=pointer]:
+                - generic [ref=e567] [cursor=pointer]:
+                  - generic [ref=e568] [cursor=pointer]: A
+                  - generic [ref=e569] [cursor=pointer]: B
+                  - generic [ref=e570] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 2, available shift A, B, C" [ref=e571] [cursor=pointer]:
+                - generic [ref=e572] [cursor=pointer]:
+                  - generic [ref=e573] [cursor=pointer]: A
+                  - generic [ref=e574] [cursor=pointer]: B
+                  - generic [ref=e575] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 3, available shift A, B, C" [ref=e576] [cursor=pointer]:
+                - generic [ref=e577] [cursor=pointer]:
+                  - generic [ref=e578] [cursor=pointer]: A
+                  - generic [ref=e579] [cursor=pointer]: B
+                  - generic [ref=e580] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 4, available shift A, B, C" [ref=e581] [cursor=pointer]:
+                - generic [ref=e582] [cursor=pointer]:
+                  - generic [ref=e583] [cursor=pointer]: A
+                  - generic [ref=e584] [cursor=pointer]: B
+                  - generic [ref=e585] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 5, available shift A, B, C" [ref=e586] [cursor=pointer]:
+                - generic [ref=e587] [cursor=pointer]:
+                  - generic [ref=e588] [cursor=pointer]: A
+                  - generic [ref=e589] [cursor=pointer]: B
+                  - generic [ref=e590] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 6, available shift A, B, C" [ref=e591] [cursor=pointer]:
+                - generic [ref=e592] [cursor=pointer]:
+                  - generic [ref=e593] [cursor=pointer]: A
+                  - generic [ref=e594] [cursor=pointer]: B
+                  - generic [ref=e595] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 7, unavailable" [ref=e596] [cursor=pointer]:
+                - generic [ref=e597] [cursor=pointer]:
+                  - generic [ref=e598] [cursor=pointer]: A
+                  - generic [ref=e599] [cursor=pointer]: B
+                  - generic [ref=e600] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 8, unavailable" [ref=e601] [cursor=pointer]:
+                - generic [ref=e602] [cursor=pointer]:
+                  - generic [ref=e603] [cursor=pointer]: A
+                  - generic [ref=e604] [cursor=pointer]: B
+                  - generic [ref=e605] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 9, available shift A, B, C" [ref=e606] [cursor=pointer]:
+                - generic [ref=e607] [cursor=pointer]:
+                  - generic [ref=e608] [cursor=pointer]: A
+                  - generic [ref=e609] [cursor=pointer]: B
+                  - generic [ref=e610] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 10, available shift A, B, C" [ref=e611] [cursor=pointer]:
+                - generic [ref=e612] [cursor=pointer]:
+                  - generic [ref=e613] [cursor=pointer]: A
+                  - generic [ref=e614] [cursor=pointer]: B
+                  - generic [ref=e615] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 11, available shift A, B, C" [ref=e616] [cursor=pointer]:
+                - generic [ref=e617] [cursor=pointer]:
+                  - generic [ref=e618] [cursor=pointer]: A
+                  - generic [ref=e619] [cursor=pointer]: B
+                  - generic [ref=e620] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 12, available shift A, B, C" [ref=e621] [cursor=pointer]:
+                - generic [ref=e622] [cursor=pointer]:
+                  - generic [ref=e623] [cursor=pointer]: A
+                  - generic [ref=e624] [cursor=pointer]: B
+                  - generic [ref=e625] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 13, available shift A, B, C" [ref=e626] [cursor=pointer]:
+                - generic [ref=e627] [cursor=pointer]:
+                  - generic [ref=e628] [cursor=pointer]: A
+                  - generic [ref=e629] [cursor=pointer]: B
+                  - generic [ref=e630] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 14, unavailable" [ref=e631] [cursor=pointer]:
+                - generic [ref=e632] [cursor=pointer]:
+                  - generic [ref=e633] [cursor=pointer]: A
+                  - generic [ref=e634] [cursor=pointer]: B
+                  - generic [ref=e635] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 15, unavailable" [ref=e636] [cursor=pointer]:
+                - generic [ref=e637] [cursor=pointer]:
+                  - generic [ref=e638] [cursor=pointer]: A
+                  - generic [ref=e639] [cursor=pointer]: B
+                  - generic [ref=e640] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 16, available shift A, B, C" [ref=e641] [cursor=pointer]:
+                - generic [ref=e642] [cursor=pointer]:
+                  - generic [ref=e643] [cursor=pointer]: A
+                  - generic [ref=e644] [cursor=pointer]: B
+                  - generic [ref=e645] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 17, available shift A, B, C" [ref=e646] [cursor=pointer]:
+                - generic [ref=e647] [cursor=pointer]:
+                  - generic [ref=e648] [cursor=pointer]: A
+                  - generic [ref=e649] [cursor=pointer]: B
+                  - generic [ref=e650] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 18, available shift A, B, C" [ref=e651] [cursor=pointer]:
+                - generic [ref=e652] [cursor=pointer]:
+                  - generic [ref=e653] [cursor=pointer]: A
+                  - generic [ref=e654] [cursor=pointer]: B
+                  - generic [ref=e655] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 19, available shift A, B, C" [ref=e656] [cursor=pointer]:
+                - generic [ref=e657] [cursor=pointer]:
+                  - generic [ref=e658] [cursor=pointer]: A
+                  - generic [ref=e659] [cursor=pointer]: B
+                  - generic [ref=e660] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 20, available shift A, B, C" [ref=e661] [cursor=pointer]:
+                - generic [ref=e662] [cursor=pointer]:
+                  - generic [ref=e663] [cursor=pointer]: A
+                  - generic [ref=e664] [cursor=pointer]: B
+                  - generic [ref=e665] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 21, unavailable" [ref=e666] [cursor=pointer]:
+                - generic [ref=e667] [cursor=pointer]:
+                  - generic [ref=e668] [cursor=pointer]: A
+                  - generic [ref=e669] [cursor=pointer]: B
+                  - generic [ref=e670] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 22, unavailable" [ref=e671] [cursor=pointer]:
+                - generic [ref=e672] [cursor=pointer]:
+                  - generic [ref=e673] [cursor=pointer]: A
+                  - generic [ref=e674] [cursor=pointer]: B
+                  - generic [ref=e675] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 23, available shift A, B, C" [ref=e676] [cursor=pointer]:
+                - generic [ref=e677] [cursor=pointer]:
+                  - generic [ref=e678] [cursor=pointer]: A
+                  - generic [ref=e679] [cursor=pointer]: B
+                  - generic [ref=e680] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 24, available shift A, B, C" [ref=e681] [cursor=pointer]:
+                - generic [ref=e682] [cursor=pointer]:
+                  - generic [ref=e683] [cursor=pointer]: A
+                  - generic [ref=e684] [cursor=pointer]: B
+                  - generic [ref=e685] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 25, available shift A, B, C" [ref=e686] [cursor=pointer]:
+                - generic [ref=e687] [cursor=pointer]:
+                  - generic [ref=e688] [cursor=pointer]: A
+                  - generic [ref=e689] [cursor=pointer]: B
+                  - generic [ref=e690] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 26, available shift A, B, C" [ref=e691] [cursor=pointer]:
+                - generic [ref=e692] [cursor=pointer]:
+                  - generic [ref=e693] [cursor=pointer]: A
+                  - generic [ref=e694] [cursor=pointer]: B
+                  - generic [ref=e695] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 27, available shift A, B, C" [ref=e696] [cursor=pointer]:
+                - generic [ref=e697] [cursor=pointer]:
+                  - generic [ref=e698] [cursor=pointer]: A
+                  - generic [ref=e699] [cursor=pointer]: B
+                  - generic [ref=e700] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 28, unavailable" [ref=e701] [cursor=pointer]:
+                - generic [ref=e702] [cursor=pointer]:
+                  - generic [ref=e703] [cursor=pointer]: A
+                  - generic [ref=e704] [cursor=pointer]: B
+                  - generic [ref=e705] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 29, unavailable" [ref=e706] [cursor=pointer]:
+                - generic [ref=e707] [cursor=pointer]:
+                  - generic [ref=e708] [cursor=pointer]: A
+                  - generic [ref=e709] [cursor=pointer]: B
+                  - generic [ref=e710] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 30, available shift A, B, C" [ref=e711] [cursor=pointer]:
+                - generic [ref=e712] [cursor=pointer]:
+                  - generic [ref=e713] [cursor=pointer]: A
+                  - generic [ref=e714] [cursor=pointer]: B
+                  - generic [ref=e715] [cursor=pointer]: C
+              - gridcell "Yossi Peretz, Aug 31, available shift A, B, C" [ref=e716] [cursor=pointer]:
+                - generic [ref=e717] [cursor=pointer]:
+                  - generic [ref=e718] [cursor=pointer]: A
+                  - generic [ref=e719] [cursor=pointer]: B
+                  - generic [ref=e720] [cursor=pointer]: C
+            - row [ref=e721]:
+              - rowheader "Michal Katz All None" [ref=e722]:
+                - generic [ref=e723]:
+                  - generic [ref=e724]: Michal Katz
+                  - generic [ref=e725]:
+                    - button "All" [ref=e726] [cursor=pointer]
+                    - button "None" [ref=e727] [cursor=pointer]
+              - gridcell "Michal Katz, Aug 1, available shift A, B, C" [ref=e728] [cursor=pointer]:
+                - generic [ref=e729] [cursor=pointer]:
+                  - generic [ref=e730] [cursor=pointer]: A
+                  - generic [ref=e731] [cursor=pointer]: B
+                  - generic [ref=e732] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 2, available shift A, B, C" [ref=e733] [cursor=pointer]:
+                - generic [ref=e734] [cursor=pointer]:
+                  - generic [ref=e735] [cursor=pointer]: A
+                  - generic [ref=e736] [cursor=pointer]: B
+                  - generic [ref=e737] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 3, available shift A, B, C" [ref=e738] [cursor=pointer]:
+                - generic [ref=e739] [cursor=pointer]:
+                  - generic [ref=e740] [cursor=pointer]: A
+                  - generic [ref=e741] [cursor=pointer]: B
+                  - generic [ref=e742] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 4, available shift A, B, C" [ref=e743] [cursor=pointer]:
+                - generic [ref=e744] [cursor=pointer]:
+                  - generic [ref=e745] [cursor=pointer]: A
+                  - generic [ref=e746] [cursor=pointer]: B
+                  - generic [ref=e747] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 5, available shift A, B, C" [ref=e748] [cursor=pointer]:
+                - generic [ref=e749] [cursor=pointer]:
+                  - generic [ref=e750] [cursor=pointer]: A
+                  - generic [ref=e751] [cursor=pointer]: B
+                  - generic [ref=e752] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 6, available shift A, B, C" [ref=e753] [cursor=pointer]:
+                - generic [ref=e754] [cursor=pointer]:
+                  - generic [ref=e755] [cursor=pointer]: A
+                  - generic [ref=e756] [cursor=pointer]: B
+                  - generic [ref=e757] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 7, available shift A, B, C" [ref=e758] [cursor=pointer]:
+                - generic [ref=e759] [cursor=pointer]:
+                  - generic [ref=e760] [cursor=pointer]: A
+                  - generic [ref=e761] [cursor=pointer]: B
+                  - generic [ref=e762] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 8, available shift A, B, C" [ref=e763] [cursor=pointer]:
+                - generic [ref=e764] [cursor=pointer]:
+                  - generic [ref=e765] [cursor=pointer]: A
+                  - generic [ref=e766] [cursor=pointer]: B
+                  - generic [ref=e767] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 9, available shift A, B, C" [ref=e768] [cursor=pointer]:
+                - generic [ref=e769] [cursor=pointer]:
+                  - generic [ref=e770] [cursor=pointer]: A
+                  - generic [ref=e771] [cursor=pointer]: B
+                  - generic [ref=e772] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 10, available shift A, B, C" [ref=e773] [cursor=pointer]:
+                - generic [ref=e774] [cursor=pointer]:
+                  - generic [ref=e775] [cursor=pointer]: A
+                  - generic [ref=e776] [cursor=pointer]: B
+                  - generic [ref=e777] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 11, available shift A, B, C" [ref=e778] [cursor=pointer]:
+                - generic [ref=e779] [cursor=pointer]:
+                  - generic [ref=e780] [cursor=pointer]: A
+                  - generic [ref=e781] [cursor=pointer]: B
+                  - generic [ref=e782] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 12, available shift A, B, C" [ref=e783] [cursor=pointer]:
+                - generic [ref=e784] [cursor=pointer]:
+                  - generic [ref=e785] [cursor=pointer]: A
+                  - generic [ref=e786] [cursor=pointer]: B
+                  - generic [ref=e787] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 13, available shift A, B, C" [ref=e788] [cursor=pointer]:
+                - generic [ref=e789] [cursor=pointer]:
+                  - generic [ref=e790] [cursor=pointer]: A
+                  - generic [ref=e791] [cursor=pointer]: B
+                  - generic [ref=e792] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 14, available shift A, B, C" [ref=e793] [cursor=pointer]:
+                - generic [ref=e794] [cursor=pointer]:
+                  - generic [ref=e795] [cursor=pointer]: A
+                  - generic [ref=e796] [cursor=pointer]: B
+                  - generic [ref=e797] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 15, available shift A, B, C" [ref=e798] [cursor=pointer]:
+                - generic [ref=e799] [cursor=pointer]:
+                  - generic [ref=e800] [cursor=pointer]: A
+                  - generic [ref=e801] [cursor=pointer]: B
+                  - generic [ref=e802] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 16, available shift A, B, C" [ref=e803] [cursor=pointer]:
+                - generic [ref=e804] [cursor=pointer]:
+                  - generic [ref=e805] [cursor=pointer]: A
+                  - generic [ref=e806] [cursor=pointer]: B
+                  - generic [ref=e807] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 17, available shift A, B, C" [ref=e808] [cursor=pointer]:
+                - generic [ref=e809] [cursor=pointer]:
+                  - generic [ref=e810] [cursor=pointer]: A
+                  - generic [ref=e811] [cursor=pointer]: B
+                  - generic [ref=e812] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 18, available shift A, B, C" [ref=e813] [cursor=pointer]:
+                - generic [ref=e814] [cursor=pointer]:
+                  - generic [ref=e815] [cursor=pointer]: A
+                  - generic [ref=e816] [cursor=pointer]: B
+                  - generic [ref=e817] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 19, available shift A, B, C" [ref=e818] [cursor=pointer]:
+                - generic [ref=e819] [cursor=pointer]:
+                  - generic [ref=e820] [cursor=pointer]: A
+                  - generic [ref=e821] [cursor=pointer]: B
+                  - generic [ref=e822] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 20, available shift A, B, C" [ref=e823] [cursor=pointer]:
+                - generic [ref=e824] [cursor=pointer]:
+                  - generic [ref=e825] [cursor=pointer]: A
+                  - generic [ref=e826] [cursor=pointer]: B
+                  - generic [ref=e827] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 21, available shift A, B, C" [ref=e828] [cursor=pointer]:
+                - generic [ref=e829] [cursor=pointer]:
+                  - generic [ref=e830] [cursor=pointer]: A
+                  - generic [ref=e831] [cursor=pointer]: B
+                  - generic [ref=e832] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 22, available shift A, B, C" [ref=e833] [cursor=pointer]:
+                - generic [ref=e834] [cursor=pointer]:
+                  - generic [ref=e835] [cursor=pointer]: A
+                  - generic [ref=e836] [cursor=pointer]: B
+                  - generic [ref=e837] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 23, available shift A, B, C" [ref=e838] [cursor=pointer]:
+                - generic [ref=e839] [cursor=pointer]:
+                  - generic [ref=e840] [cursor=pointer]: A
+                  - generic [ref=e841] [cursor=pointer]: B
+                  - generic [ref=e842] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 24, available shift A, B, C" [ref=e843] [cursor=pointer]:
+                - generic [ref=e844] [cursor=pointer]:
+                  - generic [ref=e845] [cursor=pointer]: A
+                  - generic [ref=e846] [cursor=pointer]: B
+                  - generic [ref=e847] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 25, available shift A, B, C" [ref=e848] [cursor=pointer]:
+                - generic [ref=e849] [cursor=pointer]:
+                  - generic [ref=e850] [cursor=pointer]: A
+                  - generic [ref=e851] [cursor=pointer]: B
+                  - generic [ref=e852] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 26, available shift A, B, C" [ref=e853] [cursor=pointer]:
+                - generic [ref=e854] [cursor=pointer]:
+                  - generic [ref=e855] [cursor=pointer]: A
+                  - generic [ref=e856] [cursor=pointer]: B
+                  - generic [ref=e857] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 27, available shift A, B, C" [ref=e858] [cursor=pointer]:
+                - generic [ref=e859] [cursor=pointer]:
+                  - generic [ref=e860] [cursor=pointer]: A
+                  - generic [ref=e861] [cursor=pointer]: B
+                  - generic [ref=e862] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 28, available shift A, B, C" [ref=e863] [cursor=pointer]:
+                - generic [ref=e864] [cursor=pointer]:
+                  - generic [ref=e865] [cursor=pointer]: A
+                  - generic [ref=e866] [cursor=pointer]: B
+                  - generic [ref=e867] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 29, available shift A, B, C" [ref=e868] [cursor=pointer]:
+                - generic [ref=e869] [cursor=pointer]:
+                  - generic [ref=e870] [cursor=pointer]: A
+                  - generic [ref=e871] [cursor=pointer]: B
+                  - generic [ref=e872] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 30, available shift A, B, C" [ref=e873] [cursor=pointer]:
+                - generic [ref=e874] [cursor=pointer]:
+                  - generic [ref=e875] [cursor=pointer]: A
+                  - generic [ref=e876] [cursor=pointer]: B
+                  - generic [ref=e877] [cursor=pointer]: C
+              - gridcell "Michal Katz, Aug 31, available shift A, B, C" [ref=e878] [cursor=pointer]:
+                - generic [ref=e879] [cursor=pointer]:
+                  - generic [ref=e880] [cursor=pointer]: A
+                  - generic [ref=e881] [cursor=pointer]: B
+                  - generic [ref=e882] [cursor=pointer]: C
+            - row [ref=e883]:
+              - rowheader "Tamar Golan All None" [ref=e884]:
+                - generic [ref=e885]:
+                  - generic [ref=e886]: Tamar Golan
+                  - generic [ref=e887]:
+                    - button "All" [ref=e888] [cursor=pointer]
+                    - button "None" [ref=e889] [cursor=pointer]
+              - gridcell "Tamar Golan, Aug 1, available shift A, B" [ref=e890] [cursor=pointer]:
+                - generic [ref=e891] [cursor=pointer]:
+                  - generic [ref=e892] [cursor=pointer]: A
+                  - generic [ref=e893] [cursor=pointer]: B
+                  - generic [ref=e894] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 2, available shift A, B" [ref=e895] [cursor=pointer]:
+                - generic [ref=e896] [cursor=pointer]:
+                  - generic [ref=e897] [cursor=pointer]: A
+                  - generic [ref=e898] [cursor=pointer]: B
+                  - generic [ref=e899] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 3, available shift A, B" [ref=e900] [cursor=pointer]:
+                - generic [ref=e901] [cursor=pointer]:
+                  - generic [ref=e902] [cursor=pointer]: A
+                  - generic [ref=e903] [cursor=pointer]: B
+                  - generic [ref=e904] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 4, available shift A, B" [ref=e905] [cursor=pointer]:
+                - generic [ref=e906] [cursor=pointer]:
+                  - generic [ref=e907] [cursor=pointer]: A
+                  - generic [ref=e908] [cursor=pointer]: B
+                  - generic [ref=e909] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 5, available shift A, B" [ref=e910] [cursor=pointer]:
+                - generic [ref=e911] [cursor=pointer]:
+                  - generic [ref=e912] [cursor=pointer]: A
+                  - generic [ref=e913] [cursor=pointer]: B
+                  - generic [ref=e914] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 6, available shift A, B" [ref=e915] [cursor=pointer]:
+                - generic [ref=e916] [cursor=pointer]:
+                  - generic [ref=e917] [cursor=pointer]: A
+                  - generic [ref=e918] [cursor=pointer]: B
+                  - generic [ref=e919] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 7, available shift A, B" [ref=e920] [cursor=pointer]:
+                - generic [ref=e921] [cursor=pointer]:
+                  - generic [ref=e922] [cursor=pointer]: A
+                  - generic [ref=e923] [cursor=pointer]: B
+                  - generic [ref=e924] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 8, available shift A, B" [ref=e925] [cursor=pointer]:
+                - generic [ref=e926] [cursor=pointer]:
+                  - generic [ref=e927] [cursor=pointer]: A
+                  - generic [ref=e928] [cursor=pointer]: B
+                  - generic [ref=e929] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 9, available shift A, B" [ref=e930] [cursor=pointer]:
+                - generic [ref=e931] [cursor=pointer]:
+                  - generic [ref=e932] [cursor=pointer]: A
+                  - generic [ref=e933] [cursor=pointer]: B
+                  - generic [ref=e934] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 10, available shift A, B" [ref=e935] [cursor=pointer]:
+                - generic [ref=e936] [cursor=pointer]:
+                  - generic [ref=e937] [cursor=pointer]: A
+                  - generic [ref=e938] [cursor=pointer]: B
+                  - generic [ref=e939] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 11, available shift A, B" [ref=e940] [cursor=pointer]:
+                - generic [ref=e941] [cursor=pointer]:
+                  - generic [ref=e942] [cursor=pointer]: A
+                  - generic [ref=e943] [cursor=pointer]: B
+                  - generic [ref=e944] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 12, available shift A, B" [ref=e945] [cursor=pointer]:
+                - generic [ref=e946] [cursor=pointer]:
+                  - generic [ref=e947] [cursor=pointer]: A
+                  - generic [ref=e948] [cursor=pointer]: B
+                  - generic [ref=e949] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 13, available shift A, B" [ref=e950] [cursor=pointer]:
+                - generic [ref=e951] [cursor=pointer]:
+                  - generic [ref=e952] [cursor=pointer]: A
+                  - generic [ref=e953] [cursor=pointer]: B
+                  - generic [ref=e954] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 14, available shift A, B" [ref=e955] [cursor=pointer]:
+                - generic [ref=e956] [cursor=pointer]:
+                  - generic [ref=e957] [cursor=pointer]: A
+                  - generic [ref=e958] [cursor=pointer]: B
+                  - generic [ref=e959] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 15, available shift A, B" [ref=e960] [cursor=pointer]:
+                - generic [ref=e961] [cursor=pointer]:
+                  - generic [ref=e962] [cursor=pointer]: A
+                  - generic [ref=e963] [cursor=pointer]: B
+                  - generic [ref=e964] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 16, available shift A, B" [ref=e965] [cursor=pointer]:
+                - generic [ref=e966] [cursor=pointer]:
+                  - generic [ref=e967] [cursor=pointer]: A
+                  - generic [ref=e968] [cursor=pointer]: B
+                  - generic [ref=e969] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 17, available shift A, B" [ref=e970] [cursor=pointer]:
+                - generic [ref=e971] [cursor=pointer]:
+                  - generic [ref=e972] [cursor=pointer]: A
+                  - generic [ref=e973] [cursor=pointer]: B
+                  - generic [ref=e974] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 18, available shift A, B" [ref=e975] [cursor=pointer]:
+                - generic [ref=e976] [cursor=pointer]:
+                  - generic [ref=e977] [cursor=pointer]: A
+                  - generic [ref=e978] [cursor=pointer]: B
+                  - generic [ref=e979] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 19, available shift A, B" [ref=e980] [cursor=pointer]:
+                - generic [ref=e981] [cursor=pointer]:
+                  - generic [ref=e982] [cursor=pointer]: A
+                  - generic [ref=e983] [cursor=pointer]: B
+                  - generic [ref=e984] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 20, available shift A, B" [ref=e985] [cursor=pointer]:
+                - generic [ref=e986] [cursor=pointer]:
+                  - generic [ref=e987] [cursor=pointer]: A
+                  - generic [ref=e988] [cursor=pointer]: B
+                  - generic [ref=e989] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 21, available shift A, B" [ref=e990] [cursor=pointer]:
+                - generic [ref=e991] [cursor=pointer]:
+                  - generic [ref=e992] [cursor=pointer]: A
+                  - generic [ref=e993] [cursor=pointer]: B
+                  - generic [ref=e994] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 22, available shift A, B" [ref=e995] [cursor=pointer]:
+                - generic [ref=e996] [cursor=pointer]:
+                  - generic [ref=e997] [cursor=pointer]: A
+                  - generic [ref=e998] [cursor=pointer]: B
+                  - generic [ref=e999] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 23, available shift A, B" [ref=e1000] [cursor=pointer]:
+                - generic [ref=e1001] [cursor=pointer]:
+                  - generic [ref=e1002] [cursor=pointer]: A
+                  - generic [ref=e1003] [cursor=pointer]: B
+                  - generic [ref=e1004] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 24, available shift A, B" [ref=e1005] [cursor=pointer]:
+                - generic [ref=e1006] [cursor=pointer]:
+                  - generic [ref=e1007] [cursor=pointer]: A
+                  - generic [ref=e1008] [cursor=pointer]: B
+                  - generic [ref=e1009] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 25, available shift A, B" [ref=e1010] [cursor=pointer]:
+                - generic [ref=e1011] [cursor=pointer]:
+                  - generic [ref=e1012] [cursor=pointer]: A
+                  - generic [ref=e1013] [cursor=pointer]: B
+                  - generic [ref=e1014] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 26, available shift A, B" [ref=e1015] [cursor=pointer]:
+                - generic [ref=e1016] [cursor=pointer]:
+                  - generic [ref=e1017] [cursor=pointer]: A
+                  - generic [ref=e1018] [cursor=pointer]: B
+                  - generic [ref=e1019] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 27, available shift A, B" [ref=e1020] [cursor=pointer]:
+                - generic [ref=e1021] [cursor=pointer]:
+                  - generic [ref=e1022] [cursor=pointer]: A
+                  - generic [ref=e1023] [cursor=pointer]: B
+                  - generic [ref=e1024] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 28, available shift A, B" [ref=e1025] [cursor=pointer]:
+                - generic [ref=e1026] [cursor=pointer]:
+                  - generic [ref=e1027] [cursor=pointer]: A
+                  - generic [ref=e1028] [cursor=pointer]: B
+                  - generic [ref=e1029] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 29, available shift A, B" [ref=e1030] [cursor=pointer]:
+                - generic [ref=e1031] [cursor=pointer]:
+                  - generic [ref=e1032] [cursor=pointer]: A
+                  - generic [ref=e1033] [cursor=pointer]: B
+                  - generic [ref=e1034] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 30, available shift A, B" [ref=e1035] [cursor=pointer]:
+                - generic [ref=e1036] [cursor=pointer]:
+                  - generic [ref=e1037] [cursor=pointer]: A
+                  - generic [ref=e1038] [cursor=pointer]: B
+                  - generic [ref=e1039] [cursor=pointer]: C
+              - gridcell "Tamar Golan, Aug 31, available shift A, B" [ref=e1040] [cursor=pointer]:
+                - generic [ref=e1041] [cursor=pointer]:
+                  - generic [ref=e1042] [cursor=pointer]: A
+                  - generic [ref=e1043] [cursor=pointer]: B
+                  - generic [ref=e1044] [cursor=pointer]: C
+            - row [ref=e1045]:
+              - rowheader "Roi Ben-David All None" [ref=e1046]:
+                - generic [ref=e1047]:
+                  - generic [ref=e1048]: Roi Ben-David
+                  - generic [ref=e1049]:
+                    - button "All" [ref=e1050] [cursor=pointer]
+                    - button "None" [ref=e1051] [cursor=pointer]
+              - gridcell "Roi Ben-David, Aug 1, available shift A, B, C" [ref=e1052] [cursor=pointer]:
+                - generic [ref=e1053] [cursor=pointer]:
+                  - generic [ref=e1054] [cursor=pointer]: A
+                  - generic [ref=e1055] [cursor=pointer]: B
+                  - generic [ref=e1056] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 2, available shift A, B, C" [ref=e1057] [cursor=pointer]:
+                - generic [ref=e1058] [cursor=pointer]:
+                  - generic [ref=e1059] [cursor=pointer]: A
+                  - generic [ref=e1060] [cursor=pointer]: B
+                  - generic [ref=e1061] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 3, available shift A, B, C" [ref=e1062] [cursor=pointer]:
+                - generic [ref=e1063] [cursor=pointer]:
+                  - generic [ref=e1064] [cursor=pointer]: A
+                  - generic [ref=e1065] [cursor=pointer]: B
+                  - generic [ref=e1066] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 4, available shift A, B, C" [ref=e1067] [cursor=pointer]:
+                - generic [ref=e1068] [cursor=pointer]:
+                  - generic [ref=e1069] [cursor=pointer]: A
+                  - generic [ref=e1070] [cursor=pointer]: B
+                  - generic [ref=e1071] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 5, available shift A, B, C" [ref=e1072] [cursor=pointer]:
+                - generic [ref=e1073] [cursor=pointer]:
+                  - generic [ref=e1074] [cursor=pointer]: A
+                  - generic [ref=e1075] [cursor=pointer]: B
+                  - generic [ref=e1076] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 6, available shift A, B, C" [ref=e1077] [cursor=pointer]:
+                - generic [ref=e1078] [cursor=pointer]:
+                  - generic [ref=e1079] [cursor=pointer]: A
+                  - generic [ref=e1080] [cursor=pointer]: B
+                  - generic [ref=e1081] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 7, available shift A, B, C" [ref=e1082] [cursor=pointer]:
+                - generic [ref=e1083] [cursor=pointer]:
+                  - generic [ref=e1084] [cursor=pointer]: A
+                  - generic [ref=e1085] [cursor=pointer]: B
+                  - generic [ref=e1086] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 8, available shift A, B, C" [ref=e1087] [cursor=pointer]:
+                - generic [ref=e1088] [cursor=pointer]:
+                  - generic [ref=e1089] [cursor=pointer]: A
+                  - generic [ref=e1090] [cursor=pointer]: B
+                  - generic [ref=e1091] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 9, available shift A, B, C" [ref=e1092] [cursor=pointer]:
+                - generic [ref=e1093] [cursor=pointer]:
+                  - generic [ref=e1094] [cursor=pointer]: A
+                  - generic [ref=e1095] [cursor=pointer]: B
+                  - generic [ref=e1096] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 10, available shift A, B, C" [ref=e1097] [cursor=pointer]:
+                - generic [ref=e1098] [cursor=pointer]:
+                  - generic [ref=e1099] [cursor=pointer]: A
+                  - generic [ref=e1100] [cursor=pointer]: B
+                  - generic [ref=e1101] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 11, available shift A, B, C" [ref=e1102] [cursor=pointer]:
+                - generic [ref=e1103] [cursor=pointer]:
+                  - generic [ref=e1104] [cursor=pointer]: A
+                  - generic [ref=e1105] [cursor=pointer]: B
+                  - generic [ref=e1106] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 12, available shift A, B, C" [ref=e1107] [cursor=pointer]:
+                - generic [ref=e1108] [cursor=pointer]:
+                  - generic [ref=e1109] [cursor=pointer]: A
+                  - generic [ref=e1110] [cursor=pointer]: B
+                  - generic [ref=e1111] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 13, available shift A, B, C" [ref=e1112] [cursor=pointer]:
+                - generic [ref=e1113] [cursor=pointer]:
+                  - generic [ref=e1114] [cursor=pointer]: A
+                  - generic [ref=e1115] [cursor=pointer]: B
+                  - generic [ref=e1116] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 14, available shift A, B, C" [ref=e1117] [cursor=pointer]:
+                - generic [ref=e1118] [cursor=pointer]:
+                  - generic [ref=e1119] [cursor=pointer]: A
+                  - generic [ref=e1120] [cursor=pointer]: B
+                  - generic [ref=e1121] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 15, available shift A, B, C" [ref=e1122] [cursor=pointer]:
+                - generic [ref=e1123] [cursor=pointer]:
+                  - generic [ref=e1124] [cursor=pointer]: A
+                  - generic [ref=e1125] [cursor=pointer]: B
+                  - generic [ref=e1126] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 16, available shift A, B, C" [ref=e1127] [cursor=pointer]:
+                - generic [ref=e1128] [cursor=pointer]:
+                  - generic [ref=e1129] [cursor=pointer]: A
+                  - generic [ref=e1130] [cursor=pointer]: B
+                  - generic [ref=e1131] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 17, available shift A, B, C" [ref=e1132] [cursor=pointer]:
+                - generic [ref=e1133] [cursor=pointer]:
+                  - generic [ref=e1134] [cursor=pointer]: A
+                  - generic [ref=e1135] [cursor=pointer]: B
+                  - generic [ref=e1136] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 18, available shift A, B, C" [ref=e1137] [cursor=pointer]:
+                - generic [ref=e1138] [cursor=pointer]:
+                  - generic [ref=e1139] [cursor=pointer]: A
+                  - generic [ref=e1140] [cursor=pointer]: B
+                  - generic [ref=e1141] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 19, available shift A, B, C" [ref=e1142] [cursor=pointer]:
+                - generic [ref=e1143] [cursor=pointer]:
+                  - generic [ref=e1144] [cursor=pointer]: A
+                  - generic [ref=e1145] [cursor=pointer]: B
+                  - generic [ref=e1146] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 20, available shift A, B, C" [ref=e1147] [cursor=pointer]:
+                - generic [ref=e1148] [cursor=pointer]:
+                  - generic [ref=e1149] [cursor=pointer]: A
+                  - generic [ref=e1150] [cursor=pointer]: B
+                  - generic [ref=e1151] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 21, available shift A, B, C" [ref=e1152] [cursor=pointer]:
+                - generic [ref=e1153] [cursor=pointer]:
+                  - generic [ref=e1154] [cursor=pointer]: A
+                  - generic [ref=e1155] [cursor=pointer]: B
+                  - generic [ref=e1156] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 22, available shift A, B, C" [ref=e1157] [cursor=pointer]:
+                - generic [ref=e1158] [cursor=pointer]:
+                  - generic [ref=e1159] [cursor=pointer]: A
+                  - generic [ref=e1160] [cursor=pointer]: B
+                  - generic [ref=e1161] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 23, available shift A, B, C" [ref=e1162] [cursor=pointer]:
+                - generic [ref=e1163] [cursor=pointer]:
+                  - generic [ref=e1164] [cursor=pointer]: A
+                  - generic [ref=e1165] [cursor=pointer]: B
+                  - generic [ref=e1166] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 24, available shift A, B, C" [ref=e1167] [cursor=pointer]:
+                - generic [ref=e1168] [cursor=pointer]:
+                  - generic [ref=e1169] [cursor=pointer]: A
+                  - generic [ref=e1170] [cursor=pointer]: B
+                  - generic [ref=e1171] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 25, available shift A, B, C" [ref=e1172] [cursor=pointer]:
+                - generic [ref=e1173] [cursor=pointer]:
+                  - generic [ref=e1174] [cursor=pointer]: A
+                  - generic [ref=e1175] [cursor=pointer]: B
+                  - generic [ref=e1176] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 26, available shift A, B, C" [ref=e1177] [cursor=pointer]:
+                - generic [ref=e1178] [cursor=pointer]:
+                  - generic [ref=e1179] [cursor=pointer]: A
+                  - generic [ref=e1180] [cursor=pointer]: B
+                  - generic [ref=e1181] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 27, available shift A, B, C" [ref=e1182] [cursor=pointer]:
+                - generic [ref=e1183] [cursor=pointer]:
+                  - generic [ref=e1184] [cursor=pointer]: A
+                  - generic [ref=e1185] [cursor=pointer]: B
+                  - generic [ref=e1186] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 28, available shift A, B, C" [ref=e1187] [cursor=pointer]:
+                - generic [ref=e1188] [cursor=pointer]:
+                  - generic [ref=e1189] [cursor=pointer]: A
+                  - generic [ref=e1190] [cursor=pointer]: B
+                  - generic [ref=e1191] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 29, available shift A, B, C" [ref=e1192] [cursor=pointer]:
+                - generic [ref=e1193] [cursor=pointer]:
+                  - generic [ref=e1194] [cursor=pointer]: A
+                  - generic [ref=e1195] [cursor=pointer]: B
+                  - generic [ref=e1196] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 30, available shift A, B, C" [ref=e1197] [cursor=pointer]:
+                - generic [ref=e1198] [cursor=pointer]:
+                  - generic [ref=e1199] [cursor=pointer]: A
+                  - generic [ref=e1200] [cursor=pointer]: B
+                  - generic [ref=e1201] [cursor=pointer]: C
+              - gridcell "Roi Ben-David, Aug 31, available shift A, B, C" [ref=e1202] [cursor=pointer]:
+                - generic [ref=e1203] [cursor=pointer]:
+                  - generic [ref=e1204] [cursor=pointer]: A
+                  - generic [ref=e1205] [cursor=pointer]: B
+                  - generic [ref=e1206] [cursor=pointer]: C
+            - row [ref=e1207]:
+              - rowheader "Shira Azulay All None" [ref=e1208]:
+                - generic [ref=e1209]:
+                  - generic [ref=e1210]: Shira Azulay
+                  - generic [ref=e1211]:
+                    - button "All" [ref=e1212] [cursor=pointer]
+                    - button "None" [ref=e1213] [cursor=pointer]
+              - gridcell "Shira Azulay, Aug 1, available shift A, B, C" [ref=e1214] [cursor=pointer]:
+                - generic [ref=e1215] [cursor=pointer]:
+                  - generic [ref=e1216] [cursor=pointer]: A
+                  - generic [ref=e1217] [cursor=pointer]: B
+                  - generic [ref=e1218] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 2, available shift A, B, C" [ref=e1219] [cursor=pointer]:
+                - generic [ref=e1220] [cursor=pointer]:
+                  - generic [ref=e1221] [cursor=pointer]: A
+                  - generic [ref=e1222] [cursor=pointer]: B
+                  - generic [ref=e1223] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 3, available shift A, B, C" [ref=e1224] [cursor=pointer]:
+                - generic [ref=e1225] [cursor=pointer]:
+                  - generic [ref=e1226] [cursor=pointer]: A
+                  - generic [ref=e1227] [cursor=pointer]: B
+                  - generic [ref=e1228] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 4, available shift A, B, C" [ref=e1229] [cursor=pointer]:
+                - generic [ref=e1230] [cursor=pointer]:
+                  - generic [ref=e1231] [cursor=pointer]: A
+                  - generic [ref=e1232] [cursor=pointer]: B
+                  - generic [ref=e1233] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 5, available shift A, B, C" [ref=e1234] [cursor=pointer]:
+                - generic [ref=e1235] [cursor=pointer]:
+                  - generic [ref=e1236] [cursor=pointer]: A
+                  - generic [ref=e1237] [cursor=pointer]: B
+                  - generic [ref=e1238] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 6, available shift A, B, C" [ref=e1239] [cursor=pointer]:
+                - generic [ref=e1240] [cursor=pointer]:
+                  - generic [ref=e1241] [cursor=pointer]: A
+                  - generic [ref=e1242] [cursor=pointer]: B
+                  - generic [ref=e1243] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 7, available shift A, B, C" [ref=e1244] [cursor=pointer]:
+                - generic [ref=e1245] [cursor=pointer]:
+                  - generic [ref=e1246] [cursor=pointer]: A
+                  - generic [ref=e1247] [cursor=pointer]: B
+                  - generic [ref=e1248] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 8, available shift A, B, C" [ref=e1249] [cursor=pointer]:
+                - generic [ref=e1250] [cursor=pointer]:
+                  - generic [ref=e1251] [cursor=pointer]: A
+                  - generic [ref=e1252] [cursor=pointer]: B
+                  - generic [ref=e1253] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 9, available shift A, B, C" [ref=e1254] [cursor=pointer]:
+                - generic [ref=e1255] [cursor=pointer]:
+                  - generic [ref=e1256] [cursor=pointer]: A
+                  - generic [ref=e1257] [cursor=pointer]: B
+                  - generic [ref=e1258] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 10, available shift A, B, C" [ref=e1259] [cursor=pointer]:
+                - generic [ref=e1260] [cursor=pointer]:
+                  - generic [ref=e1261] [cursor=pointer]: A
+                  - generic [ref=e1262] [cursor=pointer]: B
+                  - generic [ref=e1263] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 11, available shift A, B, C" [ref=e1264] [cursor=pointer]:
+                - generic [ref=e1265] [cursor=pointer]:
+                  - generic [ref=e1266] [cursor=pointer]: A
+                  - generic [ref=e1267] [cursor=pointer]: B
+                  - generic [ref=e1268] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 12, available shift A, B, C" [ref=e1269] [cursor=pointer]:
+                - generic [ref=e1270] [cursor=pointer]:
+                  - generic [ref=e1271] [cursor=pointer]: A
+                  - generic [ref=e1272] [cursor=pointer]: B
+                  - generic [ref=e1273] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 13, available shift A, B, C" [ref=e1274] [cursor=pointer]:
+                - generic [ref=e1275] [cursor=pointer]:
+                  - generic [ref=e1276] [cursor=pointer]: A
+                  - generic [ref=e1277] [cursor=pointer]: B
+                  - generic [ref=e1278] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 14, available shift A, B, C" [ref=e1279] [cursor=pointer]:
+                - generic [ref=e1280] [cursor=pointer]:
+                  - generic [ref=e1281] [cursor=pointer]: A
+                  - generic [ref=e1282] [cursor=pointer]: B
+                  - generic [ref=e1283] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 15, available shift A, B, C" [ref=e1284] [cursor=pointer]:
+                - generic [ref=e1285] [cursor=pointer]:
+                  - generic [ref=e1286] [cursor=pointer]: A
+                  - generic [ref=e1287] [cursor=pointer]: B
+                  - generic [ref=e1288] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 16, available shift A, B, C" [ref=e1289] [cursor=pointer]:
+                - generic [ref=e1290] [cursor=pointer]:
+                  - generic [ref=e1291] [cursor=pointer]: A
+                  - generic [ref=e1292] [cursor=pointer]: B
+                  - generic [ref=e1293] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 17, available shift A, B, C" [ref=e1294] [cursor=pointer]:
+                - generic [ref=e1295] [cursor=pointer]:
+                  - generic [ref=e1296] [cursor=pointer]: A
+                  - generic [ref=e1297] [cursor=pointer]: B
+                  - generic [ref=e1298] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 18, available shift A, B, C" [ref=e1299] [cursor=pointer]:
+                - generic [ref=e1300] [cursor=pointer]:
+                  - generic [ref=e1301] [cursor=pointer]: A
+                  - generic [ref=e1302] [cursor=pointer]: B
+                  - generic [ref=e1303] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 19, available shift A, B, C" [ref=e1304] [cursor=pointer]:
+                - generic [ref=e1305] [cursor=pointer]:
+                  - generic [ref=e1306] [cursor=pointer]: A
+                  - generic [ref=e1307] [cursor=pointer]: B
+                  - generic [ref=e1308] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 20, available shift A, B, C" [ref=e1309] [cursor=pointer]:
+                - generic [ref=e1310] [cursor=pointer]:
+                  - generic [ref=e1311] [cursor=pointer]: A
+                  - generic [ref=e1312] [cursor=pointer]: B
+                  - generic [ref=e1313] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 21, available shift A, B, C" [ref=e1314] [cursor=pointer]:
+                - generic [ref=e1315] [cursor=pointer]:
+                  - generic [ref=e1316] [cursor=pointer]: A
+                  - generic [ref=e1317] [cursor=pointer]: B
+                  - generic [ref=e1318] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 22, available shift A, B, C" [ref=e1319] [cursor=pointer]:
+                - generic [ref=e1320] [cursor=pointer]:
+                  - generic [ref=e1321] [cursor=pointer]: A
+                  - generic [ref=e1322] [cursor=pointer]: B
+                  - generic [ref=e1323] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 23, available shift A, B, C" [ref=e1324] [cursor=pointer]:
+                - generic [ref=e1325] [cursor=pointer]:
+                  - generic [ref=e1326] [cursor=pointer]: A
+                  - generic [ref=e1327] [cursor=pointer]: B
+                  - generic [ref=e1328] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 24, available shift A, B, C" [ref=e1329] [cursor=pointer]:
+                - generic [ref=e1330] [cursor=pointer]:
+                  - generic [ref=e1331] [cursor=pointer]: A
+                  - generic [ref=e1332] [cursor=pointer]: B
+                  - generic [ref=e1333] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 25, available shift A, B, C" [ref=e1334] [cursor=pointer]:
+                - generic [ref=e1335] [cursor=pointer]:
+                  - generic [ref=e1336] [cursor=pointer]: A
+                  - generic [ref=e1337] [cursor=pointer]: B
+                  - generic [ref=e1338] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 26, available shift A, B, C" [ref=e1339] [cursor=pointer]:
+                - generic [ref=e1340] [cursor=pointer]:
+                  - generic [ref=e1341] [cursor=pointer]: A
+                  - generic [ref=e1342] [cursor=pointer]: B
+                  - generic [ref=e1343] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 27, available shift A, B, C" [ref=e1344] [cursor=pointer]:
+                - generic [ref=e1345] [cursor=pointer]:
+                  - generic [ref=e1346] [cursor=pointer]: A
+                  - generic [ref=e1347] [cursor=pointer]: B
+                  - generic [ref=e1348] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 28, available shift A, B, C" [ref=e1349] [cursor=pointer]:
+                - generic [ref=e1350] [cursor=pointer]:
+                  - generic [ref=e1351] [cursor=pointer]: A
+                  - generic [ref=e1352] [cursor=pointer]: B
+                  - generic [ref=e1353] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 29, available shift A, B, C" [ref=e1354] [cursor=pointer]:
+                - generic [ref=e1355] [cursor=pointer]:
+                  - generic [ref=e1356] [cursor=pointer]: A
+                  - generic [ref=e1357] [cursor=pointer]: B
+                  - generic [ref=e1358] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 30, available shift A, B, C" [ref=e1359] [cursor=pointer]:
+                - generic [ref=e1360] [cursor=pointer]:
+                  - generic [ref=e1361] [cursor=pointer]: A
+                  - generic [ref=e1362] [cursor=pointer]: B
+                  - generic [ref=e1363] [cursor=pointer]: C
+              - gridcell "Shira Azulay, Aug 31, available shift A, B, C" [ref=e1364] [cursor=pointer]:
+                - generic [ref=e1365] [cursor=pointer]:
+                  - generic [ref=e1366] [cursor=pointer]: A
+                  - generic [ref=e1367] [cursor=pointer]: B
+                  - generic [ref=e1368] [cursor=pointer]: C
+            - row [ref=e1369]:
+              - rowheader "Omer Biton All None" [ref=e1370]:
+                - generic [ref=e1371]:
+                  - generic [ref=e1372]: Omer Biton
+                  - generic [ref=e1373]:
+                    - button "All" [ref=e1374] [cursor=pointer]
+                    - button "None" [ref=e1375] [cursor=pointer]
+              - gridcell "Omer Biton, Aug 1, unavailable" [ref=e1376] [cursor=pointer]:
+                - generic [ref=e1377] [cursor=pointer]:
+                  - generic [ref=e1378] [cursor=pointer]: A
+                  - generic [ref=e1379] [cursor=pointer]: B
+                  - generic [ref=e1380] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 2, available shift A, B, C" [ref=e1381] [cursor=pointer]:
+                - generic [ref=e1382] [cursor=pointer]:
+                  - generic [ref=e1383] [cursor=pointer]: A
+                  - generic [ref=e1384] [cursor=pointer]: B
+                  - generic [ref=e1385] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 3, available shift A, B, C" [ref=e1386] [cursor=pointer]:
+                - generic [ref=e1387] [cursor=pointer]:
+                  - generic [ref=e1388] [cursor=pointer]: A
+                  - generic [ref=e1389] [cursor=pointer]: B
+                  - generic [ref=e1390] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 4, available shift A, B, C" [ref=e1391] [cursor=pointer]:
+                - generic [ref=e1392] [cursor=pointer]:
+                  - generic [ref=e1393] [cursor=pointer]: A
+                  - generic [ref=e1394] [cursor=pointer]: B
+                  - generic [ref=e1395] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 5, available shift A, B, C" [ref=e1396] [cursor=pointer]:
+                - generic [ref=e1397] [cursor=pointer]:
+                  - generic [ref=e1398] [cursor=pointer]: A
+                  - generic [ref=e1399] [cursor=pointer]: B
+                  - generic [ref=e1400] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 6, available shift A, B, C" [ref=e1401] [cursor=pointer]:
+                - generic [ref=e1402] [cursor=pointer]:
+                  - generic [ref=e1403] [cursor=pointer]: A
+                  - generic [ref=e1404] [cursor=pointer]: B
+                  - generic [ref=e1405] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 7, unavailable" [ref=e1406] [cursor=pointer]:
+                - generic [ref=e1407] [cursor=pointer]:
+                  - generic [ref=e1408] [cursor=pointer]: A
+                  - generic [ref=e1409] [cursor=pointer]: B
+                  - generic [ref=e1410] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 8, unavailable" [ref=e1411] [cursor=pointer]:
+                - generic [ref=e1412] [cursor=pointer]:
+                  - generic [ref=e1413] [cursor=pointer]: A
+                  - generic [ref=e1414] [cursor=pointer]: B
+                  - generic [ref=e1415] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 9, available shift A, B, C" [ref=e1416] [cursor=pointer]:
+                - generic [ref=e1417] [cursor=pointer]:
+                  - generic [ref=e1418] [cursor=pointer]: A
+                  - generic [ref=e1419] [cursor=pointer]: B
+                  - generic [ref=e1420] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 10, available shift A, B, C" [ref=e1421] [cursor=pointer]:
+                - generic [ref=e1422] [cursor=pointer]:
+                  - generic [ref=e1423] [cursor=pointer]: A
+                  - generic [ref=e1424] [cursor=pointer]: B
+                  - generic [ref=e1425] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 11, available shift A, B, C" [ref=e1426] [cursor=pointer]:
+                - generic [ref=e1427] [cursor=pointer]:
+                  - generic [ref=e1428] [cursor=pointer]: A
+                  - generic [ref=e1429] [cursor=pointer]: B
+                  - generic [ref=e1430] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 12, available shift A, B, C" [ref=e1431] [cursor=pointer]:
+                - generic [ref=e1432] [cursor=pointer]:
+                  - generic [ref=e1433] [cursor=pointer]: A
+                  - generic [ref=e1434] [cursor=pointer]: B
+                  - generic [ref=e1435] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 13, available shift A, B, C" [ref=e1436] [cursor=pointer]:
+                - generic [ref=e1437] [cursor=pointer]:
+                  - generic [ref=e1438] [cursor=pointer]: A
+                  - generic [ref=e1439] [cursor=pointer]: B
+                  - generic [ref=e1440] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 14, unavailable" [ref=e1441] [cursor=pointer]:
+                - generic [ref=e1442] [cursor=pointer]:
+                  - generic [ref=e1443] [cursor=pointer]: A
+                  - generic [ref=e1444] [cursor=pointer]: B
+                  - generic [ref=e1445] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 15, unavailable" [ref=e1446] [cursor=pointer]:
+                - generic [ref=e1447] [cursor=pointer]:
+                  - generic [ref=e1448] [cursor=pointer]: A
+                  - generic [ref=e1449] [cursor=pointer]: B
+                  - generic [ref=e1450] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 16, available shift A, B, C" [ref=e1451] [cursor=pointer]:
+                - generic [ref=e1452] [cursor=pointer]:
+                  - generic [ref=e1453] [cursor=pointer]: A
+                  - generic [ref=e1454] [cursor=pointer]: B
+                  - generic [ref=e1455] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 17, available shift A, B, C" [ref=e1456] [cursor=pointer]:
+                - generic [ref=e1457] [cursor=pointer]:
+                  - generic [ref=e1458] [cursor=pointer]: A
+                  - generic [ref=e1459] [cursor=pointer]: B
+                  - generic [ref=e1460] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 18, available shift A, B, C" [ref=e1461] [cursor=pointer]:
+                - generic [ref=e1462] [cursor=pointer]:
+                  - generic [ref=e1463] [cursor=pointer]: A
+                  - generic [ref=e1464] [cursor=pointer]: B
+                  - generic [ref=e1465] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 19, available shift A, B, C" [ref=e1466] [cursor=pointer]:
+                - generic [ref=e1467] [cursor=pointer]:
+                  - generic [ref=e1468] [cursor=pointer]: A
+                  - generic [ref=e1469] [cursor=pointer]: B
+                  - generic [ref=e1470] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 20, available shift A, B, C" [ref=e1471] [cursor=pointer]:
+                - generic [ref=e1472] [cursor=pointer]:
+                  - generic [ref=e1473] [cursor=pointer]: A
+                  - generic [ref=e1474] [cursor=pointer]: B
+                  - generic [ref=e1475] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 21, unavailable" [ref=e1476] [cursor=pointer]:
+                - generic [ref=e1477] [cursor=pointer]:
+                  - generic [ref=e1478] [cursor=pointer]: A
+                  - generic [ref=e1479] [cursor=pointer]: B
+                  - generic [ref=e1480] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 22, unavailable" [ref=e1481] [cursor=pointer]:
+                - generic [ref=e1482] [cursor=pointer]:
+                  - generic [ref=e1483] [cursor=pointer]: A
+                  - generic [ref=e1484] [cursor=pointer]: B
+                  - generic [ref=e1485] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 23, available shift A, B, C" [ref=e1486] [cursor=pointer]:
+                - generic [ref=e1487] [cursor=pointer]:
+                  - generic [ref=e1488] [cursor=pointer]: A
+                  - generic [ref=e1489] [cursor=pointer]: B
+                  - generic [ref=e1490] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 24, available shift A, B, C" [ref=e1491] [cursor=pointer]:
+                - generic [ref=e1492] [cursor=pointer]:
+                  - generic [ref=e1493] [cursor=pointer]: A
+                  - generic [ref=e1494] [cursor=pointer]: B
+                  - generic [ref=e1495] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 25, available shift A, B, C" [ref=e1496] [cursor=pointer]:
+                - generic [ref=e1497] [cursor=pointer]:
+                  - generic [ref=e1498] [cursor=pointer]: A
+                  - generic [ref=e1499] [cursor=pointer]: B
+                  - generic [ref=e1500] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 26, available shift A, B, C" [ref=e1501] [cursor=pointer]:
+                - generic [ref=e1502] [cursor=pointer]:
+                  - generic [ref=e1503] [cursor=pointer]: A
+                  - generic [ref=e1504] [cursor=pointer]: B
+                  - generic [ref=e1505] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 27, available shift A, B, C" [ref=e1506] [cursor=pointer]:
+                - generic [ref=e1507] [cursor=pointer]:
+                  - generic [ref=e1508] [cursor=pointer]: A
+                  - generic [ref=e1509] [cursor=pointer]: B
+                  - generic [ref=e1510] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 28, unavailable" [ref=e1511] [cursor=pointer]:
+                - generic [ref=e1512] [cursor=pointer]:
+                  - generic [ref=e1513] [cursor=pointer]: A
+                  - generic [ref=e1514] [cursor=pointer]: B
+                  - generic [ref=e1515] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 29, unavailable" [ref=e1516] [cursor=pointer]:
+                - generic [ref=e1517] [cursor=pointer]:
+                  - generic [ref=e1518] [cursor=pointer]: A
+                  - generic [ref=e1519] [cursor=pointer]: B
+                  - generic [ref=e1520] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 30, available shift A, B, C" [ref=e1521] [cursor=pointer]:
+                - generic [ref=e1522] [cursor=pointer]:
+                  - generic [ref=e1523] [cursor=pointer]: A
+                  - generic [ref=e1524] [cursor=pointer]: B
+                  - generic [ref=e1525] [cursor=pointer]: C
+              - gridcell "Omer Biton, Aug 31, available shift A, B, C" [ref=e1526] [cursor=pointer]:
+                - generic [ref=e1527] [cursor=pointer]:
+                  - generic [ref=e1528] [cursor=pointer]: A
+                  - generic [ref=e1529] [cursor=pointer]: B
+                  - generic [ref=e1530] [cursor=pointer]: C
+            - row [ref=e1531]:
+              - rowheader "Liora Sharabi All None" [ref=e1532]:
+                - generic [ref=e1533]:
+                  - generic [ref=e1534]: Liora Sharabi
+                  - generic [ref=e1535]:
+                    - button "All" [ref=e1536] [cursor=pointer]
+                    - button "None" [ref=e1537] [cursor=pointer]
+              - gridcell "Liora Sharabi, Aug 1, available shift A, B, C" [ref=e1538] [cursor=pointer]:
+                - generic [ref=e1539] [cursor=pointer]:
+                  - generic [ref=e1540] [cursor=pointer]: A
+                  - generic [ref=e1541] [cursor=pointer]: B
+                  - generic [ref=e1542] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 2, available shift A, B, C" [ref=e1543] [cursor=pointer]:
+                - generic [ref=e1544] [cursor=pointer]:
+                  - generic [ref=e1545] [cursor=pointer]: A
+                  - generic [ref=e1546] [cursor=pointer]: B
+                  - generic [ref=e1547] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 3, available shift A, B, C" [ref=e1548] [cursor=pointer]:
+                - generic [ref=e1549] [cursor=pointer]:
+                  - generic [ref=e1550] [cursor=pointer]: A
+                  - generic [ref=e1551] [cursor=pointer]: B
+                  - generic [ref=e1552] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 4, available shift A, B, C" [ref=e1553] [cursor=pointer]:
+                - generic [ref=e1554] [cursor=pointer]:
+                  - generic [ref=e1555] [cursor=pointer]: A
+                  - generic [ref=e1556] [cursor=pointer]: B
+                  - generic [ref=e1557] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 5, available shift A, B, C" [ref=e1558] [cursor=pointer]:
+                - generic [ref=e1559] [cursor=pointer]:
+                  - generic [ref=e1560] [cursor=pointer]: A
+                  - generic [ref=e1561] [cursor=pointer]: B
+                  - generic [ref=e1562] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 6, available shift A, B, C" [ref=e1563] [cursor=pointer]:
+                - generic [ref=e1564] [cursor=pointer]:
+                  - generic [ref=e1565] [cursor=pointer]: A
+                  - generic [ref=e1566] [cursor=pointer]: B
+                  - generic [ref=e1567] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 7, available shift A, B, C" [ref=e1568] [cursor=pointer]:
+                - generic [ref=e1569] [cursor=pointer]:
+                  - generic [ref=e1570] [cursor=pointer]: A
+                  - generic [ref=e1571] [cursor=pointer]: B
+                  - generic [ref=e1572] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 8, available shift A, B, C" [ref=e1573] [cursor=pointer]:
+                - generic [ref=e1574] [cursor=pointer]:
+                  - generic [ref=e1575] [cursor=pointer]: A
+                  - generic [ref=e1576] [cursor=pointer]: B
+                  - generic [ref=e1577] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 9, available shift A, B, C" [ref=e1578] [cursor=pointer]:
+                - generic [ref=e1579] [cursor=pointer]:
+                  - generic [ref=e1580] [cursor=pointer]: A
+                  - generic [ref=e1581] [cursor=pointer]: B
+                  - generic [ref=e1582] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 10, available shift A, B, C" [ref=e1583] [cursor=pointer]:
+                - generic [ref=e1584] [cursor=pointer]:
+                  - generic [ref=e1585] [cursor=pointer]: A
+                  - generic [ref=e1586] [cursor=pointer]: B
+                  - generic [ref=e1587] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 11, available shift A, B, C" [ref=e1588] [cursor=pointer]:
+                - generic [ref=e1589] [cursor=pointer]:
+                  - generic [ref=e1590] [cursor=pointer]: A
+                  - generic [ref=e1591] [cursor=pointer]: B
+                  - generic [ref=e1592] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 12, available shift A, B, C" [ref=e1593] [cursor=pointer]:
+                - generic [ref=e1594] [cursor=pointer]:
+                  - generic [ref=e1595] [cursor=pointer]: A
+                  - generic [ref=e1596] [cursor=pointer]: B
+                  - generic [ref=e1597] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 13, available shift A, B, C" [ref=e1598] [cursor=pointer]:
+                - generic [ref=e1599] [cursor=pointer]:
+                  - generic [ref=e1600] [cursor=pointer]: A
+                  - generic [ref=e1601] [cursor=pointer]: B
+                  - generic [ref=e1602] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 14, available shift A, B, C" [ref=e1603] [cursor=pointer]:
+                - generic [ref=e1604] [cursor=pointer]:
+                  - generic [ref=e1605] [cursor=pointer]: A
+                  - generic [ref=e1606] [cursor=pointer]: B
+                  - generic [ref=e1607] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 15, available shift A, B, C" [ref=e1608] [cursor=pointer]:
+                - generic [ref=e1609] [cursor=pointer]:
+                  - generic [ref=e1610] [cursor=pointer]: A
+                  - generic [ref=e1611] [cursor=pointer]: B
+                  - generic [ref=e1612] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 16, available shift A, B, C" [ref=e1613] [cursor=pointer]:
+                - generic [ref=e1614] [cursor=pointer]:
+                  - generic [ref=e1615] [cursor=pointer]: A
+                  - generic [ref=e1616] [cursor=pointer]: B
+                  - generic [ref=e1617] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 17, available shift A, B, C" [ref=e1618] [cursor=pointer]:
+                - generic [ref=e1619] [cursor=pointer]:
+                  - generic [ref=e1620] [cursor=pointer]: A
+                  - generic [ref=e1621] [cursor=pointer]: B
+                  - generic [ref=e1622] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 18, available shift A, B, C" [ref=e1623] [cursor=pointer]:
+                - generic [ref=e1624] [cursor=pointer]:
+                  - generic [ref=e1625] [cursor=pointer]: A
+                  - generic [ref=e1626] [cursor=pointer]: B
+                  - generic [ref=e1627] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 19, available shift A, B, C" [ref=e1628] [cursor=pointer]:
+                - generic [ref=e1629] [cursor=pointer]:
+                  - generic [ref=e1630] [cursor=pointer]: A
+                  - generic [ref=e1631] [cursor=pointer]: B
+                  - generic [ref=e1632] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 20, available shift A, B, C" [ref=e1633] [cursor=pointer]:
+                - generic [ref=e1634] [cursor=pointer]:
+                  - generic [ref=e1635] [cursor=pointer]: A
+                  - generic [ref=e1636] [cursor=pointer]: B
+                  - generic [ref=e1637] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 21, available shift A, B, C" [ref=e1638] [cursor=pointer]:
+                - generic [ref=e1639] [cursor=pointer]:
+                  - generic [ref=e1640] [cursor=pointer]: A
+                  - generic [ref=e1641] [cursor=pointer]: B
+                  - generic [ref=e1642] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 22, available shift A, B, C" [ref=e1643] [cursor=pointer]:
+                - generic [ref=e1644] [cursor=pointer]:
+                  - generic [ref=e1645] [cursor=pointer]: A
+                  - generic [ref=e1646] [cursor=pointer]: B
+                  - generic [ref=e1647] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 23, available shift A, B, C" [ref=e1648] [cursor=pointer]:
+                - generic [ref=e1649] [cursor=pointer]:
+                  - generic [ref=e1650] [cursor=pointer]: A
+                  - generic [ref=e1651] [cursor=pointer]: B
+                  - generic [ref=e1652] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 24, available shift A, B, C" [ref=e1653] [cursor=pointer]:
+                - generic [ref=e1654] [cursor=pointer]:
+                  - generic [ref=e1655] [cursor=pointer]: A
+                  - generic [ref=e1656] [cursor=pointer]: B
+                  - generic [ref=e1657] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 25, available shift A, B, C" [ref=e1658] [cursor=pointer]:
+                - generic [ref=e1659] [cursor=pointer]:
+                  - generic [ref=e1660] [cursor=pointer]: A
+                  - generic [ref=e1661] [cursor=pointer]: B
+                  - generic [ref=e1662] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 26, available shift A, B, C" [ref=e1663] [cursor=pointer]:
+                - generic [ref=e1664] [cursor=pointer]:
+                  - generic [ref=e1665] [cursor=pointer]: A
+                  - generic [ref=e1666] [cursor=pointer]: B
+                  - generic [ref=e1667] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 27, available shift A, B, C" [ref=e1668] [cursor=pointer]:
+                - generic [ref=e1669] [cursor=pointer]:
+                  - generic [ref=e1670] [cursor=pointer]: A
+                  - generic [ref=e1671] [cursor=pointer]: B
+                  - generic [ref=e1672] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 28, available shift A, B, C" [ref=e1673] [cursor=pointer]:
+                - generic [ref=e1674] [cursor=pointer]:
+                  - generic [ref=e1675] [cursor=pointer]: A
+                  - generic [ref=e1676] [cursor=pointer]: B
+                  - generic [ref=e1677] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 29, available shift A, B, C" [ref=e1678] [cursor=pointer]:
+                - generic [ref=e1679] [cursor=pointer]:
+                  - generic [ref=e1680] [cursor=pointer]: A
+                  - generic [ref=e1681] [cursor=pointer]: B
+                  - generic [ref=e1682] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 30, available shift A, B, C" [ref=e1683] [cursor=pointer]:
+                - generic [ref=e1684] [cursor=pointer]:
+                  - generic [ref=e1685] [cursor=pointer]: A
+                  - generic [ref=e1686] [cursor=pointer]: B
+                  - generic [ref=e1687] [cursor=pointer]: C
+              - gridcell "Liora Sharabi, Aug 31, available shift A, B, C" [ref=e1688] [cursor=pointer]:
+                - generic [ref=e1689] [cursor=pointer]:
+                  - generic [ref=e1690] [cursor=pointer]: A
+                  - generic [ref=e1691] [cursor=pointer]: B
+                  - generic [ref=e1692] [cursor=pointer]: C
+        - generic [ref=e1693]:
+          - button "Discard changes" [ref=e1694] [cursor=pointer]
+          - button "Save changes" [ref=e1695] [cursor=pointer]
+      - generic [ref=e1696]:
+        - generic [ref=e1697]: Availability CSV import / export — 2026-08
+        - paragraph [ref=e1698]: "Import applies only the rows in this file: each national_id + date cell REPLACES that exact date's availability. Workers or dates absent from the file are left unchanged — this is not a full-workforce sync (no deactivation sweep, unlike the worker CSV import)."
+        - generic [ref=e1699]:
+          - generic [ref=e1700]:
+            - generic [ref=e1701]: CSV file
+            - button "CSV file" [ref=e1702]
+          - link "Export 2026-08 availability (.csv)" [ref=e1703] [cursor=pointer]:
+            - /url: /api/export/availability/2026-08
+      - status
+```

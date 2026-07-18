@@ -1,0 +1,13 @@
+national_id,name,company_name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
+000000018,Noa Levi,Alpha Security Ltd.,General Guard,Active,45.00,120,200
+000000026,Avi Cohen,Alpha Security Ltd.,General Guard,Active,45.00,100,180
+000000034,Dana Mizrahi,Alpha Security Ltd.,Supervisor,Active,65.00,140,200
+000000042,Yossi Peretz,Alpha Security Ltd.,Screener,Active,50.00,120,180
+000000059,Michal Katz,Beta Guarding Co.,General Guard,Active,47.00,120,200
+000000067,Eitan Shapira,Beta Guarding Co.,General Guard,Inactive,47.00,100,160
+000000075,Tamar Golan,Beta Guarding Co.,Supervisor,Active,68.00,140,200
+000000083,Roi Ben-David,Beta Guarding Co.,Screener,Active,52.00,120,190
+000000091,Shira Azulay,Gamma Protective Services,General Guard,Active,46.00,120,200
+000000109,Omer Biton,Gamma Protective Services,General Guard,Active,46.00,100,180
+000000117,Liora Sharabi,Gamma Protective Services,Supervisor,Active,66.00,140,200
+000000125,Guy Amrani,Gamma Protective Services,Screener,Inactive,51.00,110,180
