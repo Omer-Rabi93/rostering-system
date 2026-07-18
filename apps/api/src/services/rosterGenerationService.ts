@@ -4,10 +4,15 @@
 // `roster-generation` job handler in `jobs/rosterGeneration.job.ts` is a thin wrapper.
 //
 // Persistence is delete-and-rewrite of the target month's shifts + shift_workers + alerts inside
-// ONE transaction, and the roster row itself is upserted by its unique `month`, so a pg-boss retry
-// after a partial failure (or a legitimate `force`-regeneration of an already-published month)
-// converges on the same state rather than doubling data -- see
+// ONE transaction, and the roster row itself is upserted by its unique `(companyId, month)` pair,
+// so a pg-boss retry after a partial failure (or a legitimate `force`-regeneration of an
+// already-published month) converges on the same state rather than doubling data -- see
 // `tests/services/rosterGenerationService.test.ts` for the forced-failure-then-retry proof.
+//
+// Company-scoped rostering: `generate()` takes a required `companyId` and pools ONLY that
+// company's active workers and staffing requirements -- no cross-company leakage into the
+// solver's candidate pool (`buildProblem` itself stays a pure function of whatever pool it's
+// handed; the scoping happens entirely in the `findMany` filters below).
 
 import type { ShiftType } from '@rostering/shared';
 
@@ -87,10 +92,10 @@ export class RosterGenerationService {
     this.solve = solve;
   }
 
-  async generate(month: string): Promise<RosterGenerationResult> {
+  async generate(companyId: number, month: string): Promise<RosterGenerationResult> {
     const [activeWorkers, requirements] = await Promise.all([
-      this.prisma.worker.findMany({ where: { status: 'ACTIVE' }, include: { contract: true } }),
-      this.prisma.staffingRequirement.findMany(),
+      this.prisma.worker.findMany({ where: { status: 'ACTIVE', companyId }, include: { contract: true } }),
+      this.prisma.staffingRequirement.findMany({ where: { companyId } }),
     ]);
 
     const workersWithContract = activeWorkers.filter(
@@ -118,18 +123,19 @@ export class RosterGenerationService {
 
     const solution = await this.solve(problem, this.solverOptions);
 
-    return this.persistDraft(month, solution, roleById);
+    return this.persistDraft(companyId, month, solution, roleById);
   }
 
   private async persistDraft(
+    companyId: number,
     month: string,
     solution: SolverSolution,
     roleById: ReadonlyMap<number, Role>,
   ): Promise<RosterGenerationResult> {
     return this.prisma.$transaction(async (tx) => {
       const roster = await tx.roster.upsert({
-        where: { month },
-        create: { month, status: 'DRAFT', generatedAt: new Date() },
+        where: { companyId_month: { companyId, month } },
+        create: { companyId, month, status: 'DRAFT', generatedAt: new Date() },
         // `force`-regeneration of a published month reopens it as draft (status flips back); the
         // HTTP-layer publish gate (unacknowledged alerts) applies fresh next time it is published,
         // since the alerts below are entirely recomputed.

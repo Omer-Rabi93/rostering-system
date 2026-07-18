@@ -13,10 +13,13 @@ import { parseIdParam, parseStringParam } from './params.js';
 
 const generateRosterBodySchema = z
   .object({
+    companyId: z.number().int().positive(),
     month: monthSchema,
     force: z.boolean().optional(),
   })
   .strict();
+
+const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() }).strict();
 
 /** Thin HTTP layer for `/api/rosters`. */
 export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router {
@@ -29,9 +32,9 @@ export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router 
   router.post(
     '/generate',
     asyncHandler(async (req, res) => {
-      const { month, force } = generateRosterBodySchema.parse(req.body);
+      const { companyId, month, force } = generateRosterBodySchema.parse(req.body);
 
-      const existingRoster = await prisma.roster.findUnique({ where: { month } });
+      const existingRoster = await prisma.roster.findUnique({ where: { companyId_month: { companyId, month } } });
       if (existingRoster?.status === 'PUBLISHED' && !force) {
         throw new ConflictError(
           `Roster for ${month} is already published; pass { "force": true } to regenerate it as a draft`,
@@ -39,7 +42,7 @@ export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router 
         );
       }
 
-      const jobId = await enqueueRosterGeneration(boss, month, { force });
+      const jobId = await enqueueRosterGeneration(boss, companyId, month, { force });
       if (!jobId) {
         throw new ConflictError(`A roster-generation job for ${month} is already in flight`, 'generation-in-progress');
       }
@@ -51,7 +54,8 @@ export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router 
     '/:month',
     asyncHandler(async (req, res) => {
       const month = parseStringParam(req.params.month, 'Roster');
-      const roster = await rosterService.getByMonth(month);
+      const { companyId } = companyIdQuerySchema.parse(req.query);
+      const roster = await rosterService.getByMonth(companyId, month);
       res.status(200).json(roster);
     }),
   );
@@ -60,7 +64,8 @@ export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router 
     '/:month/cost-summary',
     asyncHandler(async (req, res) => {
       const month = parseStringParam(req.params.month, 'Roster');
-      const summary = await costSummaryService.getByMonth(month);
+      const { companyId } = companyIdQuerySchema.parse(req.query);
+      const summary = await costSummaryService.getByMonth(companyId, month);
       res.status(200).json(summary);
     }),
   );

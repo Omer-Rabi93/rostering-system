@@ -56,7 +56,7 @@ describe('share-link + public schedule', () => {
     });
 
     const roster = await prisma.roster.create({
-      data: { month: '2026-08', status: 'PUBLISHED', publishedAt: new Date() },
+      data: { companyId: company.id, month: '2026-08', status: 'PUBLISHED', publishedAt: new Date() },
     });
     const shift1 = await prisma.shift.create({
       data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
@@ -68,7 +68,7 @@ describe('share-link + public schedule', () => {
     // The other worker's assignment must never leak into `worker`'s public schedule.
     await prisma.shiftWorker.create({ data: { shiftId: shift2.id, workerId: otherWorker.id, role: 'GENERAL_GUARD' } });
 
-    return { worker, otherWorker, roster };
+    return { worker, otherWorker, roster, company };
   }
 
   describe('GET /api/workers/:id/share-link', () => {
@@ -146,8 +146,8 @@ describe('share-link + public schedule', () => {
     });
 
     it('returns an identically-shaped 404 for a valid token but an unpublished (draft) month', async () => {
-      const { worker } = await makePublishedRosterWithWorker();
-      await prisma.roster.create({ data: { month: '2026-09', status: 'DRAFT' } });
+      const { worker, company } = await makePublishedRosterWithWorker();
+      await prisma.roster.create({ data: { companyId: company.id, month: '2026-09', status: 'DRAFT' } });
 
       const unknownTokenResponse = await request(app).get(
         '/api/schedule/00000000-0000-4000-8000-000000000000?month=2026-09',

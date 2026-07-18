@@ -67,10 +67,14 @@ export async function recomputeRosterAlerts(
   tx: Prisma.TransactionClient,
   rosterId: number,
 ): Promise<AlertDto[]> {
+  const roster = await tx.roster.findUniqueOrThrow({ where: { id: rosterId } });
+  // Company-scoped rostering: coverage targets and min-hours checks are both scoped to the
+  // roster's OWN company -- no other company's staffing-requirements matrix or workforce ever
+  // feeds into this roster's alerts.
   const [shifts, requirements, activeWorkers, existingAlerts] = await Promise.all([
     tx.shift.findMany({ where: { rosterId }, include: { workers: true } }),
-    tx.staffingRequirement.findMany(),
-    tx.worker.findMany({ where: { status: 'ACTIVE' }, include: { contract: true } }),
+    tx.staffingRequirement.findMany({ where: { companyId: roster.companyId } }),
+    tx.worker.findMany({ where: { status: 'ACTIVE', companyId: roster.companyId }, include: { contract: true } }),
     tx.alert.findMany({ where: { rosterId } }),
   ]);
 

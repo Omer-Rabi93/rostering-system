@@ -1,19 +1,25 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { staffingRequirementsInputSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { StaffingRequirementService } from '../services/staffingRequirementService.js';
 
-/** Thin HTTP layer for `/api/staffing-requirements`. */
+const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() }).strict();
+
+/** Thin HTTP layer for `/api/staffing-requirements`. Every route is scoped to one company's own
+ * requirements matrix via a required `companyId` query param -- each company has its own
+ * independent role x shift matrix, never a shared/global one. */
 export function createStaffingRequirementsRouter(prisma: PrismaClient): Router {
   const router = Router();
   const service = new StaffingRequirementService(prisma);
 
   router.get(
     '/',
-    asyncHandler(async (_req, res) => {
-      const rows = await service.list();
+    asyncHandler(async (req, res) => {
+      const { companyId } = companyIdQuerySchema.parse(req.query);
+      const rows = await service.list(companyId);
       res.status(200).json(rows);
     }),
   );
@@ -21,8 +27,9 @@ export function createStaffingRequirementsRouter(prisma: PrismaClient): Router {
   router.put(
     '/',
     asyncHandler(async (req, res) => {
+      const { companyId } = companyIdQuerySchema.parse(req.query);
       const input = staffingRequirementsInputSchema.parse(req.body);
-      const rows = await service.replaceAll(input);
+      const rows = await service.replaceAll(companyId, input);
       res.status(200).json(rows);
     }),
   );

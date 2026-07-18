@@ -34,9 +34,9 @@ export interface RosterDto {
 export class RosterService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async getByMonth(month: string): Promise<RosterDto> {
+  async getByMonth(companyId: number, month: string): Promise<RosterDto> {
     const roster = await this.prisma.roster.findUnique({
-      where: { month },
+      where: { companyId_month: { companyId, month } },
       include: {
         shifts: {
           include: { workers: { include: { worker: true } } },

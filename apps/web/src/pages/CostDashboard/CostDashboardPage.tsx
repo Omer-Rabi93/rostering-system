@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Badge, EmptyState, Spinner, Table, type Column, type TableSort } from '@rostering/ui';
+import { Badge, EmptyState, Select, Spinner, Table, type Column, type TableSort } from '@rostering/ui';
 import type { Month } from '@rostering/shared';
 
 import { useGetCostSummaryQuery } from '../../api/costSummary.api.js';
+import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { currentMonth } from '../../lib/calendar.js';
 import { formatIls, formatMonthLong } from '../../lib/format.js';
@@ -38,7 +39,16 @@ export function CostDashboardPage(): ReactElement {
   const navigate = useNavigate();
   const month: Month = params.month ?? currentMonth();
 
-  const { data: summary, isLoading, isError } = useGetCostSummaryQuery(month);
+  // Company-scoped rostering: a cost summary is derived from one company's roster, not a global
+  // one -- see `RosterPage.tsx` for the same default-to-first-company selector pattern.
+  const { data: companies, isLoading: companiesLoading } = useListCompaniesQuery();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
+  const companyId = selectedCompanyId ?? companies?.[0]?.id;
+
+  const { data: summary, isLoading, isError } = useGetCostSummaryQuery(
+    { companyId: companyId ?? -1, month },
+    { skip: companyId === undefined },
+  );
   const { data: workers } = useListWorkersQuery();
 
   const [sort, setSort] = useState<TableSort>({ key: 'costIls', direction: 'desc' });
@@ -72,6 +82,17 @@ export function CostDashboardPage(): ReactElement {
           </p>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
+          <label className="field__label visually-hidden" htmlFor="cost-company">
+            Company
+          </label>
+          <Select
+            id="cost-company"
+            value={companyId !== undefined ? String(companyId) : ''}
+            options={(companies ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+            onChange={(e) => setSelectedCompanyId(Number(e.target.value))}
+          />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
           <label className="field__label visually-hidden" htmlFor="cost-month">
             Month
           </label>
@@ -87,7 +108,16 @@ export function CostDashboardPage(): ReactElement {
         </div>
       </div>
 
-      {isLoading ? (
+      {companiesLoading ? (
+        <Spinner label="Loading companies" />
+      ) : companies && companies.length === 0 ? (
+        <EmptyState
+          icon={<span aria-hidden="true">🏢</span>}
+          title="No companies yet"
+          body="Cost reporting is per-company — add at least one company first."
+          action={{ label: 'Go to Companies', onClick: () => void navigate('/companies') }}
+        />
+      ) : isLoading ? (
         <Spinner label="Loading cost summary" />
       ) : isError || !summary || !stats ? (
         <EmptyState

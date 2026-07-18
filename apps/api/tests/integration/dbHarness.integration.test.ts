@@ -51,11 +51,13 @@ describe.skipIf(!process.env.DATABASE_URL)('integration-test DB harness', () => 
       0,
     );
 
+    // Company-scoped rostering: the default 9-row (role x shift) matrix is seeded independently
+    // per company, so 3 companies x 9 rows = 27 staffing-requirement rows in total.
     expect(result).toEqual({
       companies: 3,
       workers: 12,
       contracts: 12,
-      staffingRequirements: 9,
+      staffingRequirements: 27,
       availabilityRows: expectedAvailabilityRows,
       availabilityMonth: expectedMonth,
     });
@@ -64,7 +66,7 @@ describe.skipIf(!process.env.DATABASE_URL)('integration-test DB harness', () => 
     await expect(prisma.worker.count()).resolves.toBe(12);
     await expect(prisma.contract.count()).resolves.toBe(12);
     await expect(prisma.workerAvailability.count()).resolves.toBe(expectedAvailabilityRows);
-    await expect(prisma.staffingRequirement.count()).resolves.toBe(9);
+    await expect(prisma.staffingRequirement.count()).resolves.toBe(27);
 
     await resetDatabase(prisma);
 

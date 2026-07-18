@@ -35,7 +35,12 @@ export class PublicScheduleService {
       throw new NotFoundError(NOT_FOUND_MESSAGE);
     }
 
-    const roster = await this.prisma.roster.findUnique({ where: { month } });
+    // Company-scoped rostering: the worker's own token already identifies their company, so the
+    // roster this token can ever see is that SAME company's roster for `month` -- never another
+    // company's roster for the same calendar month.
+    const roster = await this.prisma.roster.findUnique({
+      where: { companyId_month: { companyId: worker.companyId, month } },
+    });
     if (!roster || roster.status !== 'PUBLISHED') {
       throw new NotFoundError(NOT_FOUND_MESSAGE);
     }

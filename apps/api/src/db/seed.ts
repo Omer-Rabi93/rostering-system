@@ -90,14 +90,19 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
     }
   }
 
+  // Company-scoped rostering: the default staffing-requirements matrix is seeded independently
+  // for EVERY company (not once globally) — each company gets its own full role×shift matrix, so
+  // no company is silently left with an empty requirements set after seeding.
   let staffingRequirementsCreated = 0;
-  for (const requirement of SEED_STAFFING_REQUIREMENTS) {
-    const existing = await prisma.staffingRequirement.findFirst({
-      where: { role: requirement.role, shift: requirement.shift },
-    });
-    if (!existing) {
-      await prisma.staffingRequirement.create({ data: requirement });
-      staffingRequirementsCreated++;
+  for (const companyId of companyIdByName.values()) {
+    for (const requirement of SEED_STAFFING_REQUIREMENTS) {
+      const existing = await prisma.staffingRequirement.findFirst({
+        where: { companyId, role: requirement.role, shift: requirement.shift },
+      });
+      if (!existing) {
+        await prisma.staffingRequirement.create({ data: { ...requirement, companyId } });
+        staffingRequirementsCreated++;
+      }
     }
   }
 

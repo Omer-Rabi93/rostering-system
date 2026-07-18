@@ -19,8 +19,8 @@ interface WorkerAccumulator {
 export class CostSummaryService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async getByMonth(month: string): Promise<CostSummary> {
-    const roster = await this.prisma.roster.findUnique({ where: { month } });
+  async getByMonth(companyId: number, month: string): Promise<CostSummary> {
+    const roster = await this.prisma.roster.findUnique({ where: { companyId_month: { companyId, month } } });
     if (!roster) {
       throw new NotFoundError(`Roster for ${month} has not been generated yet`);
     }

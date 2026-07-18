@@ -70,7 +70,12 @@ describe('/api/shifts/:shiftId/workers', () => {
   }
 
   async function makeRosterWithShift(date: string, shiftType: 'A' | 'B' | 'C' = 'A') {
-    const roster = await prisma.roster.create({ data: { month: date.slice(0, 7) } });
+    // Company-scoped rostering: every `Roster` row now requires a `companyId` -- each call gets
+    // its own throwaway company unless the caller needs the roster tied to a SPECIFIC worker's
+    // company (see the alert-recompute test below, which passes `roster.companyId` when seeding a
+    // `StaffingRequirement` so it's actually scoped to the roster it's meant to affect).
+    const company = await prisma.company.create({ data: { name: `Roster Co ${Date.now()}-${Math.random()}` } });
+    const roster = await prisma.roster.create({ data: { companyId: company.id, month: date.slice(0, 7) } });
     const shift = await prisma.shift.create({
       data: { rosterId: roster.id, date: new Date(`${date}T00:00:00.000Z`), shiftType },
     });
@@ -146,7 +151,9 @@ describe('/api/shifts/:shiftId/workers', () => {
     it('recomputes alerts: filling a required slot clears its unfillable_slot alert', async () => {
       const worker = await makeWorker(406, { minMonthlyHours: 0 });
       const { roster, shift } = await makeRosterWithShift('2026-08-01');
-      await prisma.staffingRequirement.create({ data: { role: 'GENERAL_GUARD', shift: 'A', requiredCount: 1 } });
+      await prisma.staffingRequirement.create({
+        data: { companyId: roster.companyId, role: 'GENERAL_GUARD', shift: 'A', requiredCount: 1 },
+      });
       await prisma.alert.create({
         data: {
           rosterId: roster.id,
@@ -223,7 +230,7 @@ describe('/api/shifts/:shiftId/workers', () => {
       await prisma.workerAvailability.create({
         data: { workerId: worker.id, date: new Date('2026-08-02T00:00:00.000Z'), shifts: 'A' },
       });
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const sourceShift = await prisma.shift.create({
         data: { rosterId: roster.id, date: new Date('2026-08-02T00:00:00.000Z'), shiftType: 'A' },
       });

@@ -50,13 +50,14 @@ describe('/api/rosters', () => {
 
   describe('GET /api/rosters/:month', () => {
     it('returns 404 for a month that has not been generated', async () => {
-      const response = await request(app).get('/api/rosters/2026-08');
+      const company = await prisma.company.create({ data: { name: 'Empty Co' } });
+      const response = await request(app).get(`/api/rosters/2026-08?companyId=${company.id}`);
       expect(response.status).toBe(404);
     });
 
     it('returns the roster with shifts, assignments, and alerts', async () => {
       const worker = await makeWorker(201);
-      const roster = await prisma.roster.create({ data: { month: '2026-08', status: 'DRAFT' } });
+      const roster = await prisma.roster.create({ data: { companyId: worker.companyId, month: '2026-08', status: 'DRAFT' } });
       const shift = await prisma.shift.create({
         data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
       });
@@ -65,7 +66,7 @@ describe('/api/rosters', () => {
         data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: worker.id, deficitHours: 92 } },
       });
 
-      const response = await request(app).get('/api/rosters/2026-08');
+      const response = await request(app).get(`/api/rosters/2026-08?companyId=${worker.companyId}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({ month: '2026-08', status: 'DRAFT' });
@@ -81,11 +82,21 @@ describe('/api/rosters', () => {
         acknowledgedAt: null,
       });
     });
+
+    it('returns 404 for another company requesting the same month — a roster is scoped to one company only', async () => {
+      const worker = await makeWorker(202);
+      await prisma.roster.create({ data: { companyId: worker.companyId, month: '2026-08', status: 'DRAFT' } });
+      const otherCompany = await prisma.company.create({ data: { name: 'Different Co' } });
+
+      const response = await request(app).get(`/api/rosters/2026-08?companyId=${otherCompany.id}`);
+      expect(response.status).toBe(404);
+    });
   });
 
   describe('POST /api/rosters/:id/alerts/:alertId/ack', () => {
     it('acknowledges an alert', async () => {
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const company = await prisma.company.create({ data: { name: 'Ack Co' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const alert = await prisma.alert.create({
         data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: 1, deficitHours: 10 } },
       });
@@ -98,7 +109,8 @@ describe('/api/rosters', () => {
     });
 
     it('returns 404 for an unknown alert', async () => {
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const company = await prisma.company.create({ data: { name: 'Ack Co' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const response = await request(app).post(`/api/rosters/${roster.id}/alerts/999999/ack`);
       expect(response.status).toBe(404);
     });
@@ -106,7 +118,8 @@ describe('/api/rosters', () => {
 
   describe('POST /api/rosters/:id/publish', () => {
     it('returns 409 with unacknowledgedAlertIds when alerts are pending', async () => {
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const company = await prisma.company.create({ data: { name: 'Publish Co' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const alert = await prisma.alert.create({
         data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: 1, deficitHours: 10 } },
       });
@@ -118,7 +131,8 @@ describe('/api/rosters', () => {
     });
 
     it('publishes once every alert is acknowledged', async () => {
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const company = await prisma.company.create({ data: { name: 'Publish Co' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const alert = await prisma.alert.create({
         data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: 1, deficitHours: 10 } },
       });
@@ -135,8 +149,9 @@ describe('/api/rosters', () => {
     });
 
     it('re-runs the gate on a republish after a fresh unacknowledged alert appears', async () => {
+      const company = await prisma.company.create({ data: { name: 'Publish Co' } });
       const roster = await prisma.roster.create({
-        data: { month: '2026-08', status: 'PUBLISHED', publishedAt: new Date() },
+        data: { companyId: company.id, month: '2026-08', status: 'PUBLISHED', publishedAt: new Date() },
       });
       const alert = await prisma.alert.create({
         data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: 1, deficitHours: 5 } },
@@ -156,14 +171,15 @@ describe('/api/rosters', () => {
 
   describe('GET /api/rosters/:month/cost-summary', () => {
     it('returns 404 for a month that has not been generated', async () => {
-      const response = await request(app).get('/api/rosters/2026-08/cost-summary');
+      const company = await prisma.company.create({ data: { name: 'Empty Co' } });
+      const response = await request(app).get(`/api/rosters/2026-08/cost-summary?companyId=${company.id}`);
       expect(response.status).toBe(404);
     });
 
     it('computes totals as count x 8 x hourlyRate, grouped per worker and per company', async () => {
       const workerA = await makeWorker(301);
       const workerB = await makeWorker(302);
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const roster = await prisma.roster.create({ data: { companyId: workerA.companyId, month: '2026-08' } });
       const shift1 = await prisma.shift.create({
         data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
       });
@@ -175,7 +191,7 @@ describe('/api/rosters', () => {
       await prisma.shiftWorker.create({ data: { shiftId: shift2.id, workerId: workerA.id, role: 'GENERAL_GUARD' } });
       await prisma.shiftWorker.create({ data: { shiftId: shift1.id, workerId: workerB.id, role: 'GENERAL_GUARD' } });
 
-      const response = await request(app).get('/api/rosters/2026-08/cost-summary');
+      const response = await request(app).get(`/api/rosters/2026-08/cost-summary?companyId=${workerA.companyId}`);
 
       expect(response.status).toBe(200);
       expect(response.body.totalIls).toBe(960);

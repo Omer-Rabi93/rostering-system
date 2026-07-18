@@ -30,6 +30,22 @@ function toDate(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
 }
 
+/**
+ * Company-scoped rostering: `StaffingRequirement`/`Roster` fixture helpers below that used to
+ * operate on a single GLOBAL matrix/roster now need a `companyId`. Every one of them defaults to
+ * the lowest-`id` seeded company ("Alpha Security Ltd." -- the first entry in
+ * `SEED_COMPANY_NAMES`), matching the frontend's own "default to the first company returned by
+ * `GET /api/companies`" behavior (`RosterPage.tsx`/`RequirementsPage.tsx`), so these fixture calls
+ * stay aimed at whichever company a test's UI assertions are actually looking at by default.
+ */
+async function getDefaultCompanyId(): Promise<number> {
+  const company = await prisma.company.findFirst({ orderBy: { id: 'asc' } });
+  if (!company) {
+    throw new Error('getDefaultCompanyId: no company exists -- call /seed (or /reset-and-seed) first');
+  }
+  return company.id;
+}
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const chunk of req as AsyncIterable<Buffer>) {
@@ -245,9 +261,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (req.method === 'POST' && path === '/requirements/set-all-zero-except') {
     const body = (await readJsonBody(req)) as { role: string; shift: string; requiredCount: number };
-    await prisma.staffingRequirement.updateMany({ data: { requiredCount: 0 } });
+    const companyId = await getDefaultCompanyId();
+    await prisma.staffingRequirement.updateMany({ where: { companyId }, data: { requiredCount: 0 } });
     await prisma.staffingRequirement.update({
-      where: { role_shift: { role: body.role as never, shift: body.shift as never } },
+      where: { companyId_role_shift: { companyId, role: body.role as never, shift: body.shift as never } },
       data: { requiredCount: body.requiredCount },
     });
     send(res, 200, { ok: true });
@@ -266,7 +283,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       shift: string;
       dates: string[];
     };
-    const roster = await prisma.roster.findUnique({ where: { month: body.month } });
+    const companyId = await getDefaultCompanyId();
+    const roster = await prisma.roster.findUnique({ where: { companyId_month: { companyId, month: body.month } } });
     if (!roster) {
       send(res, 404, { error: `no roster for month ${body.month}` });
       return;
@@ -288,7 +306,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (req.method === 'POST' && path === '/requirements/set-all') {
     const body = (await readJsonBody(req)) as { requiredCount: number };
-    await prisma.staffingRequirement.updateMany({ data: { requiredCount: body.requiredCount } });
+    const companyId = await getDefaultCompanyId();
+    await prisma.staffingRequirement.updateMany({ where: { companyId }, data: { requiredCount: body.requiredCount } });
     send(res, 200, { ok: true });
     return;
   }
@@ -300,9 +319,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
         defaults.push({ role, shift, requiredCount: role === 'GENERAL_GUARD' ? 3 : role === 'SUPERVISOR' ? 1 : 2 });
       }
     }
+    const companyId = await getDefaultCompanyId();
     for (const row of defaults) {
       await prisma.staffingRequirement.update({
-        where: { role_shift: { role: row.role, shift: row.shift } },
+        where: { companyId_role_shift: { companyId, role: row.role, shift: row.shift } },
         data: { requiredCount: row.requiredCount },
       });
     }

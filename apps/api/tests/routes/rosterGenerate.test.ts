@@ -38,41 +38,84 @@ describe('POST /api/rosters/generate', () => {
     await disconnectTestPrismaClient();
   });
 
+  async function makeCompany(name: string) {
+    return prisma.company.create({ data: { name } });
+  }
+
   it('enqueues a generation job and returns 202 with a jobId', async () => {
-    const response = await request(app).post('/api/rosters/generate').send({ month: '2028-01' });
+    const company = await makeCompany('Generate Co 1');
+    const response = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: '2028-01' });
     expect(response.status).toBe(202);
     expect(typeof response.body.jobId).toBe('string');
   });
 
   it('returns 400 for a malformed month', async () => {
-    const response = await request(app).post('/api/rosters/generate').send({ month: 'January 2028' });
+    const company = await makeCompany('Generate Co 2');
+    const response = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: 'January 2028' });
     expect(response.status).toBe(400);
   });
 
-  it('returns 409 when a generation job for the same month is already in flight', async () => {
-    const first = await request(app).post('/api/rosters/generate').send({ month: '2028-02' });
+  it('returns 400 when companyId is missing', async () => {
+    const response = await request(app).post('/api/rosters/generate').send({ month: '2028-01' });
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 409 when a generation job for the same company+month is already in flight', async () => {
+    const company = await makeCompany('Generate Co 3');
+    const first = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: '2028-02' });
     expect(first.status).toBe(202);
 
-    const second = await request(app).post('/api/rosters/generate').send({ month: '2028-02' });
+    const second = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: '2028-02' });
     expect(second.status).toBe(409);
     // Structured discriminant so the client can tell this apart from "already published" without
     // parsing the message text.
     expect(second.body.reason).toBe('generation-in-progress');
   });
 
+  it('allows two DIFFERENT companies to enqueue the same month concurrently (no cross-company collision)', async () => {
+    const companyA = await makeCompany('Generate Co 4A');
+    const companyB = await makeCompany('Generate Co 4B');
+
+    const responseA = await request(app).post('/api/rosters/generate').send({ companyId: companyA.id, month: '2028-07' });
+    const responseB = await request(app).post('/api/rosters/generate').send({ companyId: companyB.id, month: '2028-07' });
+
+    expect(responseA.status).toBe(202);
+    expect(responseB.status).toBe(202);
+    expect(responseA.body.jobId).not.toBe(responseB.body.jobId);
+  });
+
   it('returns 409 for an already-published month without force', async () => {
-    const roster = await prisma.roster.create({ data: { month: '2028-03', status: 'PUBLISHED', publishedAt: new Date() } });
+    const company = await makeCompany('Generate Co 5');
+    const roster = await prisma.roster.create({
+      data: { companyId: company.id, month: '2028-03', status: 'PUBLISHED', publishedAt: new Date() },
+    });
     expect(roster.status).toBe('PUBLISHED');
 
-    const response = await request(app).post('/api/rosters/generate').send({ month: '2028-03' });
+    const response = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: '2028-03' });
     expect(response.status).toBe(409);
     expect(response.body.reason).toBe('already-published');
   });
 
-  it('allows regenerating an already-published month when force:true is passed', async () => {
-    await prisma.roster.create({ data: { month: '2028-04', status: 'PUBLISHED', publishedAt: new Date() } });
+  it('does not treat another company publishing the same month as a collision', async () => {
+    const companyA = await makeCompany('Generate Co 6A');
+    const companyB = await makeCompany('Generate Co 6B');
+    await prisma.roster.create({
+      data: { companyId: companyA.id, month: '2028-03', status: 'PUBLISHED', publishedAt: new Date() },
+    });
 
-    const response = await request(app).post('/api/rosters/generate').send({ month: '2028-04', force: true });
+    const response = await request(app).post('/api/rosters/generate').send({ companyId: companyB.id, month: '2028-03' });
+    expect(response.status).toBe(202);
+  });
+
+  it('allows regenerating an already-published month when force:true is passed', async () => {
+    const company = await makeCompany('Generate Co 7');
+    await prisma.roster.create({
+      data: { companyId: company.id, month: '2028-04', status: 'PUBLISHED', publishedAt: new Date() },
+    });
+
+    const response = await request(app)
+      .post('/api/rosters/generate')
+      .send({ companyId: company.id, month: '2028-04', force: true });
     expect(response.status).toBe(202);
   });
 });
@@ -100,7 +143,8 @@ describe('GET /api/jobs/:id', () => {
   });
 
   it('returns the job record shape for a freshly-enqueued (not yet processed) job', async () => {
-    const enqueueResponse = await request(app).post('/api/rosters/generate').send({ month: '2028-05' });
+    const company = await prisma.company.create({ data: { name: 'Jobs Co' } });
+    const enqueueResponse = await request(app).post('/api/rosters/generate').send({ companyId: company.id, month: '2028-05' });
     const { jobId } = enqueueResponse.body as { jobId: string };
 
     const response = await request(app).get(`/api/jobs/${jobId}`);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Badge, Spinner, Toast, ToastRegion } from '@rostering/ui';
+import { useNavigate } from 'react-router-dom';
+import { Badge, EmptyState, Select, Spinner, Toast, ToastRegion } from '@rostering/ui';
 import { ROLES, SHIFT_TYPES } from '@rostering/shared';
 import type { Role, ShiftType } from '@rostering/shared';
 
@@ -8,6 +9,7 @@ import {
   useListStaffingRequirementsQuery,
   useReplaceStaffingRequirementsMutation,
 } from '../../api/staffingRequirements.api.js';
+import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { useToasts } from '../../hooks/useToasts.js';
 import {
@@ -28,7 +30,14 @@ const ROLE_LABELS: Record<Role, string> = {
 const SHIFT_HOURS_LABEL: Record<ShiftType, string> = { A: '00–08', B: '08–16', C: '16–24' };
 
 export function RequirementsPage(): ReactElement {
-  const { data, isLoading } = useListStaffingRequirementsQuery();
+  const navigate = useNavigate();
+  // Company-scoped rostering: each company has its own independent role×shift matrix -- see
+  // `RosterPage.tsx` for the same default-to-first-company selector pattern.
+  const { data: companies, isLoading: companiesLoading } = useListCompaniesQuery();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
+  const companyId = selectedCompanyId ?? companies?.[0]?.id;
+
+  const { data, isLoading } = useListStaffingRequirementsQuery(companyId ?? -1, { skip: companyId === undefined });
   const [replaceAll, replaceResult] = useReplaceStaffingRequirementsMutation();
   const { toasts, pushToast, dismissToast } = useToasts();
 
@@ -47,6 +56,7 @@ export function RequirementsPage(): ReactElement {
   }
 
   async function handleSave() {
+    if (companyId === undefined) return;
     const validation = validateMatrix(matrix);
     if (!validation.rows) {
       setCellErrors(validation.cellErrors);
@@ -56,7 +66,7 @@ export function RequirementsPage(): ReactElement {
     setCellErrors({});
     setGeneralErrors([]);
     try {
-      await replaceAll(validation.rows).unwrap();
+      await replaceAll({ companyId, rows: validation.rows }).unwrap();
       pushToast('success', 'Requirements saved.');
     } catch (err) {
       const classified = classifyMutationError(err);
@@ -88,9 +98,29 @@ export function RequirementsPage(): ReactElement {
             coverage target; shortfalls become <code>unfillable_slot</code> alerts on the roster.
           </p>
         </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label className="field__label visually-hidden" htmlFor="requirements-company">
+            Company
+          </label>
+          <Select
+            id="requirements-company"
+            value={companyId !== undefined ? String(companyId) : ''}
+            options={(companies ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+            onChange={(e) => setSelectedCompanyId(Number(e.target.value))}
+          />
+        </div>
       </div>
 
-      {isLoading ? (
+      {companiesLoading ? (
+        <Spinner label="Loading companies" />
+      ) : companies && companies.length === 0 ? (
+        <EmptyState
+          icon={<span aria-hidden="true">🏢</span>}
+          title="No companies yet"
+          body="Staffing requirements are per-company — add at least one company first."
+          action={{ label: 'Go to Companies', onClick: () => void navigate('/companies') }}
+        />
+      ) : isLoading ? (
         <Spinner label="Loading staffing requirements" />
       ) : (
         <form

@@ -144,7 +144,8 @@ export function findCompany(seed: SeedResult, name: string): SeedCompany {
 interface Fixtures {
   dbAdmin: DbAdmin;
   /** Auto-runs before every test: truncates every table and reseeds the default fixture (3
-   * companies, 12 workers with contracts, 9 staffing-requirement rows, and a month's worth of
+   * companies, 12 workers with contracts, a full 9-row role×shift staffing-requirements matrix
+   * PER company -- company-scoped rostering, so 27 rows total -- and a month's worth of
    * `WorkerAvailability` rows for `availabilityMonth`), giving every single test an independent,
    * repeatable starting database without a per-file `beforeEach` boilerplate line. */
   seed: SeedResult;

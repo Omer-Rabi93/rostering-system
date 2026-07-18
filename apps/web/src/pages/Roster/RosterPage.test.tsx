@@ -47,6 +47,15 @@ function makeRoster(overrides: Partial<Roster> = {}): Roster {
   };
 }
 
+// Company-scoped rostering: `RosterPage` now fetches the company list (`GET /api/companies`) to
+// default `companyId` before it can fetch/generate anything roster-shaped — every test needs this
+// route mocked, or `installMockFetch` throws "No mock route for GET /api/companies".
+const COMPANIES_ROUTE = {
+  method: 'GET' as const,
+  match: '/api/companies',
+  respond: () => ({ status: 200, body: [{ id: 1, name: 'Alpha Security Ltd.', createdAt: '2026-01-01T00:00:00.000Z' }] }),
+};
+
 const WORKERS_ROUTE = { method: 'GET' as const, match: /^\/api\/workers/, respond: () => ({ status: 200, body: [makeWorker()] }) };
 
 // `SlotEditDialog`'s eligibility hints now come from `GET /api/availability/:month` (Availability
@@ -92,6 +101,7 @@ describe('RosterPage', () => {
     let rosterCallCount = 0;
     let jobPollCount = 0;
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       {
         method: 'GET',
@@ -135,6 +145,7 @@ describe('RosterPage', () => {
   it('blocks a manual add on a 422 hard-rule violation with a single-OK notice, and returns focus to the originating grid cell', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -181,6 +192,7 @@ describe('RosterPage', () => {
     const user = userEvent.setup();
     let addCallCount = 0;
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -226,6 +238,7 @@ describe('RosterPage', () => {
     const user = userEvent.setup();
     let deleteCallCount = 0;
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -271,6 +284,7 @@ describe('RosterPage', () => {
     const user = userEvent.setup();
     let deleteCallCount = 0;
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -324,6 +338,7 @@ describe('RosterPage', () => {
       ],
     });
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -376,6 +391,7 @@ describe('RosterPage', () => {
       ],
     });
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       STAFFING_REQUIREMENTS_ROUTE,
@@ -421,6 +437,7 @@ describe('RosterPage', () => {
   it('shows the regenerate-published confirm dialog when the server reports reason: already-published', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       { method: 'GET', match: '/api/rosters/2026-08', respond: () => ({ status: 200, body: makeRoster() }) },
@@ -444,6 +461,7 @@ describe('RosterPage', () => {
   it('does NOT show the regenerate-published dialog when the server reports reason: generation-in-progress, and surfaces a message instead', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       { method: 'GET', match: '/api/rosters/2026-08', respond: () => ({ status: 200, body: makeRoster() }) },
@@ -470,6 +488,7 @@ describe('RosterPage', () => {
     const user = userEvent.setup();
     let acked = false;
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       {
         method: 'GET',
@@ -516,6 +535,7 @@ describe('RosterPage', () => {
   it('switches to the Availability tab and renders the availability grid instead of the roster calendar', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       WORKERS_ROUTE,
       AVAILABILITY_ROUTE,
       { method: 'GET', match: '/api/rosters/2026-08', respond: () => ({ status: 200, body: makeRoster() }) },
@@ -539,6 +559,7 @@ describe('RosterPage', () => {
     const omer = makeWorker({ id: 2, name: 'Omer Cohen', role: 'GENERAL_GUARD' });
     const tal = makeWorker({ id: 3, nationalId: '111111118', name: 'Tal Regev', role: 'SUPERVISOR' });
     installMockFetch([
+      COMPANIES_ROUTE,
       { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [omer, tal] }) },
       {
         method: 'GET',

@@ -16,5 +16,5 @@ export function createRosterGenerationHandler(
   // `data.force` was only ever a route-layer gating signal (whether to allow reopening an
   // already-published month) -- by the time the job runs that decision has already been made, so
   // the handler unconditionally regenerates the requested month's draft.
-  return (data) => service.generate(data.month);
+  return (data) => service.generate(data.companyId, data.month);
 }

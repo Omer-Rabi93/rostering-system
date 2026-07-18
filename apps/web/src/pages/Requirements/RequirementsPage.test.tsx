@@ -11,10 +11,19 @@ const INITIAL_ROWS = [
   { role: 'SUPERVISOR', shift: 'A', requiredCount: 1 },
 ];
 
+// Company-scoped rostering: `RequirementsPage` fetches the company list to default `companyId`
+// before it can fetch/save a staffing-requirements matrix — every test needs this route mocked.
+const COMPANIES_ROUTE = {
+  method: 'GET' as const,
+  match: '/api/companies',
+  respond: () => ({ status: 200, body: [{ id: 1, name: 'Alpha Security Ltd.', createdAt: '2026-01-01T00:00:00.000Z' }] }),
+};
+
 describe('RequirementsPage', () => {
   it('loads the matrix (defaulting missing cells to 0) and saves a full-replace PUT', async () => {
     const user = userEvent.setup();
     const { calls } = installMockFetch([
+      COMPANIES_ROUTE,
       { method: 'GET', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: INITIAL_ROWS }) },
       {
         method: 'PUT',
@@ -36,12 +45,13 @@ describe('RequirementsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save requirements' }));
 
     await screen.findByText('Requirements saved.');
-    expect(calls.some((c) => c.method === 'PUT' && c.path === '/api/staffing-requirements')).toBe(true);
+    expect(calls.some((c) => c.method === 'PUT' && c.path === '/api/staffing-requirements?companyId=1')).toBe(true);
   });
 
   it('blocks save and shows an inline per-cell error for a negative headcount (client-side)', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       { method: 'GET', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
     ]);
 
@@ -59,6 +69,7 @@ describe('RequirementsPage', () => {
   it('maps a server 400 (e.g. duplicate-cell) response back onto the general error region', async () => {
     const user = userEvent.setup();
     installMockFetch([
+      COMPANIES_ROUTE,
       { method: 'GET', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
       {
         method: 'PUT',

@@ -25,6 +25,9 @@ export interface SlotEditDialogProps {
   readonly shift: ShiftType;
   readonly shiftRow: Shift | undefined;
   readonly roster: Roster;
+  /** Company-scoped rostering: this roster's own company -- the "add a worker" picker and the
+   * "Y required" staffing-requirements matrix are both scoped to it, never another company's. */
+  readonly companyId: number;
   readonly onClose: () => void;
   /** Submits a staged add/move/remove edit; resolves `{ok:true}` on success, or a 422 `blocked` /
    * 409 `confirm` outcome the dialog renders as its own sub-state. Never throws — every rejection
@@ -105,8 +108,10 @@ interface MoveTarget {
  * interaction concludes (`onClose`) — regardless of how many 422/409 round-trips happened first.
  */
 export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
-  const { isOpen, date, shift, shiftRow, roster, onClose, onSubmitEdit, onConfirmEdit } = props;
-  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE' });
+  const { isOpen, date, shift, shiftRow, roster, companyId, onClose, onSubmitEdit, onConfirmEdit } = props;
+  // Scoped to this roster's own company -- a worker from another company can never be an eligible
+  // "add" candidate here (no cross-company leakage into the manual-edit picker).
+  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE', companyId });
   // The same date-specific availability cache `AvailabilityGrid` reads for this roster's month —
   // eligibility hints below are keyed off the edit's exact `date`, not a weekday.
   const { data: monthAvailability } = useGetMonthAvailabilityQuery(roster.month);
@@ -114,7 +119,7 @@ export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
   // role×shift staffing matrix, decoupled from any individual assignment (see this file's
   // module-level context: role-correctness is enforced by each section's picker being filtered to
   // that role, not by any per-slot "required role" concept server-side).
-  const { data: staffingRequirements } = useListStaffingRequirementsQuery();
+  const { data: staffingRequirements } = useListStaffingRequirementsQuery(companyId);
 
   // One independent selection per role section (General Guard / Supervisor / Screener), rather
   // than a single shared `selectedWorkerId`, now that the picker below is split into three —
