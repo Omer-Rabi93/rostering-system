@@ -62,8 +62,16 @@ Algorithms & Validation" section):
   spread is minimized.
 - Objective (lexicographic via weights): ``10_000 * coverage_shortfall +
   100 * min_hours_deficit + 1 * (load_max - load_min)``.
-- Determinism: fixed seed 42, a single search worker, and a 30s time limit --
-  the same problem JSON always produces the same solution JSON.
+- Determinism: fixed seed 42, a single search worker, and a fixed time limit
+  for a given problem size (see ``compute_time_budget_seconds`` below) --
+  the same problem JSON always produces the same solution JSON. The time
+  limit is BANDED by workforce size (30s/600s/600s/1200s/1800s), not a single
+  global constant -- CP-SAT needs meaningfully more search time as the
+  problem grows (originally tuned for ~50-150 workers, this repo's stated
+  org size; genuinely times out around ~800 workers on the flat 30s budget),
+  but a fixed per-size time limit is still fully deterministic: the same
+  problem JSON always has the same ``len(workers)``, so it always gets the
+  same budget and therefore the same outcome.
 """
 
 from __future__ import annotations
@@ -80,7 +88,39 @@ SHIFT_HOURS = 8
 
 RANDOM_SEED = 42
 NUM_SEARCH_WORKERS = 1
-MAX_TIME_IN_SECONDS = 30.0
+
+# Banded/tiered CP-SAT time budget, in seconds, indexed by (upper bound on) active workforce
+# size. A DELIBERATE, BINDING design choice (see the module docstring's "Determinism" bullet):
+# rather than one flat global constant, the budget scales with the size of the problem CP-SAT is
+# actually being asked to search, while staying fully deterministic (the same problem JSON always
+# has the same worker count, so it always lands in the same band). The <=200 band is UNCHANGED
+# from this repo's original flat 30s constant -- that's the proven, already-tested case (this
+# app's stated org size is ~50-150 workers), so it must not regress. Bands above that are a
+# reasonable, defensible STARTING POINT, not a guarantee: CP-SAT's real solve time on a given
+# problem depends heavily on availability density and staffing tightness (how constrained the
+# coverage requirements are relative to who's actually available), not on workforce size alone --
+# two companies with the same worker count can solve at very different speeds. Capped at 1800s
+# (30 min) above 10,000 workers rather than scaling further: a company genuinely beyond this
+# system's stated 10k-worker target degrades gracefully to an honest UNKNOWN/timeout at some
+# point, which is a correct outcome, not a bug, rather than a job that could run forever.
+TIME_BUDGET_BANDS: tuple[tuple[int, float], ...] = (
+    (200, 30.0),
+    (1_000, 600.0),
+    (5_000, 600.0),
+    (10_000, 1200.0),
+)
+TIME_BUDGET_ABOVE_MAX_WORKERS = 1800.0
+
+
+def compute_time_budget_seconds(worker_count: int) -> float:
+    """Pure function: active-workforce size -> CP-SAT ``max_time_in_seconds`` budget. No solver
+    invocation, so this is cheap to unit-test directly for every band boundary (see
+    ``solver/tests/test_time_budget.py``) without paying for a real CP-SAT solve.
+    """
+    for max_workers, budget_seconds in TIME_BUDGET_BANDS:
+        if worker_count <= max_workers:
+            return budget_seconds
+    return TIME_BUDGET_ABOVE_MAX_WORKERS
 
 
 class WorkerInput(TypedDict):
@@ -208,10 +248,15 @@ def solve(problem: ProblemInput) -> dict[str, Any]:
         + 1 * (load_max - load_min)
     )
 
+    # Computed straight from `len(workers)` -- already in hand, no wire-format change needed to
+    # get this value here (the problem JSON already carries the full `workers` array). See
+    # `compute_time_budget_seconds`'s doc comment for the banding rationale.
+    time_budget_seconds = compute_time_budget_seconds(len(workers))
+
     solver = cp_model.CpSolver()
     solver.parameters.random_seed = RANDOM_SEED
     solver.parameters.num_search_workers = NUM_SEARCH_WORKERS
-    solver.parameters.max_time_in_seconds = MAX_TIME_IN_SECONDS
+    solver.parameters.max_time_in_seconds = time_budget_seconds
     status = solver.solve(model)  # never INFEASIBLE -- slacks absorb any shortage
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -224,7 +269,7 @@ def solve(problem: ProblemInput) -> dict[str, Any]:
         # SolverProcessError via the non-zero exit code, not a crash indistinguishable from any
         # other bug.
         print(
-            f"solver did not find a solution within {MAX_TIME_IN_SECONDS}s "
+            f"solver did not find a solution within {time_budget_seconds}s "
             f"(status: {solver.status_name(status)})",
             file=sys.stderr,
         )

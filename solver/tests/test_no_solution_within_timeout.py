@@ -14,7 +14,12 @@ from conftest import make_worker
 
 
 def test_time_budget_exhausted_before_any_solution_fails_cleanly_not_with_indexerror(monkeypatch) -> None:
-    monkeypatch.setattr(solve_roster, "MAX_TIME_IN_SECONDS", 0.001)
+    # `solve()` now derives its time budget from `compute_time_budget_seconds(len(workers))`
+    # (banded by workforce size, see that function's doc comment) rather than a single flat
+    # constant -- monkeypatch the function itself, not a since-removed module constant, to force
+    # an effectively-zero budget regardless of this fixture's 300-worker count (which would
+    # otherwise land in the real 600s band, defeating the point of this test).
+    monkeypatch.setattr(solve_roster, "compute_time_budget_seconds", lambda worker_count: 0.001)
 
     days = [f"2026-08-{d:02d}" for d in range(1, 29)]
     workers = [
