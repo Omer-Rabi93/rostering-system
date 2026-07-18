@@ -50,7 +50,7 @@ describe('buildProblem — workers passthrough with date-keyed availability atta
     ]);
   });
 
-  it('a worker with zero availability rows gets an empty availability object (unavailable every date)', () => {
+  it('a worker with zero availability rows gets an empty availability object (buildProblem itself has no opinion on what a missing date means -- that is solve_roster.py\'s default, Availability v3: missing = available every shift)', () => {
     const worker: EngineWorkerInput = { id: 9, role: 'GENERAL_GUARD', minMonthlyHours: 0, maxMonthlyHours: 100 };
 
     const problem = buildProblem({ month: '2026-07', workers: [worker], requirements: [], availability: [] });

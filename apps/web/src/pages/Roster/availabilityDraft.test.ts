@@ -22,7 +22,7 @@ describe('draftFromMonthAvailability', () => {
 });
 
 describe('cellShifts', () => {
-  it('returns an empty array (not undefined) for a worker/date with no entry — absence = unavailable', () => {
+  it('returns an empty array (not undefined) for a worker/date with no entry — absence = available for everything (no exclusions)', () => {
     const draft = draftFromMonthAvailability({ '1': { '2026-08-03': ['A'] } });
     expect(cellShifts(draft, 1, '2026-08-04')).toEqual([]);
     expect(cellShifts(draft, 2, '2026-08-03')).toEqual([]);

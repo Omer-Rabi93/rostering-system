@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ALERT_TYPES, ROLES, ROSTER_STATUSES, SHIFT_HOURS, SHIFT_TYPES, WORKER_STATUSES } from './index.js';
+import {
+  ALERT_TYPES,
+  computeAvailableShifts,
+  ROLES,
+  ROSTER_STATUSES,
+  SHIFT_HOURS,
+  SHIFT_TYPES,
+  WORKER_STATUSES,
+} from './index.js';
 
 describe('constants', () => {
   it('defines SHIFT_HOURS as 8 (each shift is 8 hours per the design)', () => {
@@ -24,5 +32,24 @@ describe('constants', () => {
 
   it('defines ALERT_TYPES as unfillable-slot / min-hours-shortfall', () => {
     expect(ALERT_TYPES).toEqual(['UNFILLABLE_SLOT', 'MIN_HOURS_SHORTFALL']);
+  });
+});
+
+describe('computeAvailableShifts', () => {
+  it('returns every shift when excludedShifts is undefined (no row = fully available)', () => {
+    expect(computeAvailableShifts(undefined)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('subtracts a partial excluded subset', () => {
+    expect(computeAvailableShifts(['C'])).toEqual(['A', 'B']);
+    expect(computeAvailableShifts(['A', 'C'])).toEqual(['B']);
+  });
+
+  it('returns an empty array when every shift is excluded (fully unavailable)', () => {
+    expect(computeAvailableShifts(['A', 'B', 'C'])).toEqual([]);
+  });
+
+  it('returns every shift unchanged when excludedShifts is an empty array', () => {
+    expect(computeAvailableShifts([])).toEqual(['A', 'B', 'C']);
   });
 });

@@ -8,7 +8,7 @@ in particular, no problem data is ever read from argv or the environment
 false})`` with problem data exclusively on stdin -- see
 ``apps/api/src/engine/problem.ts`` for the JSON shapes this script speaks).
 
-Problem JSON (stdin), produced by ``engine/problem.ts#buildProblem`` (Availability v2 -- date-
+Problem JSON (stdin), produced by ``engine/problem.ts#buildProblem`` (Availability v3 -- date-
 specific worker availability, per calendar date of the month being rostered)::
 
     {
@@ -22,12 +22,18 @@ specific worker availability, per calendar date of the month being rostered)::
       ]                                                 # already crossed with every day
     }
 
-    A worker is available for a given (date, shift) slot iff ``availability`` has an entry for that
-    EXACT calendar date AND that entry's list contains the shift -- a date with no key is the real
-    "unavailable that date" state (absence of a `WorkerAvailability` row = unavailable), not a
-    default to fall back to "available". There is no weekday/day-of-week reasoning at all -- see
-    ``apps/api/src/engine/validator.ts``'s `withinAvailability`, which the solver's variable
-    creation below mirrors exactly.
+    ``availability`` here already carries the shifts a worker CAN work (the excluded/cannot-work
+    shifts a `WorkerAvailability` row actually stores in the DB are inverted into this
+    included/available form one layer up, before this JSON is ever built -- see
+    ``apps/api/src/services/rosterGenerationService.ts``'s `loadMonthAvailabilityRows` and
+    `@rostering/shared`'s `computeAvailableShifts`; this script never sees a raw excluded value).
+
+    A worker is available for a given (date, shift) slot iff EITHER ``availability`` has no entry
+    at all for that EXACT calendar date (Availability v3: a missing date means available for every
+    shift) OR it has an entry and that entry's list contains the shift. There is no weekday/day-of-
+    week reasoning at all -- see ``apps/api/src/engine/validator.ts``'s `withinAvailability`, which
+    the solver's variable creation below mirrors exactly (including its own identical
+    missing-date-means-available default).
 
 Solution JSON (stdout), consumed by ``engine/problem.ts#parseSolverSolution``::
 
@@ -105,17 +111,17 @@ def solve(problem: ProblemInput) -> dict[str, Any]:
 
     model = cp_model.CpModel()
 
-    # Decision variables x[(worker_id, date, shift)] -- created ONLY where the worker's date-keyed
-    # availability allows it: `shift in availability.get(date, [])`. A date absent from the map is
-    # the real "unavailable that date" state -- `.get(date, [])` defaults to an empty list (not a
-    # fabricated "always available"), so no variable is ever created for a date the worker has no
-    # entry for. There is no weekday reasoning at all (Availability v2).
+    # Decision variables x[(worker_id, date, shift)] -- created for every shift the worker is
+    # available for: `shift in availability.get(date, SHIFT_TYPES)`. Availability v3: a date absent
+    # from the map is the real "available every shift" state -- `.get(date, SHIFT_TYPES)` defaults
+    # to every shift (not a fabricated "always unavailable"), so a variable IS created for a date
+    # the worker has no entry for, one per shift. There is no weekday reasoning at all.
     x: dict[tuple[int, str, str], cp_model.IntVar] = {}
     for worker in workers:
         worker_id = worker["id"]
         availability = worker["availability"]
         for date in days:
-            shifts_for_date = availability.get(date, [])
+            shifts_for_date = availability.get(date, SHIFT_TYPES)
             for shift in SHIFT_TYPES:
                 if shift in shifts_for_date:
                     x[(worker_id, date, shift)] = model.new_bool_var(

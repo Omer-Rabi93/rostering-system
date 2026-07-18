@@ -44,12 +44,15 @@ const withinAvailability: HardRule = (edit, ctx) => {
   if (!target) {
     return null;
   }
-  // Allowed iff the edit's EXACT calendar date has an availability entry AND that entry contains
-  // the slot's shift. A missing entry is the real "unavailable that date" state (Availability v2:
-  // absence of a `WorkerAvailability` row = unavailable) — treated explicitly here, never coalesced
-  // into "assume available" via `??`/`!`.
+  // Allowed iff the slot's shift is in `ctx.worker.availability`'s INCLUDED/available-shifts entry
+  // for the edit's EXACT calendar date. `ctx.worker.availability` already carries the
+  // excluded->available inversion by the time it reaches here (`computeAvailableShifts`, applied
+  // one layer up at the fetch site — see `shiftWorkerService.ts#loadAvailability`), so a missing
+  // entry is the real "available every shift" state (Availability v3: absence of a
+  // `WorkerAvailability` row = available for everything) — treated explicitly here, never coalesced
+  // via `??`/`!`.
   const shiftsForDate = ctx.worker.availability.get(target.date);
-  const available = shiftsForDate !== undefined && shiftsForDate.includes(target.shiftType);
+  const available = shiftsForDate === undefined ? true : shiftsForDate.includes(target.shiftType);
   if (!available) {
     return {
       rule: 'withinAvailability',

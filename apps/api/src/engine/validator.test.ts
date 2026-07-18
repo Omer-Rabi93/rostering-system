@@ -89,7 +89,7 @@ describe('validateEdit — withinAvailability (HARD)', () => {
     }
   });
 
-  it('rejects: the date has no entry at all (other dates present) — absence means unavailable, not "assume available"', () => {
+  it('accepts: the date has no entry at all (other dates present) — Availability v3: absence means available for everything, not "assume unavailable"', () => {
     const availability: AvailabilityByDate = new Map([['2026-07-21', ['A', 'B', 'C']]]); // a different date
     const ctx: MonthContext = { ...baseCtx, worker: { ...baseWorker, availability } };
 
@@ -98,13 +98,10 @@ describe('validateEdit — withinAvailability (HARD)', () => {
       ctx,
     );
 
-    expect(verdict.ok).toBe(false);
-    if (!verdict.ok) {
-      expect(verdict.violations.some((v) => v.rule === 'withinAvailability')).toBe(true);
-    }
+    expect(verdict.ok).toBe(true);
   });
 
-  it('rejects: the worker has no availability entries at all for the month', () => {
+  it('accepts: the worker has no availability entries at all for the month (Availability v3: available everywhere by default)', () => {
     const ctx: MonthContext = { ...baseCtx, worker: { ...baseWorker, availability: new Map() } };
 
     const verdict = validateEdit(
@@ -112,10 +109,7 @@ describe('validateEdit — withinAvailability (HARD)', () => {
       ctx,
     );
 
-    expect(verdict.ok).toBe(false);
-    if (!verdict.ok) {
-      expect(verdict.violations.some((v) => v.rule === 'withinAvailability')).toBe(true);
-    }
+    expect(verdict.ok).toBe(true);
   });
 
   it('a plain remove is never gated by availability (the edit has no `to` target)', () => {
@@ -127,8 +121,11 @@ describe('validateEdit — withinAvailability (HARD)', () => {
   });
 
   it('a move is gated on the TARGET date only, not the source date', () => {
-    // Available on the source date (07-15) but not the target date (07-20).
-    const availability: AvailabilityByDate = new Map([['2026-07-15', ['A', 'B', 'C']]]);
+    // The target date (07-20) explicitly excludes shift A; the source date (07-15) has NO entry at
+    // all -- Availability v3: that absence means "available for everything," so if the source date
+    // were (wrongly) the one gating this move, it would pass. It's still rejected, proving only the
+    // target date's entry drives `withinAvailability`.
+    const availability: AvailabilityByDate = new Map([['2026-07-20', ['B', 'C']]]);
     const ctx: MonthContext = { ...baseCtx, worker: { ...baseWorker, availability } };
 
     const verdict = validateEdit(

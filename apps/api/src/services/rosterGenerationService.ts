@@ -14,6 +14,7 @@
 // solver's candidate pool (`buildProblem` itself stays a pure function of whatever pool it's
 // handed; the scoping happens entirely in the `findMany` filters below).
 
+import { computeAvailableShifts } from '@rostering/shared';
 import type { ShiftType } from '@rostering/shared';
 
 import { monthDays, SHIFT_TYPES } from '../engine/calendar.js';
@@ -38,21 +39,25 @@ function toJsonInput(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-/** `WorkerAvailability.shifts` stores the canonical subset as a plain string (e.g. "A", "ABC") --
- * every stored row was Zod-validated on write to only ever contain A/B/C in canonical order, so
- * splitting into characters is exact, not a parse that can fail here (same convention as
+/** `WorkerAvailability.excludedShifts` stores the canonical subset as a plain string (e.g. "A",
+ * "ABC") -- every stored row was Zod-validated on write to only ever contain A/B/C in canonical
+ * order, so splitting into characters is exact, not a parse that can fail here (same convention as
  * `shiftWorkerService.ts`'s/`availabilityService.ts`'s own `parseShiftSubset`). */
-function parseShiftSubset(shifts: string): readonly ShiftType[] {
-  return shifts.split('') as ShiftType[];
+function parseShiftSubset(excludedShifts: string): readonly ShiftType[] {
+  return excludedShifts.split('') as ShiftType[];
 }
 
 /**
  * Fetches the real `WorkerAvailability` rows for `month`'s date window, scoped to (at least) the
  * given `workerIds` -- the bulk fetch this service was missing pre-Phase-V4 (it used to treat
- * every active worker as available every date/shift). A worker with zero rows in the month
- * contributes no `EngineAvailabilityRow`s at all, which `buildProblem`/`RosterValidator` already
- * correctly interpret as "unavailable every date" (Availability v2's absence-is-unavailable rule)
- * -- not a special case here, just an empty `findMany` result.
+ * every active worker as available every date/shift). Availability v3: each row stores the shifts
+ * this worker is EXCLUDED from that date, inverted here via `computeAvailableShifts` into the
+ * INCLUDED/available shifts `EngineAvailabilityRow.shifts` (and `buildProblem` beyond it) actually
+ * expects -- `buildProblem` itself is never touched, it still only ever reasons about "available
+ * shifts," now computed one layer up. A worker with zero rows in the month contributes no
+ * `EngineAvailabilityRow`s at all, which `buildProblem` already correctly interprets as "available
+ * every date" under the new semantics (not a special case here, just an empty `findMany` result --
+ * see `solve_roster.py`'s own missing-date default flip for where that meaning actually lands).
  */
 async function loadMonthAvailabilityRows(
   prisma: PrismaClient,
@@ -77,7 +82,7 @@ async function loadMonthAvailabilityRows(
   return rows.map((row) => ({
     workerId: row.workerId,
     date: row.date.toISOString().slice(0, 10),
-    shifts: parseShiftSubset(row.shifts),
+    shifts: computeAvailableShifts(parseShiftSubset(row.excludedShifts)),
   }));
 }
 

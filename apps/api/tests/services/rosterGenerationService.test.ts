@@ -213,13 +213,17 @@ describe('RosterGenerationService.generate', () => {
 
   it('end-to-end: runs the real CP-SAT solver process and persists its output', async () => {
     const { worker, company } = await seedOneWorker();
-    // Availability v2: the real solver only ever assigns a worker to a (date, shift) it has a
-    // `WorkerAvailability` row for -- seed the worker as available for shift A on every date of
-    // the target month so this fixture still gets assigned (mirrors the pre-Phase-V4 "fully
-    // available" default this service used to fabricate itself).
+    // Availability v3: seed the worker with a `WorkerAvailability` row EXCLUDING shifts B and C on
+    // every date of the target month, so the worker is available for shift A only (the same
+    // real-world scenario the pre-Availability-v3 `shifts: 'A'` (included-shifts) row expressed) --
+    // this fixture must still get assigned.
     const days = monthDays('2026-02');
     await prisma.workerAvailability.createMany({
-      data: days.map((date) => ({ workerId: worker.id, date: new Date(`${date}T00:00:00.000Z`), shifts: 'A' })),
+      data: days.map((date) => ({
+        workerId: worker.id,
+        date: new Date(`${date}T00:00:00.000Z`),
+        excludedShifts: 'BC',
+      })),
     });
     const service = new RosterGenerationService(prisma, undefined, { pythonExecutable: VENV_PYTHON });
 
@@ -230,8 +234,19 @@ describe('RosterGenerationService.generate', () => {
     expect(shiftWorkers.length).toBeGreaterThan(0);
   }, 40_000);
 
-  it('end-to-end: a worker with zero availability rows for the month is never assigned by the real solver', async () => {
-    const { worker, company } = await seedOneWorker(); // ACTIVE, contract present, but NO WorkerAvailability rows seeded
+  it('end-to-end: a worker excluded from every shift all month is never assigned by the real solver', async () => {
+    const { worker, company } = await seedOneWorker(); // ACTIVE, contract present
+    // Availability v3: absence of a `WorkerAvailability` row now means available for everything, so
+    // "never assigned" must be expressed with an explicit full-exclusion (`excludedShifts: 'ABC'`)
+    // row for every date of the month -- the new way to express what zero rows used to mean.
+    const days = monthDays('2026-02');
+    await prisma.workerAvailability.createMany({
+      data: days.map((date) => ({
+        workerId: worker.id,
+        date: new Date(`${date}T00:00:00.000Z`),
+        excludedShifts: 'ABC',
+      })),
+    });
     const service = new RosterGenerationService(prisma, undefined, { pythonExecutable: VENV_PYTHON });
 
     const result = await service.generate(company.id, '2026-02');
@@ -351,11 +366,14 @@ describe('RosterGenerationService.generate', () => {
     expect(shiftWorkersForCancelled).toHaveLength(0);
   });
 
-  it('end-to-end: a month with zero availability rows for ANY active worker generates an all-alerts empty roster', async () => {
-    // Two active workers with contracts and a staffing requirement, but nobody has a single
-    // `WorkerAvailability` row this month -- distinct from "empty workforce" (no active workers at
-    // all): here the workforce and requirements are non-empty, only availability is empty.
+  it('end-to-end: a month where EVERY active worker is excluded from every shift generates an all-alerts empty roster', async () => {
+    // Two active workers with contracts and a staffing requirement, but every one of them is
+    // excluded from every shift, every date this month (Availability v3: this is now how "nobody
+    // is available" is expressed -- zero rows would instead mean "available for everything") --
+    // distinct from "empty workforce" (no active workers at all): here the workforce and
+    // requirements are non-empty, only availability is (fully excluded).
     const company = await prisma.company.create({ data: { name: 'Shamir Security Ltd' } });
+    const days = monthDays('2026-02');
     for (const prefix of [402, 403]) {
       const worker = await prisma.worker.create({
         data: {
@@ -368,6 +386,13 @@ describe('RosterGenerationService.generate', () => {
       });
       await prisma.contract.create({
         data: { workerId: worker.id, hourlyCostIls: 45, minMonthlyHours: 0, maxMonthlyHours: 200 },
+      });
+      await prisma.workerAvailability.createMany({
+        data: days.map((date) => ({
+          workerId: worker.id,
+          date: new Date(`${date}T00:00:00.000Z`),
+          excludedShifts: 'ABC',
+        })),
       });
     }
     await prisma.staffingRequirement.create({

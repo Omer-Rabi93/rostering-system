@@ -84,20 +84,39 @@ async function doSeed() {
   };
 }
 
-/** "Fully available" helper called out explicitly by the Phase 11 setup-fixture amendment: sets
- * `ABC` on every date of `month` for the given worker ids (defaults to every seeded worker), so a
- * scenario that just needs assignments to exist can seed with one call instead of re-deriving the
- * weekly-pattern fixture logic itself. */
-async function fillAvailability(month: string, workerIds: number[] | undefined, shifts: string) {
+/** `excludedShifts`-writing helper called out explicitly by the Phase 11 setup-fixture amendment,
+ * generalized past its original "fully available" name: writes the given raw `excludedShifts`
+ * subset (verbatim, no inversion — matches `WorkerAvailability.excludedShifts` 1:1, same as the
+ * CSV/DB) on every date of `month` for the given worker ids (defaults to every seeded worker).
+ *
+ * Availability v3: an EMPTY `excludedShifts` string means no exclusions at all, i.e. fully
+ * available — which, per the schema's own "an empty subset is never stored, the row is deleted
+ * instead" invariant (`schema.prisma`), must be represented by deleting any existing rows for
+ * these worker/date pairs, not by upserting an empty string. `fillAvailability({ ... })` with no
+ * `shifts` argument (the route's own default, see below) therefore now clears exclusions instead
+ * of writing `"ABC"` — the "fully available" shortcut this helper was built for still means fully
+ * available, just via the opposite mechanism (absence of a row, not a stored `"ABC"` row, which
+ * under v3 would instead mean fully UNAVAILABLE). */
+async function fillAvailability(month: string, workerIds: number[] | undefined, excludedShifts: string) {
   const targetIds = workerIds ?? (await prisma.worker.findMany({ select: { id: true } })).map((w) => w.id);
   const dates = monthDays(month);
+  if (excludedShifts.length === 0) {
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    if (first !== undefined && last !== undefined) {
+      await prisma.workerAvailability.deleteMany({
+        where: { workerId: { in: targetIds }, date: { gte: toDate(first), lte: toDate(last) } },
+      });
+    }
+    return { workerIds: targetIds, dates: dates.length };
+  }
   await prisma.$transaction(
     targetIds.flatMap((workerId) =>
       dates.map((date) =>
         prisma.workerAvailability.upsert({
           where: { workerId_date: { workerId, date: toDate(date) } },
-          create: { workerId, date: toDate(date), shifts },
-          update: { shifts },
+          create: { workerId, date: toDate(date), excludedShifts },
+          update: { excludedShifts },
         }),
       ),
     ),
@@ -124,15 +143,20 @@ async function clearAvailabilityForMonth(month: string) {
   return { cleared: result.count };
 }
 
-async function setAvailabilityCell(workerId: number, date: string, shifts: string) {
-  if (shifts.length === 0) {
+/** Writes (or, for an empty subset, deletes) one worker/date's raw `excludedShifts` value directly
+ * — Availability v3: the `shifts` argument here IS the excluded-shift subset stored verbatim, no
+ * inversion (same 1:1 CSV/DB mapping the grid itself uses). An empty subset means no exclusions,
+ * i.e. available for everything that date — represented by row-absence, never an empty string
+ * (the schema's own non-empty-or-absent invariant). */
+async function setAvailabilityCell(workerId: number, date: string, excludedShifts: string) {
+  if (excludedShifts.length === 0) {
     await prisma.workerAvailability.deleteMany({ where: { workerId, date: toDate(date) } });
     return { deleted: true };
   }
   await prisma.workerAvailability.upsert({
     where: { workerId_date: { workerId, date: toDate(date) } },
-    create: { workerId, date: toDate(date), shifts },
-    update: { shifts },
+    create: { workerId, date: toDate(date), excludedShifts },
+    update: { excludedShifts },
   });
   return { deleted: false };
 }
@@ -149,7 +173,10 @@ async function setWorkerStatus(workerId: number, status: 'ACTIVE' | 'INACTIVE') 
 
 /** Seeds availability rows built from the same weekly-pattern fixture intent as `seedData.ts`, but
  * for an arbitrary target month (used by the month-boundary scenarios, which need Feb/leap-Feb/30-
- * and 31-day months beyond the single "next calendar month" the default seed produces). */
+ * and 31-day months beyond the single "next calendar month" the default seed produces).
+ * `buildSeedAvailabilityRows` already returns Availability v3's `excludedShifts` (the complement of
+ * each fixture worker's old `availableShifts`/`availableDays` intent — see its own doc comment in
+ * `seedData.ts`), so this just writes that value straight through. */
 async function seedAvailabilityForMonth(month: string) {
   const workers = await prisma.worker.findMany({ where: { status: 'ACTIVE' } });
   const byNationalId = new Map(SEED_WORKERS.map((w) => [w.nationalId, w]));
@@ -161,8 +188,8 @@ async function seedAvailabilityForMonth(month: string) {
     for (const entry of entries) {
       await prisma.workerAvailability.upsert({
         where: { workerId_date: { workerId: worker.id, date: toDate(entry.date) } },
-        create: { workerId: worker.id, date: toDate(entry.date), shifts: entry.shifts },
-        update: { shifts: entry.shifts },
+        create: { workerId: worker.id, date: toDate(entry.date), excludedShifts: entry.excludedShifts },
+        update: { excludedShifts: entry.excludedShifts },
       });
       rows++;
     }
@@ -208,7 +235,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (req.method === 'POST' && path === '/availability/fill') {
     const body = (await readJsonBody(req)) as { month: string; workerIds?: number[]; shifts?: string };
-    const result = await fillAvailability(body.month, body.workerIds, body.shifts ?? 'ABC');
+    // Default (no `shifts` given) is "fully available" — under Availability v3 that's an empty
+    // excluded-shift subset (`fillAvailability` deletes any existing rows for it), not `'ABC'`
+    // (which would now mean fully EXCLUDED/unavailable, the opposite of this helper's purpose).
+    const result = await fillAvailability(body.month, body.workerIds, body.shifts ?? '');
     send(res, 200, result);
     return;
   }

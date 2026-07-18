@@ -27,8 +27,21 @@ export interface AvailabilityGridProps {
   readonly companyId: number;
 }
 
+/**
+ * Availability v3: `shifts` here is the EXCLUDED-shift subset (the grid matches the CSV/DB 1:1 —
+ * "Option A" in `.notes/availability-v3-exclusion-semantics-and-combined-csv-plan.md`'s Part F —
+ * toggling a letter marks yourself excluded from that shift, not included in it). An empty subset
+ * (no row for this worker/date) means available for every shift; a full 3-letter subset means
+ * unavailable the entire date; anything in between names exactly the shift(s) the worker is NOT
+ * available for that date.
+ */
 function buildCellAriaLabel(workerName: string, dayLabel: string, shifts: readonly ShiftType[]): string {
-  const subsetText = shifts.length === 0 ? 'unavailable' : `available shift ${shifts.join(', ')}`;
+  const subsetText =
+    shifts.length === 0
+      ? 'available for all shifts'
+      : shifts.length === SHIFT_TYPES.length
+        ? 'unavailable'
+        : `unavailable for shift ${shifts.join(', ')}`;
   return `${workerName}, ${dayLabel}, ${subsetText}`;
 }
 
@@ -191,10 +204,18 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
     [toggle],
   );
 
-  function handleSetAllAvailable(workerId: number) {
+  // Availability v3: toggling every letter ON for every date means EXCLUDED from every shift,
+  // every date — i.e. this "All" button now marks the worker fully unavailable all month (the
+  // complement of what it meant pre-v3, when an ON letter meant "included"). Renamed from the old
+  // `handleSetAllAvailable` to avoid the same stale-name footgun the `shifts` -> `excludedShifts`
+  // Prisma rename was meant to prevent — see the Part F design note.
+  function handleMarkAllExcluded(workerId: number) {
     setDraft((d) => setAllDatesForWorker(d, workerId, allDates, SHIFT_TYPES));
   }
 
+  // Clears every exclusion for this worker this month — under Availability v3, an entirely absent
+  // row means available for everything, so this "None" button now marks the worker fully
+  // available all month (previously the opposite: no rows meant fully unavailable).
   function handleClearWorker(workerId: number) {
     setDraft((d) => clearWorkerRow(d, workerId));
   }
@@ -225,7 +246,9 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-ink-secondary)' }}>
         One row per active worker, one column per date. Focus a cell and press <strong>A</strong>,{' '}
         <strong>B</strong>, or <strong>C</strong> to toggle that shift; arrow keys/Home/End move
-        between cells. A blank cell means unavailable that date.
+        between cells. A blank cell means the worker is available for all shifts that date;
+        toggling a letter marks that shift as one the worker is NOT available for; toggling all
+        three means unavailable the whole day.
       </p>
 
       {saveMessage ? (
@@ -258,7 +281,7 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                       <span>{worker.name}</span>
                       <span style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleSetAllAvailable(worker.id)}>
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleMarkAllExcluded(worker.id)}>
                           All
                         </button>
                         <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleClearWorker(worker.id)}>

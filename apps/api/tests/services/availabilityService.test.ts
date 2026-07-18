@@ -70,9 +70,9 @@ describe('AvailabilityService', () => {
       const workerB = await makeWorker(603, company);
       await prisma.workerAvailability.createMany({
         data: [
-          { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
-          { workerId: workerA.id, date: new Date('2027-02-03T00:00:00.000Z'), shifts: 'ABC' },
-          { workerId: workerB.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'BC' },
+          { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
+          { workerId: workerA.id, date: new Date('2027-02-03T00:00:00.000Z'), excludedShifts: 'ABC' },
+          { workerId: workerB.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'BC' },
         ],
       });
 
@@ -88,9 +88,9 @@ describe('AvailabilityService', () => {
       const worker = await makeWorker(604, company);
       await prisma.workerAvailability.createMany({
         data: [
-          { workerId: worker.id, date: new Date('2027-01-31T00:00:00.000Z'), shifts: 'A' },
-          { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
-          { workerId: worker.id, date: new Date('2027-03-01T00:00:00.000Z'), shifts: 'A' },
+          { workerId: worker.id, date: new Date('2027-01-31T00:00:00.000Z'), excludedShifts: 'A' },
+          { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
+          { workerId: worker.id, date: new Date('2027-03-01T00:00:00.000Z'), excludedShifts: 'A' },
         ],
       });
 
@@ -128,28 +128,28 @@ describe('AvailabilityService', () => {
 
       const rows = await prisma.workerAvailability.findMany({ where: { workerId: worker.id } });
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.shifts).toBe('AB');
+      expect(rows[0]?.excludedShifts).toBe('AB');
     });
 
     it('fully replaces the month window: an old row for a date absent from the new payload is deleted', async () => {
       const company = await makeCompany('Replace Co 606');
       const worker = await makeWorker(606, company);
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
 
       await service.replaceMonth(FEB_2027, { [String(worker.id)]: { '2027-02-01': ['A'] } }, company);
 
       const rows = await prisma.workerAvailability.findMany({ where: { workerId: worker.id } });
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.shifts).toBe('A');
+      expect(rows[0]?.excludedShifts).toBe('A');
     });
 
     it('leaves rows outside the month window untouched', async () => {
       const company = await makeCompany('Replace Co 607');
       const worker = await makeWorker(607, company);
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2027-03-01T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: worker.id, date: new Date('2027-03-01T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
 
       await service.replaceMonth(FEB_2027, { [String(worker.id)]: { '2027-02-01': ['A'] } }, company);
@@ -166,8 +166,8 @@ describe('AvailabilityService', () => {
       const workerB = await makeWorker(609, company);
       await prisma.workerAvailability.createMany({
         data: [
-          { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
-          { workerId: workerB.id, date: new Date('2027-02-02T00:00:00.000Z'), shifts: 'B' },
+          { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
+          { workerId: workerB.id, date: new Date('2027-02-02T00:00:00.000Z'), excludedShifts: 'B' },
         ],
       });
 
@@ -212,7 +212,7 @@ describe('AvailabilityService', () => {
       const companyB = await makeCompany('Replace Cross Co B');
       const workerB = await makeWorker(650, companyB);
       await prisma.workerAvailability.create({
-        data: { workerId: workerB.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: workerB.id, date: new Date('2027-02-05T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
 
       await expect(
@@ -221,7 +221,7 @@ describe('AvailabilityService', () => {
 
       const rows = await prisma.workerAvailability.findMany({ where: { workerId: workerB.id } });
       expect(rows).toHaveLength(1); // untouched
-      expect(rows[0]?.shifts).toBe('ABC');
+      expect(rows[0]?.excludedShifts).toBe('ABC');
     });
 
     it('v4: company-scoped regression -- replacing company A\'s month never touches company B\'s rows for the same window', async () => {
@@ -230,7 +230,7 @@ describe('AvailabilityService', () => {
       const workerA = await makeWorker(651, companyA);
       const workerB = await makeWorker(652, companyB);
       await prisma.workerAvailability.create({
-        data: { workerId: workerB.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
+        data: { workerId: workerB.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
       });
 
       // Company A's own replace (even an empty payload, which clears its own month) must never
@@ -240,7 +240,7 @@ describe('AvailabilityService', () => {
 
       const rowsB = await prisma.workerAvailability.findMany({ where: { workerId: workerB.id } });
       expect(rowsB).toHaveLength(1);
-      expect(rowsB[0]?.shifts).toBe('A'); // untouched by company A's replace
+      expect(rowsB[0]?.excludedShifts).toBe('A'); // untouched by company A's replace
     });
   });
 
@@ -258,7 +258,7 @@ describe('AvailabilityService', () => {
       expect(result).toMatchObject({ totalRows: 1, applied: 1, failed: 0, errors: [] });
       const rows = await prisma.workerAvailability.findMany({ where: { workerId: worker.id } });
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.shifts).toBe('A');
+      expect(rows[0]?.excludedShifts).toBe('A');
     });
 
     it('reports an unknown national_id as a row error without creating any row', async () => {
@@ -302,7 +302,7 @@ describe('AvailabilityService', () => {
       const workerA = await makeWorker(661, companyA);
       const workerB = await makeWorker(662, companyB);
       await prisma.workerAvailability.create({
-        data: { workerId: workerB.id, date: new Date('2027-02-10T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: workerB.id, date: new Date('2027-02-10T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
       const csv = serializeAvailabilityCsv(
         [{ nationalId: workerA.nationalId, entries: [{ date: '2027-02-01', shifts: ['A'] }] }],
@@ -314,7 +314,7 @@ describe('AvailabilityService', () => {
       expect(result).toMatchObject({ applied: 1, failed: 0 });
       const rowsB = await prisma.workerAvailability.findMany({ where: { workerId: workerB.id } });
       expect(rowsB).toHaveLength(1);
-      expect(rowsB[0]?.shifts).toBe('ABC'); // untouched
+      expect(rowsB[0]?.excludedShifts).toBe('ABC'); // untouched
     });
 
     it('reports an illegal shift-letter cell (e.g. AD) as a row error with the offending dNN field', async () => {
@@ -368,7 +368,7 @@ describe('AvailabilityService', () => {
       const present = await makeWorker(615, company);
       const absent = await makeWorker(616, company);
       await prisma.workerAvailability.create({
-        data: { workerId: absent.id, date: new Date('2027-02-10T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: absent.id, date: new Date('2027-02-10T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
       const csv = serializeAvailabilityCsv(
         [{ nationalId: present.nationalId, entries: [{ date: '2027-02-01', shifts: ['A'] }] }],
@@ -381,14 +381,14 @@ describe('AvailabilityService', () => {
       expect(absentWorker?.status).toBe('ACTIVE'); // no deactivation sweep
       const absentRows = await prisma.workerAvailability.findMany({ where: { workerId: absent.id } });
       expect(absentRows).toHaveLength(1); // untouched, not cleared
-      expect(absentRows[0]?.shifts).toBe('ABC');
+      expect(absentRows[0]?.excludedShifts).toBe('ABC');
     });
 
     it('an all-empty row (worker present, no cells set) clears that worker\'s month without error', async () => {
       const company = await makeCompany('Import Co Empty Row');
       const worker = await makeWorker(617, company);
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
+        data: { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
       });
       const csv = serializeAvailabilityCsv([{ nationalId: worker.nationalId, entries: [] }], FEB_2027);
 
@@ -506,8 +506,8 @@ describe('AvailabilityService', () => {
       const worker = await makeWorker(618, company);
       await prisma.workerAvailability.createMany({
         data: [
-          { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
-          { workerId: worker.id, date: new Date('2027-02-15T00:00:00.000Z'), shifts: 'ABC' },
+          { workerId: worker.id, date: new Date('2027-02-01T00:00:00.000Z'), excludedShifts: 'A' },
+          { workerId: worker.id, date: new Date('2027-02-15T00:00:00.000Z'), excludedShifts: 'ABC' },
         ],
       });
 
@@ -531,7 +531,7 @@ describe('AvailabilityService', () => {
         where: { workerId: worker2.id },
         orderBy: { date: 'asc' },
       });
-      expect(rows.map((r) => r.shifts)).toEqual(['A', 'ABC']);
+      expect(rows.map((r) => r.excludedShifts)).toEqual(['A', 'ABC']);
     });
 
     it('excludes a worker with zero rows this month', async () => {

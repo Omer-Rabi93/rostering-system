@@ -17,11 +17,15 @@ export interface EngineWorkerInput {
 }
 
 /**
- * One `WorkerAvailability` row as the service layer fetches it for the month window: this worker
- * can work this exact calendar date only for the shifts listed (non-empty subset of A/B/C — a row
- * is never stored/passed with an empty `shifts`, per Availability v2's "absence of the row IS the
- * unavailable state" rule). `buildProblem` is the pure function that crosses a flat list of these
- * rows into each worker's per-date map in the solver problem.
+ * One `WorkerAvailability` row as the service layer fetches it for the month window, ALREADY
+ * inverted to the shifts this worker CAN work that exact calendar date (Availability v3: the DB
+ * row itself stores the excluded/cannot-work shifts; the service layer inverts via
+ * `@rostering/shared`'s `computeAvailableShifts` before ever constructing this type — see
+ * `rosterGenerationService.ts#loadMonthAvailabilityRows`). Never an empty `shifts` (a fully
+ * unavailable date is instead simply absent from `input.availability` for that worker/date, same
+ * as always). `buildProblem` is the pure function that crosses a flat list of these
+ * already-included-shifts rows into each worker's per-date map in the solver problem — it has no
+ * awareness of the excluded/included inversion at all, by design.
  */
 export interface EngineAvailabilityRow {
   readonly workerId: number;
@@ -106,8 +110,10 @@ export function buildProblem(input: BuildProblemInput): SolverProblem {
     const byDate = availabilityByWorker.get(worker.id);
     return {
       ...worker,
-      // No rows for this worker -> empty object, i.e. unavailable every date (not a fabricated
-      // default of "every date allowed").
+      // No rows for this worker -> empty object. `buildProblem` itself has no opinion on what a
+      // missing date means (that's `solve_roster.py`'s per-missing-date default, Availability v3:
+      // missing = available every shift) -- it only ever crosses whatever rows it was actually
+      // given, unchanged from before this rename.
       availability: byDate ? Object.fromEntries(byDate) : {},
     };
   });

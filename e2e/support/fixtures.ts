@@ -65,8 +65,13 @@ export class DbAdmin {
     return postJson(`${this.baseUrl}/reset-and-seed`);
   }
 
-  /** Sets `shifts` (default `"ABC"`) on every date of `month` for `workerIds` (default: every
-   * worker) — the "fully available" helper the Phase 11 setup-fixture amendment calls for. */
+  /** Sets `shifts` — Availability v3's raw `excludedShifts` subset, written verbatim (no
+   * inversion) — on every date of `month` for `workerIds` (default: every worker). Default (no
+   * `shifts` given) is `""`: no exclusions at all, i.e. fully available — the "fully available"
+   * helper the Phase 11 setup-fixture amendment calls for, re-derived for the new meaning (an
+   * *absent* row is what "fully available" means now, not a stored `"ABC"` row, which would flip
+   * to meaning fully unavailable). Pass `shifts: 'ABC'` explicitly to mark workers fully excluded
+   * instead. */
   fillAvailability(args: { month: string; workerIds?: number[]; shifts?: string }): Promise<{ workerIds: number[]; dates: number }> {
     return postJson(`${this.baseUrl}/availability/fill`, args);
   }

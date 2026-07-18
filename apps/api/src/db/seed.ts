@@ -74,17 +74,21 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedResult> {
       contractsCreated++;
     }
 
-    // Availability v2: one `WorkerAvailability` row per (worker, date) for `availabilityMonth`,
-    // derived from the fixture's old weekly-matrix intent (see `buildSeedAvailabilityRows`).
-    // Matches the existence-check-then-write idempotency pattern used above for company/worker/
-    // contract, rather than a blind `upsert`, so re-runs report an accurate `availabilityRows` count.
+    // Availability v3: one `WorkerAvailability` row per (worker, date) for `availabilityMonth`
+    // that needs one at all -- a date the fixture is fully available has NO row (see
+    // `buildSeedAvailabilityRows`'s doc comment for how each fixture's old weekly-matrix intent is
+    // re-derived under the new "row stores EXCLUDED shifts" meaning). Matches the
+    // existence-check-then-write idempotency pattern used above for company/worker/contract,
+    // rather than a blind `upsert`, so re-runs report an accurate `availabilityRows` count.
     for (const row of buildSeedAvailabilityRows(seedWorker, availabilityMonth)) {
       const date = new Date(`${row.date}T00:00:00.000Z`);
       const existingRow = await prisma.workerAvailability.findUnique({
         where: { workerId_date: { workerId: worker.id, date } },
       });
       if (!existingRow) {
-        await prisma.workerAvailability.create({ data: { workerId: worker.id, date, shifts: row.shifts } });
+        await prisma.workerAvailability.create({
+          data: { workerId: worker.id, date, excludedShifts: row.excludedShifts },
+        });
         availabilityRowsCreated++;
       }
     }

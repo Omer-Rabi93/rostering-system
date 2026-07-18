@@ -27,7 +27,16 @@ NO_NIGHT_SHIFT = ["A", "B"]
 def full_month_availability(days: list[str], shifts: list[str] | None = None) -> dict[str, list[str]]:
     """A worker's date->shifts availability map covering EVERY date in `days`, all carrying the
     same (date-invariant) shift subset -- the fixture-authoring equivalent of the old
-    "always available" flat boolean matrix, expressed in Availability v2's date-keyed shape.
+    "always available" flat boolean matrix, expressed in Availability v3's date-keyed shape.
+
+    This map is the ALREADY-INVERTED, included/available-shifts representation `solve_roster.py`'s
+    `ProblemInput` actually consumes (the same shape it has always consumed) -- NOT the raw
+    `WorkerAvailability.excludedShifts` value the DB stores. That excluded -> available inversion
+    happens one layer up, in TypeScript (`@rostering/shared#computeAvailableShifts`), before this
+    JSON is ever built, so nothing here needs to change to account for it. Every existing test in
+    this suite always passes `days=` (a subset explicitly covering every date the fixture's `days`
+    list has), so none of them exercise the missing-date default at all -- see
+    `test_availability_default.py` for the tests that actually cover that behavior.
     """
     subset = shifts if shifts is not None else ALL_SHIFTS
     return {date: subset[:] for date in days}
@@ -45,6 +54,14 @@ def make_worker(
     """Builds one solver-problem worker entry. By default the worker is available every shift on
     every date in `days` (mirroring the old fixtures' "always available" baseline) -- pass an
     explicit `availability` map to test date/shift-restricted behavior instead.
+
+    Availability v3: when NEITHER `availability` NOR `days` is given, this returns an empty
+    `{}` map -- under `solve_roster.py`'s current missing-date default
+    (`availability.get(date, SHIFT_TYPES)`), that now means "available every shift, every date"
+    (the OPPOSITE of what an empty map meant before this change, when it meant "unavailable every
+    date"). No test in this suite relies on that bare no-argument default -- every call site passes
+    `days=` explicitly -- so this behavior change is exercised only by
+    `test_availability_default.py`, not silently by any other fixture.
     """
     if availability is not None:
         resolved_availability = availability

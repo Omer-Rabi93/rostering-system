@@ -55,7 +55,7 @@ test.describe('Roster manual edits', () => {
   }) => {
     const month = seed.availabilityMonth;
     const michal = findWorker(seed, 'Michal Katz'); // GENERAL_GUARD, ALL_DAYS/ALL_SHIFTS
-    const avi = findWorker(seed, 'Avi Cohen'); // GENERAL_GUARD, ALL_DAYS, no-night (AB only), max 180h
+    const avi = findWorker(seed, 'Avi Cohen'); // GENERAL_GUARD, ALL_DAYS, no-night (excludedShifts "C" every date), max 180h
 
     await blankRoster(page, dbAdmin, month);
 
@@ -213,7 +213,13 @@ test.describe('Roster manual edits', () => {
     const avi = findWorker(seed, 'Avi Cohen'); // no-night: unavailable shift C every date
     const eitan = findWorker(seed, 'Eitan Shapira'); // seeded INACTIVE
     const dana = findWorker(seed, 'Dana Mizrahi');
-    await dbAdmin.clearWorkerAvailability({ month, workerId: dana.id }); // zero-row worker
+    // Availability v3: an absent row now means fully AVAILABLE (the opposite of what a "zero-row
+    // worker" used to mean), so proving the eligibility-hint/disabled-option/422-force-block
+    // treatment via a code path distinct from Avi's ambient per-shift exclusion needs an EXPLICIT
+    // full-day exclusion instead of clearing — `excludedShifts: 'ABC'` every date this month is
+    // the new way to express "this worker is unavailable every shift, every date" (the same
+    // real-world fact "zero-row worker" used to represent).
+    await dbAdmin.fillAvailability({ month, workerIds: [dana.id], shifts: 'ABC' });
 
     await blankRoster(page, dbAdmin, month);
 
@@ -237,19 +243,22 @@ test.describe('Roster manual edits', () => {
     expect(response.status()).toBe(422);
   });
 
-  test('manual edit vs date-specific availability: no-row date blocked, wrong-subset blocked, matching subset succeeds', async ({
+  test('manual edit vs date-specific availability: fully-excluded date blocked, wrong-subset blocked, matching subset succeeds', async ({
     page,
     seed,
     dbAdmin,
   }) => {
     const month = seed.availabilityMonth;
-    const tamar = findWorker(seed, 'Tamar Golan'); // SUPERVISOR, no-night (AB only)
+    const tamar = findWorker(seed, 'Tamar Golan'); // SUPERVISOR, no-night (excludedShifts "C" every date)
     await blankRoster(page, dbAdmin, month);
 
     // Both blocked cases are driven directly against the API: the UI's own eligibility hint
     // already greys these out (correctly refusing to let a real user pick a disabled `<option>`),
     // so proving the *server* still 422s them needs a request that bypasses that UI affordance —
     // exactly the "manual edit eligibility hints" test's own force-attempt mechanism.
+    //
+    // "Wrong subset" case uses Tamar's ambient seeded exclusion (`excludedShifts: 'C'` every date,
+    // from her no-night fixture pattern) directly -- no dbAdmin call needed to arrange it.
     const wrongSubsetShiftId = await shiftIdFor(page, month, 6, 'C');
     const wrongSubsetRes = await page.request.post(`http://localhost:3000/api/shifts/${wrongSubsetShiftId}/workers`, {
       data: { workerId: tamar.id },
@@ -258,17 +267,21 @@ test.describe('Roster manual edits', () => {
     const wrongSubsetBody = (await wrongSubsetRes.json()) as { violations: Array<{ detail: { message: string } }> };
     expect(wrongSubsetBody.violations[0]?.detail.message).toMatch(/not available for/);
 
-    // No row at all for this date.
-    await dbAdmin.clearWorkerAvailability({ month, workerId: tamar.id });
-    const noRowShiftId = await shiftIdFor(page, month, 6, 'A');
-    const noRowRes = await page.request.post(`http://localhost:3000/api/shifts/${noRowShiftId}/workers`, {
+    // Availability v3: an absent row now means fully AVAILABLE, so "totally unavailable this
+    // date" (what an absent row used to mean) must instead be expressed as an EXPLICIT full-day
+    // exclusion (`excludedShifts: 'ABC'`) -- the new way to represent the same real-world fact.
+    await dbAdmin.setAvailabilityCell({ workerId: tamar.id, date: `${month}-06`, shifts: 'ABC' });
+    const fullyExcludedShiftId = await shiftIdFor(page, month, 6, 'A');
+    const fullyExcludedRes = await page.request.post(`http://localhost:3000/api/shifts/${fullyExcludedShiftId}/workers`, {
       data: { workerId: tamar.id },
     });
-    expect(noRowRes.status()).toBe(422);
+    expect(fullyExcludedRes.status()).toBe(422);
 
-    // A date whose subset includes the shift succeeds -- this one goes through the real UI, since
-    // it's no longer disabled.
-    await dbAdmin.setAvailabilityCell({ workerId: tamar.id, date: `${month}-06`, shifts: 'AB' });
+    // A date whose excluded-shift subset does NOT include the target shift succeeds -- what used
+    // to be expressed as "available AB" (`shifts: 'AB'`, the old included-shift meaning) is now
+    // "excluded C" (`shifts: 'C'`): A and B remain available. This one goes through the real UI,
+    // since it's no longer disabled.
+    await dbAdmin.setAvailabilityCell({ workerId: tamar.id, date: `${month}-06`, shifts: 'C' });
     await page.reload();
     const matching = await openSlot(page, `${month}-06`, 'A');
     const tamarOption = matching.locator('option', { hasText: 'Tamar Golan' });
