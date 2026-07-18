@@ -69,6 +69,33 @@ export function buildWorkerCostRows(summary: CostSummary, workers: readonly Work
   });
 }
 
+/**
+ * Scopes a `CostSummary` down to a single company for the Cost Dashboard's company filter, so
+ * every stat tile / table built from the result (via `buildCompanyCostRows`,
+ * `buildWorkerCostRows`, `computeCostStats`) reflects just that company without a second backend
+ * round-trip. `companyId: null` means "All companies" and returns `summary` as-is.
+ *
+ * `perWorker` is scoped by joining against `workers` for each row's `companyId` (same join
+ * `buildCompanyCostRows` already does) — a `perWorker` row whose worker isn't in `workers` has no
+ * determinable company and is dropped from a specific-company filter. `totalIls` is recomputed as
+ * the sum of the filtered `perWorker` costs rather than reusing `summary.totalIls`, since the
+ * original total covers every company, not just the selected one.
+ */
+export function filterCostSummaryByCompany(
+  summary: CostSummary,
+  workers: readonly WorkerDto[],
+  companyId: number | null,
+): CostSummary {
+  if (companyId === null) return summary;
+
+  const companyIdByWorkerId = new Map(workers.map((w) => [w.id, w.companyId]));
+  const perWorker = summary.perWorker.filter((w) => companyIdByWorkerId.get(w.workerId) === companyId);
+  const perCompany = summary.perCompany.filter((c) => c.companyId === companyId);
+  const totalIls = perWorker.reduce((sum, w) => sum + w.costIls, 0);
+
+  return { totalIls, perCompany, perWorker };
+}
+
 export interface CostStats {
   readonly totalIls: number;
   readonly totalShifts: number;

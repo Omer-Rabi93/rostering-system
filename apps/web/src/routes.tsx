@@ -4,6 +4,8 @@ import '@rostering/ui/styles.css';
 import { Layout } from './components/Layout.js';
 import { CompaniesPage } from './pages/Companies/CompaniesPage.js';
 import { CostDashboardPage } from './pages/CostDashboard/CostDashboardPage.js';
+import { WorkerCostComparePage } from './pages/CostDashboard/WorkerCostComparePage.js';
+import { WorkerCostDetailPage } from './pages/CostDashboard/WorkerCostDetailPage.js';
 import { PublicSchedulePage } from './pages/PublicSchedule/PublicSchedulePage.js';
 import { RequirementsPage } from './pages/Requirements/RequirementsPage.js';
 import { RosterPage } from './pages/Roster/RosterPage.js';
@@ -68,6 +70,22 @@ export function AppRoutes(): JSX.Element {
         element={
           <Layout>
             <CostDashboardPage />
+          </Layout>
+        }
+      />
+      <Route
+        path="/cost/:month/worker/:workerId"
+        element={
+          <Layout>
+            <WorkerCostDetailPage />
+          </Layout>
+        }
+      />
+      <Route
+        path="/cost/:month/compare"
+        element={
+          <Layout>
+            <WorkerCostComparePage />
           </Layout>
         }
       />

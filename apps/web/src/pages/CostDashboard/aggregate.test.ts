@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { CostSummary } from '@rostering/shared';
 
 import type { WorkerDto } from '../../api/workers.api.js';
-import { buildCompanyCostRows, buildWorkerCostRows, computeCostStats } from './aggregate.js';
+import {
+  buildCompanyCostRows,
+  buildWorkerCostRows,
+  computeCostStats,
+  filterCostSummaryByCompany,
+} from './aggregate.js';
 
 function makeWorker(overrides: Partial<WorkerDto> = {}): WorkerDto {
   return {
@@ -104,6 +109,46 @@ describe('computeCostStats', () => {
       totalWorkers: 0,
       avgCostPerShift: 0,
       avgCostPerWorker: 0,
+    });
+  });
+});
+
+describe('filterCostSummaryByCompany', () => {
+  it('returns the summary unchanged when companyId is null ("All companies")', () => {
+    expect(filterCostSummaryByCompany(SUMMARY, WORKERS, null)).toEqual(SUMMARY);
+  });
+
+  it('scopes perCompany/perWorker to the given company and recomputes totalIls from the filtered perWorker rows', () => {
+    expect(filterCostSummaryByCompany(SUMMARY, WORKERS, 1)).toEqual({
+      totalIls: 700,
+      perCompany: [{ companyId: 1, name: 'Shamir Security Ltd', costIls: 700 }],
+      perWorker: [{ workerId: 1, shifts: 10, hours: 80, costIls: 700 }],
+    });
+  });
+
+  it('scoping to a different company yields that company alone, not a union', () => {
+    expect(filterCostSummaryByCompany(SUMMARY, WORKERS, 2)).toEqual({
+      totalIls: 300,
+      perCompany: [{ companyId: 2, name: 'Magen Guard Co.', costIls: 300 }],
+      perWorker: [{ workerId: 2, shifts: 5, hours: 40, costIls: 300 }],
+    });
+  });
+
+  it('a perWorker row whose worker is missing from the worker list is excluded from any specific-company filter (its company can\'t be determined)', () => {
+    const [onlyWorker] = WORKERS;
+    if (!onlyWorker) throw new Error('expected at least one fixture worker');
+    expect(filterCostSummaryByCompany(SUMMARY, [onlyWorker], 1)).toEqual({
+      totalIls: 700,
+      perCompany: [{ companyId: 1, name: 'Shamir Security Ltd', costIls: 700 }],
+      perWorker: [{ workerId: 1, shifts: 10, hours: 80, costIls: 700 }],
+    });
+  });
+
+  it('a company with no matching workers filters down to an all-zero summary, not an error', () => {
+    expect(filterCostSummaryByCompany(SUMMARY, WORKERS, 9)).toEqual({
+      totalIls: 0,
+      perCompany: [],
+      perWorker: [],
     });
   });
 });

@@ -21,6 +21,11 @@ const EMPTY_LISTS = [
     match: '/api/rosters/2026-08/cost-summary',
     respond: () => ({ status: 404, body: { message: 'not found' } }),
   },
+  {
+    method: 'GET' as const,
+    match: /^\/api\/workers\/\d+\/contract$/,
+    respond: () => ({ status: 404, body: { message: 'no contract' } }),
+  },
 ];
 
 function renderAt(path: string) {
@@ -55,6 +60,14 @@ describe('AppRoutes', () => {
     renderAt('/roster/2026-08');
     expect(screen.getByText('ICTS Rostering')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Roster — August 2026' })).toBeInTheDocument();
+  });
+
+  it('renders the worker cost detail page for /cost/:month/worker/:workerId inside the authenticated Layout shell', async () => {
+    renderAt('/cost/2026-08/worker/1');
+    expect(screen.getByText('ICTS Rostering')).toBeInTheDocument();
+    // No roster generated for the month in this fixture -> the page's own "no cost data" empty
+    // state, same wording as the Cost Dashboard's.
+    expect(await screen.findByText('No cost data for August 2026')).toBeInTheDocument();
   });
 
   it('renders the public schedule page for /schedule/:token WITHOUT the authenticated topbar', async () => {

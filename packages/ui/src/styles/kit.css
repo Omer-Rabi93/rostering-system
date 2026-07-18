@@ -534,6 +534,15 @@ table.cal-table { border-collapse: collapse; width: 100%; min-width: 900px; font
 
 .split-layout { display: grid; grid-template-columns: 1fr 320px; gap: var(--space-6); align-items: start; }
 @media (max-width: 900px) { .split-layout { grid-template-columns: 1fr; } }
+/* Responsive row of `.card`s, one per selected item (e.g. one per worker on the Cost Dashboard's
+   worker-comparison page) — like `.stat-grid` but with a wider minimum column since each card
+   holds stat tiles plus a full table, not just a single value. */
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: var(--space-4); }
+/* `.card + .card { margin-top }` (above) is meant for cards stacked in normal flow; inside a
+   multi-column grid it would misalign cards that aren't in the grid's first column (each still
+   picks up margin-top from its DOM-order predecessor), so it's neutralized here in favor of the
+   grid's own `gap`. */
+.compare-grid > .card + .card { margin-top: 0; }
 .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
 .toolbar .spacer { flex: 1; }
 .filters { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: flex-end; }
