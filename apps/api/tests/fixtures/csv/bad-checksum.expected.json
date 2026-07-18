@@ -1,0 +1,14 @@
+{
+  "_comment": "national_id has an invalid Israeli-ID checksum digit. workerSchema's Zod refine() rejects it, surfacing as a per-row error (CsvImportService.importCsv never throws for this -- the row is just recorded as failed and the batch continues).",
+  "kind": "worker",
+  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "expectImportResult": {
+    "totalRows": 1,
+    "inserted": 0,
+    "updated": 0,
+    "failed": 1,
+    "failedRows": [
+      { "row": 1, "field": "nationalId", "messageContains": "checksum" }
+    ]
+  }
+}

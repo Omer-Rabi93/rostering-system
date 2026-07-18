@@ -6,7 +6,9 @@ import type { AvailabilityImportResult, Month } from '@rostering/shared';
 import { exportAvailabilityCsvUrl, useImportAvailabilityCsvMutation } from '../../api/availability.api.js';
 import { baseApi } from '../../api/baseApi.js';
 import { classifyMutationError } from '../../api/errors.js';
+import { useLazyGetActiveImportTaskQuery } from '../../api/importTasks.api.js';
 import { useJobPolling } from '../../api/jobs.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 
@@ -43,8 +45,14 @@ const ERROR_COLUMNS: Column<RowError>[] = [
  * `jobs.api.ts`'s shared `onQueryStarted` to key off of — so this component, which already knows
  * both the jobId and the month it started the import for, invalidates `{ type: 'Availability', id:
  * month }` itself once the job reaches `completed`.
+ *
+ * v4: the upload is scoped to the active company (`useActiveCompanyId()`), and a pre-upload check
+ * against `GET /api/import-tasks/active` gates the actual submit behind a second confirm dialog
+ * when an `AVAILABILITY_SYNC` import is already in flight for this company (see the v4 design
+ * doc, Part A's Frontend section, and `CsvPanel.tsx`'s identical treatment for the worker CSV).
  */
 export function AvailabilityCsvPanel({ month }: AvailabilityCsvPanelProps): ReactElement {
+  const companyId = useActiveCompanyId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
@@ -52,6 +60,7 @@ export function AvailabilityCsvPanel({ month }: AvailabilityCsvPanelProps): Reac
   const [importError, setImportError] = useState<string | null>(null);
 
   const [importCsv, importResult] = useImportAvailabilityCsvMutation();
+  const [checkActiveImportTask] = useLazyGetActiveImportTaskQuery();
   const jobPoll = useJobPolling(jobId);
 
   const activeDialog = useAppSelector(selectActiveDialog);
@@ -77,10 +86,10 @@ export function AvailabilityCsvPanel({ month }: AvailabilityCsvPanelProps): Reac
     setPendingFile(null);
   }
 
-  async function confirmImport() {
+  async function submitImport() {
     if (!pendingFile) return;
     try {
-      const { jobId: newJobId } = await importCsv({ month, file: pendingFile }).unwrap();
+      const { jobId: newJobId } = await importCsv({ month, companyId, file: pendingFile }).unwrap();
       setImportError(null);
       setJobId(newJobId);
       dispatch(dialogOpened({ kind: 'availabilityCsvImportResult', jobId: newJobId }));
@@ -95,6 +104,31 @@ export function AvailabilityCsvPanel({ month }: AvailabilityCsvPanelProps): Reac
     }
     setPendingFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  /**
+   * v4 pre-upload check (mirrors `CsvPanel.tsx`'s identical treatment for the worker CSV): before
+   * actually submitting, check whether an `AVAILABILITY_SYNC` import is already in flight for this
+   * company. If so, gate the upload behind a second confirm dialog. A failed/racy check falls
+   * through to submitting directly — this is a UX nicety, not the correctness guarantee.
+   */
+  async function confirmImport() {
+    if (!pendingFile) return;
+    try {
+      const activeTask = await checkActiveImportTask({ companyId, kind: 'AVAILABILITY_SYNC' }).unwrap();
+      if (activeTask) {
+        dispatch(dialogOpened({ kind: 'availabilityCsvImportInProgressConfirm' }));
+        return;
+      }
+    } catch {
+      // The check itself failing shouldn't block the upload -- fall through to submitting.
+    }
+    await submitImport();
+  }
+
+  function cancelInProgressConfirm() {
+    dispatch(dialogClosed());
+    setPendingFile(null);
   }
 
   function closeResult() {
@@ -172,6 +206,25 @@ export function AvailabilityCsvPanel({ month }: AvailabilityCsvPanelProps): Reac
         confirmDisabled={!confirmChecked || importResult.isLoading}
         onConfirm={() => void confirmImport()}
         onCancel={cancelConfirm}
+      />
+
+      <ConfirmDialog
+        isOpen={activeDialog?.kind === 'availabilityCsvImportInProgressConfirm'}
+        title="Import already in progress"
+        body={
+          <p className="warn-text">
+            <span aria-hidden="true">⚠</span>
+            <span>
+              An import is still processing for this company. Uploading now will cancel it and
+              start over. Continue?
+            </span>
+          </p>
+        }
+        confirmLabel="Continue"
+        destructive
+        confirmDisabled={importResult.isLoading}
+        onConfirm={() => void submitImport()}
+        onCancel={cancelInProgressConfirm}
       />
 
       <Modal

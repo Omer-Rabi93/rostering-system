@@ -1,25 +1,21 @@
 import { z } from 'zod';
-import { isValidIsraeliId } from '../validation/israeliId.js';
 
 export const JOB_NAMES = ['csv-import', 'roster-generation', 'availability-import'] as const;
 export const JOB_STATES = ['created', 'active', 'completed', 'failed'] as const;
 
+/**
+ * Result of a `csv-import` job (worker CSV). v4: the global "sync sweep" deactivation pass was
+ * removed entirely (it was scoped to the whole `Worker` table, not the uploading company -- a real
+ * bug; see the v4 design doc, Part A) and replaced by a presence-tracking mechanism
+ * (`Worker.lastImportTaskId` + roster-generation eligibility), which has no polled-job-result
+ * shape of its own -- so `deactivated`/`deactivatedWorkers` are gone from this schema too.
+ */
 export const importResultSchema = z
   .object({
     totalRows: z.number().int().nonnegative(),
     inserted: z.number().int().nonnegative(),
     updated: z.number().int().nonnegative(),
     failed: z.number().int().nonnegative(),
-    deactivated: z.number().int().nonnegative(),
-    deactivatedWorkers: z.array(
-      z
-        .object({
-          workerId: z.number().int(),
-          nationalId: z.string().refine(isValidIsraeliId, 'Invalid Israeli ID checksum'),
-          name: z.string().max(120),
-        })
-        .strict(),
-    ),
     errors: z.array(
       z
         .object({

@@ -1,0 +1,3 @@
+national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
+009000050,First Occurrence,General Guard,Active,45.00,120,200
+009000050,Second Occurrence Overwrites,Supervisor,Inactive,50.00,100,180

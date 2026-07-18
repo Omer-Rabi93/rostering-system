@@ -1,0 +1,18 @@
+{
+  "_comment": "SETUP REQUIREMENT: before importing this file for the company under test, a Worker row with nationalId '009000068' must already exist under a DIFFERENT company (any other companyId). Importing this file for a company that is NOT that worker's own company must then fail this row with the v4 cross-company-conflict error (CsvImportService.importRow's own CsvFieldError('national_id', ...) check), never reassign the worker.",
+  "kind": "worker",
+  "call": "CsvImportService.importCsv(csvText, companyUnderTestId) -- after seeding nationalId 009000068 under a DIFFERENT company",
+  "setup": {
+    "nationalId": "009000068",
+    "note": "seed a worker with this nationalId under some other companyId before running the import"
+  },
+  "expectImportResult": {
+    "totalRows": 1,
+    "inserted": 0,
+    "updated": 0,
+    "failed": 1,
+    "failedRows": [
+      { "row": 1, "field": "national_id", "messageContains": "different company" }
+    ]
+  }
+}

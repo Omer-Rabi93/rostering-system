@@ -1,0 +1,12 @@
+{
+  "_comment": "Valid 7-column header, zero data rows -- NOT an error at any level. parseWorkersCsv returns []; importCsv completes normally with totalRows: 0 and an ImportTask that reaches COMPLETED with zero of everything.",
+  "kind": "worker",
+  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "expectImportResult": {
+    "totalRows": 0,
+    "inserted": 0,
+    "updated": 0,
+    "failed": 0,
+    "failedRows": []
+  }
+}

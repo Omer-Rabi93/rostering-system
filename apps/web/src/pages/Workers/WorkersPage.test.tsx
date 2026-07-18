@@ -41,7 +41,7 @@ describe('WorkersPage', () => {
       { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [makeWorker()] }) },
     ]);
 
-    renderWithProviders(<WorkersPage />);
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
 
     expect(await screen.findByText('Dana Levi')).toBeInTheDocument();
     const row = screen.getByText('Dana Levi').closest('tr');
@@ -68,7 +68,7 @@ describe('WorkersPage', () => {
       },
     ]);
 
-    renderWithProviders(<WorkersPage />);
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
     await screen.findByText('Dana Levi');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
@@ -92,7 +92,7 @@ describe('WorkersPage', () => {
       },
     ]);
 
-    renderWithProviders(<WorkersPage />);
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
     // With no workers at all, both the page-header's "+ New worker" and the EmptyState's own
     // "+ New worker" action button are on screen at once (matching
     // docs/design/ui/mockups/01-workers.html's "no workers yet" state) — either opens the same
@@ -125,7 +125,7 @@ describe('WorkersPage', () => {
       { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [] }) },
     ]);
 
-    renderWithProviders(<WorkersPage />);
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
     const [newWorkerButton] = await screen.findAllByRole('button', { name: '+ New worker' });
     if (!newWorkerButton) throw new Error('expected a "+ New worker" button');
     await user.click(newWorkerButton);

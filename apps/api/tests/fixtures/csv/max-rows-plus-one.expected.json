@@ -1,0 +1,10 @@
+{
+  "_comment": "MAX_ROWS + 1 (10,001) valid rows -- same national_id prefix range as max-rows.csv, one row longer. MAX_ROWS is enforced at the ROUTE (POST /import/workers via routes/importExport.ts's own rowCount > MAX_ROWS check BEFORE beginImportTask/enqueueCsvImport are ever called), not inside CsvImportService.importCsv/parseWorkersCsv themselves -- calling importCsv directly with this file will NOT throw (parseWorkersCsv has no row cap of its own); only the HTTP route rejects it. This fixture is intended for route-level (supertest) and load-test use, proving the boundary is enforced at exactly MAX_ROWS + 1, not off-by-one in either direction.",
+  "kind": "worker",
+  "rowCount": 10001,
+  "call": "POST /import/workers (route-level -- this is where MAX_ROWS is actually enforced, NOT CsvImportService.importCsv)",
+  "expectRoute": {
+    "status": 400,
+    "messageContains": "exceeding the 10000-row limit"
+  }
+}

@@ -293,7 +293,7 @@ export function RosterPage(): ReactElement {
 
       {view === 'availability' ? (
         <>
-          <AvailabilityGrid month={month} />
+          <AvailabilityGrid month={month} companyId={companyId} />
           <AvailabilityCsvPanel month={month} />
         </>
       ) : isLoading ? null : !roster ? (

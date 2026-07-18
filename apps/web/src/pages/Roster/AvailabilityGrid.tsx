@@ -20,6 +20,10 @@ import {
 
 export interface AvailabilityGridProps {
   readonly month: Month;
+  /** v4: the bulk `PUT /api/availability/:month` save requires a `companyId` (see
+   * `apps/api/src/routes/availability.ts`'s `companyIdQuerySchema`), threaded from `RosterPage`
+   * (which already reads it via `useActiveCompanyId()`) rather than re-reading the context here. */
+  readonly companyId: number;
 }
 
 function buildCellAriaLabel(workerName: string, dayLabel: string, shifts: readonly ShiftType[]): string {
@@ -137,7 +141,7 @@ const AvailabilityCell = memo(function AvailabilityCell(props: AvailabilityCellP
  * `replaceMonthAvailability` PUT (`draftToPayload` drops empty cells, so an untouched/cleared date
  * is simply absent from the request body, never sent as an empty array).
  */
-export function AvailabilityGrid({ month }: AvailabilityGridProps): ReactElement {
+export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): ReactElement {
   const { data: workers } = useListWorkersQuery({ status: 'ACTIVE' });
   const { data: monthAvailability, isLoading } = useGetMonthAvailabilityQuery(month);
   const [replaceMonthAvailability, replaceResult] = useReplaceMonthAvailabilityMutation();
@@ -197,7 +201,7 @@ export function AvailabilityGrid({ month }: AvailabilityGridProps): ReactElement
   async function handleSave() {
     setSaveMessage(null);
     try {
-      await replaceMonthAvailability({ month, body: draftToPayload(draft) }).unwrap();
+      await replaceMonthAvailability({ month, companyId, body: draftToPayload(draft) }).unwrap();
       setSaveMessage({ kind: 'success', text: `Availability saved for ${month}.` });
     } catch (err) {
       const classified = classifyMutationError(err);

@@ -1,0 +1,9 @@
+{
+  "_comment": "Data row has 8 fields against a 7-column header (one trailing extra field) -- file-level framing problem, same as wrong-column-count-too-few.csv: parseWorkersCsv() throws CsvRowShapeError before any per-row processing.",
+  "kind": "worker",
+  "call": "parseWorkersCsv(csvText) -- throws before importCsv's per-row loop is reached",
+  "fileError": {
+    "type": "CsvRowShapeError",
+    "messageContains": "has 8 fields, expected 7"
+  }
+}

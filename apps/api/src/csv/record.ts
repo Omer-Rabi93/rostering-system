@@ -11,7 +11,6 @@ import type { CsvRawRow } from './columns.js';
 export interface CsvWorkerRecord {
   readonly nationalId: string;
   readonly name: string;
-  readonly companyName: string;
   readonly role: Role;
   readonly status: WorkerStatus;
   readonly hourlyCostIls: number;
@@ -81,7 +80,6 @@ export function toWorkerRecord(raw: CsvRawRow): CsvWorkerRecord {
   return {
     nationalId: raw.national_id,
     name: raw.name,
-    companyName: raw.company_name,
     role,
     status,
     hourlyCostIls: parseDecimal(raw.hourly_cost_ils, 'hourly_cost_ils'),
@@ -90,13 +88,12 @@ export function toWorkerRecord(raw: CsvRawRow): CsvWorkerRecord {
   };
 }
 
-/** Typed domain record -> raw (not yet formula-guarded) CSV row, exactly the 8 documented
+/** Typed domain record -> raw (not yet formula-guarded) CSV row, exactly the 7 documented
  * columns. */
 export function fromWorkerRecord(record: CsvWorkerRecord): CsvRawRow {
   return {
     national_id: record.nationalId,
     name: record.name,
-    company_name: record.companyName,
     role: ROLE_DISPLAY[record.role],
     status: STATUS_DISPLAY[record.status],
     hourly_cost_ils: record.hourlyCostIls.toFixed(2),

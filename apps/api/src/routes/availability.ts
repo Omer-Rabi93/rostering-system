@@ -1,14 +1,28 @@
 import express, { Router } from 'express';
 import type { PgBoss } from 'pg-boss';
+import { z } from 'zod';
 import { monthAvailabilitySchema, monthSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import { BadRequestError } from '../errors.js';
+import { BadRequestError, ConflictError } from '../errors.js';
 import { AvailabilityService } from '../services/availabilityService.js';
 import { AvailabilityCsvHeaderError, AvailabilityCsvRowShapeError, parseAvailabilityCsv } from '../csv/index.js';
 import { enqueueAvailabilityImport } from '../jobs/queue.js';
 import { handleSingleCsvFileUpload } from './csvUpload.js';
+
+/**
+ * v4: both the bulk `PUT` and the CSV import gain a required `companyId` -- see the v4 design
+ * doc, Part A's "Same-company nationalId matching, cross-company conflict as an error" section.
+ * `PUT`'s own JSON body is already fully occupied by the `MonthAvailability` payload itself (a
+ * date-keyed record, `monthAvailabilitySchema`), so `companyId` travels as a query param there --
+ * the same convention `routes/rosters.ts`'s `companyIdQuerySchema` already uses for its own
+ * company-scoped `GET` routes. The CSV import route's `companyId` travels as a multipart form
+ * field alongside `file` (multer parses non-file fields into `req.body`), per the design doc's
+ * "Route/frontend changes" section.
+ */
+const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() });
+const companyIdFormFieldSchema = z.object({ companyId: z.coerce.number().int().positive() });
 
 /** One row = one worker; bounds the `availability-import` job at <= this x the month's day count
  * upserts, mirroring `routes/importExport.ts`'s own `MAX_ROWS` for the worker CSV. */
@@ -30,7 +44,7 @@ const AVAILABILITY_JSON_BODY_LIMIT = '2mb';
  * CSV import/export (`/api/import/availability/:month`, `/api/export/availability/:month`). */
 export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Router {
   const router = Router();
-  const availabilityService = new AvailabilityService(prisma);
+  const availabilityService = new AvailabilityService(prisma, boss);
 
   router.get(
     '/availability/:month',
@@ -46,8 +60,9 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
     express.json({ limit: AVAILABILITY_JSON_BODY_LIMIT }),
     asyncHandler(async (req, res) => {
       const month = monthSchema.parse(req.params.month);
+      const { companyId } = companyIdQuerySchema.parse(req.query);
       const payload = monthAvailabilitySchema(month).parse(req.body);
-      await availabilityService.replaceMonth(month, payload);
+      await availabilityService.replaceMonth(month, payload, companyId);
       res.status(200).json({ month });
     }),
   );
@@ -71,6 +86,7 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
     handleSingleCsvFileUpload,
     asyncHandler(async (req, res) => {
       const month = monthSchema.parse(req.params.month);
+      const { companyId } = companyIdFormFieldSchema.parse(req.body);
       if (!req.file) {
         throw new BadRequestError([{ path: 'file', message: 'A CSV file is required (multipart field "file")' }]);
       }
@@ -99,7 +115,24 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
         ]);
       }
 
-      const jobId = await enqueueAvailabilityImport(boss, csvText, month);
+      // v4 cancel-and-replace: create (or replace) this company's `AVAILABILITY_SYNC` `ImportTask`
+      // BEFORE sending the job, so a rapid second upload can find and cancel it even if this job
+      // hasn't started running yet -- see `AvailabilityService.beginImportTask`'s doc comment and
+      // the v4 design doc, Part A's "Cancel-and-replace" section. `enqueueAvailabilityImport`'s
+      // positional argument order is `(boss, companyId, csv, month)` -- verified directly against
+      // `jobs/queue.ts`, not assumed.
+      const task = await availabilityService.beginImportTask(companyId, month, rowCount);
+      const jobId = await enqueueAvailabilityImport(boss, companyId, csvText, month);
+      if (!jobId) {
+        // Defensive, matching `routes/rosters.ts`'s handling of the same `null`-on-collision
+        // contract: a genuine race even after our own cancel-and-replace step above (two uploads
+        // for this company landing close enough together). Fail the orphaned task rather than
+        // leaving it PENDING forever (it would otherwise block every future upload for this company).
+        await availabilityService.failImportTask(task.id);
+        throw new ConflictError(`An availability-import job for company ${companyId} is already in flight`);
+      }
+      await availabilityService.attachImportJob(task.id, jobId);
+
       res.status(202).json({ jobId });
     }),
   );

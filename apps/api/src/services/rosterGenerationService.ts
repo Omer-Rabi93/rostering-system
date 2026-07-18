@@ -93,8 +93,30 @@ export class RosterGenerationService {
   }
 
   async generate(companyId: number, month: string): Promise<RosterGenerationResult> {
+    // v4 eligibility rule: a worker never touched by any worker-CSV import (`lastImportTaskId ===
+    // null`) is always eligible -- a company managing workers entirely by hand must still be able
+    // to generate a roster. A worker that HAS been placed under CSV-sync management is only
+    // eligible if their `lastImportTaskId` matches the company's most recent COMPLETED
+    // `WORKER_SYNC` task -- if a newer sync completed without touching them (e.g. they were
+    // dropped from the file), they stay `ACTIVE` but become unschedulable until re-synced. The
+    // `?? -1` sentinel makes the second OR branch a no-op when the company has no completed
+    // `WORKER_SYNC` task at all (no worker can ever have `lastImportTaskId === -1`), leaving only
+    // the null-check branch active in that case. See the v4 design doc, Part A's
+    // "Roster-generation eligibility rule" section.
+    const latestWorkerSyncTask = await this.prisma.importTask.findFirst({
+      where: { companyId, kind: 'WORKER_SYNC', status: 'COMPLETED' },
+      orderBy: { finishedAt: 'desc' },
+    });
+
     const [activeWorkers, requirements] = await Promise.all([
-      this.prisma.worker.findMany({ where: { status: 'ACTIVE', companyId }, include: { contract: true } }),
+      this.prisma.worker.findMany({
+        where: {
+          companyId,
+          status: 'ACTIVE',
+          OR: [{ lastImportTaskId: null }, { lastImportTaskId: latestWorkerSyncTask?.id ?? -1 }],
+        },
+        include: { contract: true },
+      }),
       this.prisma.staffingRequirement.findMany({ where: { companyId } }),
     ]);
 

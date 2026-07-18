@@ -23,8 +23,10 @@ export type DialogDescriptor =
   | { readonly kind: 'hardBlockNotice' }
   | { readonly kind: 'regeneratePublishedConfirm'; readonly month: string }
   | { readonly kind: 'csvImportConfirm' }
+  | { readonly kind: 'csvImportInProgressConfirm' }
   | { readonly kind: 'csvImportResult'; readonly jobId: string }
   | { readonly kind: 'availabilityCsvImportConfirm' }
+  | { readonly kind: 'availabilityCsvImportInProgressConfirm' }
   | { readonly kind: 'availabilityCsvImportResult'; readonly jobId: string };
 
 export interface DialogsState {

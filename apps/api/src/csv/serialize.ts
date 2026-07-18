@@ -1,4 +1,4 @@
-// Serializes typed worker+contract records into CSV text: the exact 8-column header, one line
+// Serializes typed worker+contract records into CSV text: the exact 7-column header, one line
 // per record, quoting handled by `csv-stringify` (a real CSV writer -- correctly quotes any field
 // containing a comma, quote, or newline) and the formula-injection guard applied to every cell.
 

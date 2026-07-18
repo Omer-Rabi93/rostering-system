@@ -1,13 +1,13 @@
-// Parses raw CSV text into rows keyed by the documented 8 columns. Uses `csv-parse` (a real CSV
+// Parses raw CSV text into rows keyed by the documented 7 columns. Uses `csv-parse` (a real CSV
 // tokenizer -- handles quoted fields, embedded commas/newlines, escaped quotes) rather than
-// hand-rolled `split(',')`, which breaks the moment a worker or company name contains a comma.
+// hand-rolled `split(',')`, which breaks the moment a worker name contains a comma.
 
 import { parse as parseCsvSync } from 'csv-parse/sync';
 import { CSV_COLUMNS } from './columns.js';
 import type { CsvRawRow } from './columns.js';
 import { unguardCell } from './guard.js';
 
-/** The header row is missing, extra, or out of order relative to the 8 documented columns (or
+/** The header row is missing, extra, or out of order relative to the 7 documented columns (or
  * the file could not be tokenized as CSV at all). A file-level problem -- never a per-row one. */
 export class CsvHeaderError extends Error {}
 

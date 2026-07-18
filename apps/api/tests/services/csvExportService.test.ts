@@ -1,8 +1,10 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { PgBoss } from 'pg-boss';
 import { isValidIsraeliId } from '@rostering/shared';
 
 import { CsvExportService } from '../../src/services/csvExportService.js';
 import { CsvImportService } from '../../src/services/csvImportService.js';
+import { createBoss } from '../../src/jobs/queue.js';
 import { parseWorkersCsv, toWorkerRecord } from '../../src/csv/index.js';
 import { disconnectTestPrismaClient, getTestPrismaClient, resetDatabase } from '../helpers/testDb.js';
 
@@ -20,6 +22,13 @@ const ID_A = validNationalId(301);
 describe('CsvExportService.exportCsv', () => {
   const prisma = getTestPrismaClient();
   const exportService = new CsvExportService(prisma);
+  let boss: PgBoss;
+
+  beforeAll(() => {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) throw new Error('DATABASE_URL is not set for the CsvExportService test suite');
+    boss = createBoss(databaseUrl);
+  });
 
   beforeEach(async () => {
     await resetDatabase(prisma);
@@ -28,6 +37,7 @@ describe('CsvExportService.exportCsv', () => {
   afterAll(async () => {
     await resetDatabase(prisma);
     await disconnectTestPrismaClient();
+    await boss.stop({ graceful: false, close: true });
   });
 
   it('produces a re-importable text/csv payload for every worker with a contract', async () => {
@@ -53,7 +63,6 @@ describe('CsvExportService.exportCsv', () => {
     expect(record).toMatchObject({
       nationalId: ID_A,
       name: 'Dana Levi',
-      companyName: 'Shamir Security Ltd',
       role: 'SUPERVISOR',
       status: 'ACTIVE',
       hourlyCostIls: 62.5,
@@ -77,12 +86,11 @@ describe('CsvExportService.exportCsv', () => {
     });
 
     const csv = await exportService.exportCsv();
-    const importService = new CsvImportService(prisma);
-    const result = await importService.importCsv(csv);
+    const importService = new CsvImportService(prisma, boss);
+    const result = await importService.importCsv(csv, company.id);
 
     expect(result.failed).toBe(0);
     expect(result.updated).toBe(1);
-    expect(result.deactivated).toBe(0);
 
     const workers = await prisma.worker.findMany();
     expect(workers).toHaveLength(1);

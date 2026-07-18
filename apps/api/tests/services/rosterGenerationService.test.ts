@@ -245,6 +245,112 @@ describe('RosterGenerationService.generate', () => {
     expect(alerts.every((a) => a.type === 'UNFILLABLE_SLOT')).toBe(true);
   }, 40_000);
 
+  it('v4 eligibility: a never-synced worker (lastImportTaskId null) is included regardless of the company\'s ImportTask history', async () => {
+    const { worker, company } = await seedOneWorker();
+    // Company has a completed WORKER_SYNC task in its history, but this worker was never touched
+    // by it (created/managed by hand) -- `lastImportTaskId` stays null.
+    await prisma.importTask.create({
+      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'COMPLETED', finishedAt: new Date() },
+    });
+    const fakeSolve = (problem: SolverProblem): Promise<SolverSolution> =>
+      Promise.resolve({
+        assignments: problem.days.map((date) => ({ workerId: worker.id, date, shift: 'A' as const })),
+        alerts: [],
+      });
+    const service = new RosterGenerationService(prisma, fakeSolve);
+
+    const result = await service.generate(company.id, '2027-02');
+
+    const shiftWorkers = await prisma.shiftWorker.findMany({ where: { shift: { rosterId: result.rosterId } } });
+    expect(shiftWorkers.length).toBeGreaterThan(0);
+    expect(shiftWorkers.every((sw) => sw.workerId === worker.id)).toBe(true);
+  });
+
+  it('v4 eligibility: a worker whose lastImportTaskId matches the latest COMPLETED WORKER_SYNC task is included', async () => {
+    const { worker, company } = await seedOneWorker();
+    const latestTask = await prisma.importTask.create({
+      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'COMPLETED', finishedAt: new Date() },
+    });
+    await prisma.worker.update({ where: { id: worker.id }, data: { lastImportTaskId: latestTask.id } });
+
+    const fakeSolve = (problem: SolverProblem): Promise<SolverSolution> =>
+      Promise.resolve({
+        assignments: problem.days.map((date) => ({ workerId: worker.id, date, shift: 'A' as const })),
+        alerts: [],
+      });
+    const service = new RosterGenerationService(prisma, fakeSolve);
+
+    const result = await service.generate(company.id, '2027-02');
+
+    const shiftWorkers = await prisma.shiftWorker.findMany({ where: { shift: { rosterId: result.rosterId } } });
+    expect(shiftWorkers.length).toBeGreaterThan(0);
+    expect(shiftWorkers.every((sw) => sw.workerId === worker.id)).toBe(true);
+  });
+
+  it('v4 eligibility: an ACTIVE worker whose lastImportTaskId points at a stale/non-latest task (older COMPLETED, or CANCELLED/FAILED) is excluded from the candidate pool', async () => {
+    const { worker, company } = await seedOneWorker();
+
+    // An older COMPLETED WORKER_SYNC task the worker was stamped with...
+    const olderCompletedTask = await prisma.importTask.create({
+      data: {
+        companyId: company.id,
+        kind: 'WORKER_SYNC',
+        status: 'COMPLETED',
+        finishedAt: new Date('2020-01-01T00:00:00.000Z'),
+      },
+    });
+    // ...followed by a newer COMPLETED WORKER_SYNC task that did NOT touch this worker (e.g. they
+    // were dropped from the latest uploaded CSV) -- this is now "the latest completed sync".
+    await prisma.importTask.create({
+      data: {
+        companyId: company.id,
+        kind: 'WORKER_SYNC',
+        status: 'COMPLETED',
+        finishedAt: new Date('2020-06-01T00:00:00.000Z'),
+      },
+    });
+    await prisma.worker.update({ where: { id: worker.id }, data: { lastImportTaskId: olderCompletedTask.id } });
+
+    // The fake solve directly inspects the candidate pool `buildProblem` handed it (same technique
+    // the cross-company-isolation test above uses) -- if the excluded worker ever leaked into the
+    // pool, this would echo an assignment for them and the assertions below would catch it.
+    let observedWorkerIds: readonly number[] = [];
+    const fakeSolve = (problem: SolverProblem): Promise<SolverSolution> => {
+      observedWorkerIds = problem.workers.map((w) => w.id);
+      return Promise.resolve({
+        assignments: problem.workers.flatMap((w) => problem.days.map((date) => ({ workerId: w.id, date, shift: 'A' as const }))),
+        alerts: [],
+      });
+    };
+    const service = new RosterGenerationService(prisma, fakeSolve);
+
+    const result = await service.generate(company.id, '2027-02');
+
+    // Worker is still ACTIVE (stays active, per the redesign -- deactivation sweep removed)...
+    const persistedWorker = await prisma.worker.findUniqueOrThrow({ where: { id: worker.id } });
+    expect(persistedWorker.status).toBe('ACTIVE');
+    // ...but excluded from the solver's candidate pool entirely -> never assigned.
+    expect(observedWorkerIds).not.toContain(worker.id);
+    expect(observedWorkerIds).toHaveLength(0);
+    const shiftWorkers = await prisma.shiftWorker.findMany({ where: { shift: { rosterId: result.rosterId } } });
+    expect(shiftWorkers).toHaveLength(0);
+
+    // Same exclusion holds for a worker stamped against a CANCELLED task (superseded upload).
+    const { worker: cancelledWorker, company: cancelledCompany } = await seedOneWorker('Cancelled Co');
+    const cancelledTask = await prisma.importTask.create({
+      data: { companyId: cancelledCompany.id, kind: 'WORKER_SYNC', status: 'CANCELLED' },
+    });
+    await prisma.worker.update({
+      where: { id: cancelledWorker.id },
+      data: { lastImportTaskId: cancelledTask.id },
+    });
+    const resultForCancelled = await service.generate(cancelledCompany.id, '2027-02');
+    const shiftWorkersForCancelled = await prisma.shiftWorker.findMany({
+      where: { shift: { rosterId: resultForCancelled.rosterId } },
+    });
+    expect(shiftWorkersForCancelled).toHaveLength(0);
+  });
+
   it('end-to-end: a month with zero availability rows for ANY active worker generates an all-alerts empty roster', async () => {
     // Two active workers with contracts and a staffing requirement, but nobody has a single
     // `WorkerAvailability` row this month -- distinct from "empty workforce" (no active workers at

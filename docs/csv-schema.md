@@ -1,7 +1,10 @@
 # Worker CSV Schema
 
-`POST /api/import/workers` and `GET /api/export/workers` speak the same 8-column CSV format, so an
+`POST /api/import/workers` and `GET /api/export/workers` speak the same 7-column CSV format, so an
 exported file is always re-importable unmodified. Implemented in `apps/api/src/csv/`.
+
+The upload is scoped to one company at upload time (the app's "active company"), not resolved
+per-row — so the CSV itself carries no company column.
 
 Availability v2: worker availability is **not** part of this CSV at all. It is date-specific — one
 `WorkerAvailability` row per `(worker, calendar date)` — entered/exported via a separate
@@ -13,10 +16,10 @@ entirely.
 ## Header (exact order and names)
 
 ```
-national_id,name,company_name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
+national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
 ```
 
-Import rejects a file whose header row does not match this exactly (same 8 columns, same order,
+Import rejects a file whose header row does not match this exactly (same 7 columns, same order,
 same names) and rejects any data row with more or fewer fields than the header.
 
 ## Columns
@@ -25,7 +28,6 @@ same names) and rejects any data row with more or fewer fields than the header.
 | --- | --- | --- |
 | `national_id` | 9 digits, checksum-valid (Israeli ID) | The upsert match key. |
 | `name` | non-empty string, ≤ 120 chars | |
-| `company_name` | non-empty string, ≤ 120 chars | Resolved to an existing company case-insensitively, or a new company is created. Export always writes the company's current name. |
 | `role` | `General Guard` \| `Supervisor` \| `Screener` | Display strings; map to the internal `GENERAL_GUARD`/`SUPERVISOR`/`SCREENER` enum. |
 | `status` | `Active` \| `Inactive` | Display strings; map to `ACTIVE`/`INACTIVE`. |
 | `hourly_cost_ils` | decimal ≥ 0, dot separator (e.g. `62.50`) | |
@@ -35,9 +37,8 @@ same names) and rejects any data row with more or fewer fields than the header.
 
 Each row is validated in full (Zod schema + Israeli-ID checksum) and processed in its own
 transaction, so one bad row rolls back only itself and the batch continues to the next row.
-`company_name` is resolved to an existing company (case-insensitively) or a new one is created;
-then, if `national_id` matches an existing worker, that worker and their contract are updated —
-otherwise both are created.
+If `national_id` matches an existing worker (within the upload's active company), that worker and
+their contract are updated — otherwise both are created.
 
 **After every row has been processed**, a sync sweep sets every existing `ACTIVE` worker whose
 `national_id` does not appear anywhere in the file to `INACTIVE`. The CSV is treated as the
