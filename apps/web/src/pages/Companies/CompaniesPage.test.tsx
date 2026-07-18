@@ -35,6 +35,7 @@ describe('CompaniesPage', () => {
         match: '/api/companies',
         respond: () => ({ status: 201, body: { id: 3, name: 'New Co', createdAt: '2026-01-03T00:00:00.000Z' } }),
       },
+      { method: 'PUT', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
     ]);
     const { store } = renderWithProviders(<CompaniesPage />, {
       preloadedState: { activeCompany: { activeCompanyId: null } },
@@ -52,7 +53,7 @@ describe('CompaniesPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(await screen.findByText('"New Co" created.')).toBeInTheDocument();
+    expect(await screen.findByText('"New Co" created. Staffing requirements saved.')).toBeInTheDocument();
     // Creating a company from any entry point sets it active -- if you just created it you almost
     // certainly want to work in it next.
     expect(store.getState().activeCompany.activeCompanyId).toBe(3);

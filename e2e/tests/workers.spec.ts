@@ -119,10 +119,16 @@ test.describe('Workers — CRUD, filters, validation, duplicate IDs', () => {
     await expect(dialog.getByLabel('National ID')).toHaveValue(existing.nationalId);
   });
 
-  test('list filters: status/role/company/search narrow and combine; clearing restores the full list', async ({ page, seed }) => {
+  test('list filters: status/role/search narrow and combine; clearing restores the full list', async ({ page, seed }) => {
     const bodyRows = page.locator('.data-table tbody tr');
-    const activeCount = seed.workers.filter((w) => w.status === 'ACTIVE').length;
-    const inactiveCount = seed.workers.filter((w) => w.status === 'INACTIVE').length;
+    // The Workers page is scoped to the topbar's active company (Alpha, the default -- see
+    // `fixtures.ts`'s `page` fixture), not by an independent page-level "Company" filter (removed;
+    // see the v4 topbar company-scoping fix) -- so every count below is scoped to Alpha's own
+    // workers, matching what the page actually shows.
+    const alpha = findCompany(seed, 'Alpha Security Ltd.');
+    const alphaWorkers = seed.workers.filter((w) => w.companyId === alpha.id);
+    const activeCount = alphaWorkers.filter((w) => w.status === 'ACTIVE').length;
+    const inactiveCount = alphaWorkers.filter((w) => w.status === 'INACTIVE').length;
 
     await page.goto('/workers');
     await expect(page.getByRole('table')).toBeVisible();
@@ -133,20 +139,16 @@ test.describe('Workers — CRUD, filters, validation, duplicate IDs', () => {
     await expect(bodyRows).toHaveCount(inactiveCount);
 
     await page.getByLabel('Status').selectOption('ALL');
-    await expect(bodyRows).toHaveCount(seed.workers.length);
+    await expect(bodyRows).toHaveCount(alphaWorkers.length);
 
-    // Role filter: all Supervisors (status = All from the previous step).
+    // Role filter: all Supervisors (status = All from the previous step), still scoped to Alpha.
     await page.getByLabel('Role').selectOption('SUPERVISOR');
-    const supervisorCount = seed.workers.filter((w) => w.role === 'SUPERVISOR').length;
+    const supervisorCount = alphaWorkers.filter((w) => w.role === 'SUPERVISOR').length;
     await expect(bodyRows).toHaveCount(supervisorCount);
 
-    // Combine: ACTIVE + SUPERVISOR + Alpha Security Ltd. -> exactly Dana Mizrahi.
+    // Combine: ACTIVE + SUPERVISOR (still implicitly scoped to Alpha) -> exactly Dana Mizrahi.
     await page.getByLabel('Status').selectOption('ACTIVE');
-    const alpha = findCompany(seed, 'Alpha Security Ltd.');
-    await page.getByLabel('Company').selectOption(String(alpha.id));
-    const combined = seed.workers.filter(
-      (w) => w.status === 'ACTIVE' && w.role === 'SUPERVISOR' && w.companyId === alpha.id,
-    ).length;
+    const combined = alphaWorkers.filter((w) => w.status === 'ACTIVE' && w.role === 'SUPERVISOR').length;
     await expect(bodyRows).toHaveCount(combined);
     await expect(page.getByRole('row', { name: /Dana Mizrahi/ })).toBeVisible();
 
@@ -164,5 +166,29 @@ test.describe('Workers — CRUD, filters, validation, duplicate IDs', () => {
     // button also on screen right now) restores the full (default ACTIVE-only) list.
     await page.getByRole('search', { name: 'Filter workers' }).getByRole('button', { name: 'Clear filters' }).click();
     await expect(bodyRows).toHaveCount(activeCount);
+  });
+
+  test('switching the topbar\'s active company rescopes the Workers list to the new company (v4 topbar company-scoping fix)', async ({
+    page,
+    seed,
+  }) => {
+    const bodyRows = page.locator('.data-table tbody tr');
+    const alpha = findCompany(seed, 'Alpha Security Ltd.');
+    const beta = findCompany(seed, 'Beta Guarding Co.');
+    const alphaActiveCount = seed.workers.filter((w) => w.companyId === alpha.id && w.status === 'ACTIVE').length;
+    const betaActiveCount = seed.workers.filter((w) => w.companyId === beta.id && w.status === 'ACTIVE').length;
+
+    await page.goto('/workers');
+    await expect(page.getByRole('table')).toBeVisible();
+    await expect(bodyRows).toHaveCount(alphaActiveCount);
+    // No Alpha row shows a Beta worker's name and vice versa -- a real assertion of scoping, not
+    // just a row count coincidence.
+    const betaWorkerName = seed.workers.find((w) => w.companyId === beta.id)?.name;
+    if (betaWorkerName) await expect(page.getByRole('row', { name: new RegExp(betaWorkerName) })).toHaveCount(0);
+
+    await page.getByLabel('Active company').selectOption(String(beta.id));
+    await expect(bodyRows).toHaveCount(betaActiveCount);
+    const alphaWorkerName = seed.workers.find((w) => w.companyId === alpha.id)?.name;
+    if (alphaWorkerName) await expect(page.getByRole('row', { name: new RegExp(alphaWorkerName) })).toHaveCount(0);
   });
 });

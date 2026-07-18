@@ -14,6 +14,7 @@
 import {
   API_BASE_URL,
   buildWorkerCsv,
+  checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
   fmtMs,
@@ -47,6 +48,7 @@ async function pollActiveTaskUntilNull(companyId: number, timeoutMs = 60_000): P
 }
 
 async function main(): Promise<void> {
+  await checkStackReachable();
   const prisma = getPrisma();
 
   section('Seeding one company');

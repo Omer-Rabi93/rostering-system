@@ -144,6 +144,53 @@ upload, logging every observation.
 If any of these four fail, that is a real bug in the cancel-and-replace / DB-backstop machinery —
 report it, do not loosen the assertion to make the script "pass".
 
+### 5. `rosterGenerationLoad.ts` — ~15-25s
+
+Exercises `POST /api/rosters/generate` and the CPU-bound `roster-generation` queue against the
+REAL Python CP-SAT solver subprocess (not a fake solve) — the CSV-import scripts above never touch
+this pipeline. Two proofs in one run: (1) firing two concurrent generate requests for the SAME
+company+month resolves to exactly one 202 (real job) and one 409 `{ reason:
+'generation-in-progress' }` — the pg-boss `singletonKey` collision path; (2) firing N *different*
+companies' generate requests concurrently never runs more than `ROSTER_GENERATION_CONCURRENCY`
+(default 2) solver subprocesses at once, confirmed by directly sampling `pgboss.job`'s own `state`
+column while the batch is in flight, not just inferred from timing.
+
+**Extra prerequisite beyond the shared dev stack**: the worker process needs a real Python
+executable with the OR-Tools dependency (`solver/.venv/bin/python3`, see `solver/README.md`) —
+export `SOLVER_PYTHON_PATH` before starting it:
+
+```sh
+SOLVER_PYTHON_PATH=$(pwd)/solver/.venv/bin/python3 pnpm --filter @rostering/api exec tsx src/worker.ts
+```
+
+Without that, every generate job settles `failed` instead of `completed` and the script correctly
+reports it as a failure rather than silently skipping the check.
+
+**Pass** = the duplicate-request race resolves to exactly one winner, every company's job reaches
+`completed` (with the expected `alertCount: 0` for this seed recipe), and the sampler never
+observes more concurrently-`active` `roster-generation` rows than `ROSTER_GENERATION_CONCURRENCY`.
+
+### 6. `publicScheduleLoad.ts` — ~5-15s (plus setup)
+
+The one production-facing endpoint with no auth wall (`GET /api/schedule/:token`) — its only
+protection is a 30-requests/minute-per-IP rate limiter (`app.ts`'s `publicScheduleLimiter`). Seeds
+a company + worker, generates and publishes a real roster (same flow as
+`rosterGenerationLoad.ts`), then fires ONE concurrent burst above the 30/min cap mixing the real
+`shareToken` with a bogus one (interleaved, not grouped).
+
+**Pass = all of:** every valid-token response is 200 (correct `{name, month, shifts}` shape) or
+429, never 404/500; every bogus-token response is 404 (generic `{message: "Not found"}`) or 429,
+never 200/500; at least one 429 fires (the burst actually trips the limiter) and each carries a
+`RateLimit-*`/`Retry-After` header; the total non-429 response count across the WHOLE burst stays
+within the configured 30/min cap (proving the limiter counts every request through the middleware,
+not just successful ones).
+
+**Note on the shared per-IP rate-limit window**: if you've just curl'd or otherwise hit
+`/api/schedule/*` manually against the same dev API right before running this script, the 60s
+window may already be exhausted, and the whole burst will come back as 429 — the script still
+"passes" in that case, but without exercising the 200/404 content-shape assertions. Wait for the
+window to reset (`RateLimit-Reset` header, in seconds) and re-run for a clean read.
+
 ## Environment variables (all optional, sensible defaults)
 
 | Variable | Default | Used by |
@@ -161,6 +208,11 @@ report it, do not loosen the assertion to make the script "pass".
 | `LOADTEST_SPAM_TICK_MS` | `1000` | spamChurn |
 | `LOADTEST_SPAM_WORKER_COUNT` | `1000` | spamChurn |
 | `LOADTEST_SPAM_SETTLE_TIMEOUT_MS` | `60000` | spamChurn |
+| `LOADTEST_ROSTER_COMPANY_COUNT` | `6` | rosterGenerationLoad |
+| `LOADTEST_ROSTER_MONTH` | `2027-03` | rosterGenerationLoad |
+| `ROSTER_GENERATION_CONCURRENCY` | `2` | rosterGenerationLoad (must match the worker process's own setting — see `jobs/queue.ts`) |
+| `LOADTEST_SCHEDULE_MONTH` | `2027-04` | publicScheduleLoad |
+| `LOADTEST_SCHEDULE_BURST_COUNT` | `45` | publicScheduleLoad |
 
 ## A note on the shared dev Postgres
 

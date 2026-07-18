@@ -71,19 +71,55 @@ describe('/api/availability/:month (bulk JSON) and availability CSV import/expor
 
   describe('GET /api/availability/:month', () => {
     it('rejects a malformed month with 400 before any query runs', async () => {
-      const response = await request(app).get('/api/availability/not-a-month');
+      const company = await prisma.company.create({ data: { name: 'Malformed Month Co' } });
+      const response = await request(app).get('/api/availability/not-a-month').query({ companyId: company.id });
       expect(response.status).toBe(400);
     });
 
-    it('returns grouped availability for the month', async () => {
-      const worker = await makeWorker(701);
+    it('rejects (400) a request with no companyId query param', async () => {
+      const response = await request(app).get(`/api/availability/${FEB_2027}`);
+      expect(response.status).toBe(400);
+    });
+
+    it('returns grouped availability for the month, scoped to the given company', async () => {
+      const company = await prisma.company.create({ data: { name: 'Get Month Co' } });
+      const worker = await makeWorker(701, company.id);
       await prisma.workerAvailability.create({
         data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'AB' },
       });
 
-      const response = await request(app).get(`/api/availability/${FEB_2027}`);
+      const response = await request(app)
+        .get(`/api/availability/${FEB_2027}`)
+        .query({ companyId: company.id });
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ [String(worker.id)]: { '2027-02-05': ['A', 'B'] } });
+    });
+
+    it('never returns another company\'s workers\' rows (v4 company scoping)', async () => {
+      const companyA = await prisma.company.create({ data: { name: 'Cross GET Co A' } });
+      const companyB = await prisma.company.create({ data: { name: 'Cross GET Co B' } });
+      const workerA = await makeWorker(722, companyA.id);
+      const workerB = await makeWorker(723, companyB.id);
+      await prisma.workerAvailability.create({
+        data: { workerId: workerA.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'A' },
+      });
+      await prisma.workerAvailability.create({
+        data: { workerId: workerB.id, date: new Date('2027-02-06T00:00:00.000Z'), shifts: 'B' },
+      });
+
+      const responseA = await request(app)
+        .get(`/api/availability/${FEB_2027}`)
+        .query({ companyId: companyA.id });
+      expect(responseA.status).toBe(200);
+      expect(responseA.body).toEqual({ [String(workerA.id)]: { '2027-02-05': ['A'] } });
+      expect(responseA.body).not.toHaveProperty(String(workerB.id));
+
+      const responseB = await request(app)
+        .get(`/api/availability/${FEB_2027}`)
+        .query({ companyId: companyB.id });
+      expect(responseB.status).toBe(200);
+      expect(responseB.body).toEqual({ [String(workerB.id)]: { '2027-02-06': ['B'] } });
+      expect(responseB.body).not.toHaveProperty(String(workerA.id));
     });
   });
 

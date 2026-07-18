@@ -51,6 +51,60 @@ describe('WorkersPage', () => {
     expect(row ? within(row).getByText('₪63') : null).toBeInTheDocument();
   });
 
+  it('has no page-level "Company" filter — the list is scoped by the topbar\'s active company alone', async () => {
+    installMockFetch([
+      ...BASE_ROUTES,
+      { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [makeWorker()] }) },
+    ]);
+
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
+    await screen.findByText('Dana Levi');
+
+    expect(screen.queryByLabelText('Company', { exact: false })).not.toBeInTheDocument();
+  });
+
+  it('scopes the workers list request to the topbar\'s active company', async () => {
+    const { calls } = installMockFetch([
+      ...BASE_ROUTES,
+      { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [makeWorker()] }) },
+    ]);
+
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
+    await screen.findByText('Dana Levi');
+
+    const workersCall = calls.find((c) => c.method === 'GET' && c.path.startsWith('/api/workers'));
+    expect(workersCall?.path).toContain('companyId=1');
+  });
+
+  it('switching the active company (topbar) shows only the new company\'s workers, never the previous company\'s', async () => {
+    const companyAWorker = makeWorker({ id: 1, name: 'Dana Levi (Company A)' });
+    const companyBWorker = makeWorker({ id: 2, name: 'Omer Cohen (Company B)', companyId: 2 });
+
+    installMockFetch([
+      ...BASE_ROUTES,
+      {
+        method: 'GET',
+        match: /^\/api\/workers/,
+        respond: (url) => ({
+          status: 200,
+          body: url.searchParams.get('companyId') === '2' ? [companyBWorker] : [companyAWorker],
+        }),
+      },
+    ]);
+
+    // Two separate mounts (each with its own fresh store/cache) rather than RTL's `rerender` —
+    // `rerender` would re-render at the root and strip the `ActiveCompanyContext.Provider`
+    // `renderWithProviders`'s `activeCompanyId` option wraps `WorkersPage` in.
+    const companyA = renderWithProviders(<WorkersPage />, { activeCompanyId: 1 });
+    expect(await screen.findByText('Dana Levi (Company A)')).toBeInTheDocument();
+    expect(screen.queryByText('Omer Cohen (Company B)')).not.toBeInTheDocument();
+    companyA.unmount();
+
+    renderWithProviders(<WorkersPage />, { activeCompanyId: 2 });
+    expect(await screen.findByText('Omer Cohen (Company B)')).toBeInTheDocument();
+    expect(screen.queryByText('Dana Levi (Company A)')).not.toBeInTheDocument();
+  });
+
   it('offers "Set Inactive" when deleting a worker with shift history (409)', async () => {
     const user = userEvent.setup();
     installMockFetch([

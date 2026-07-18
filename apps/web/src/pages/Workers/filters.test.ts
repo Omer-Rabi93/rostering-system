@@ -11,10 +11,12 @@ describe('buildWorkerFilters', () => {
     expect(buildWorkerFilters({ ...DEFAULT_WORKER_FILTERS, status: ALL_VALUE })).toEqual({});
   });
 
-  it('combines all four filters when every one is set', () => {
-    expect(
-      buildWorkerFilters({ status: 'INACTIVE', role: 'SUPERVISOR', companyId: '3', q: 'Dana' }),
-    ).toEqual({ status: 'INACTIVE', role: 'SUPERVISOR', companyId: 3, q: 'Dana' });
+  it('combines both remaining filters when both are set', () => {
+    expect(buildWorkerFilters({ status: 'INACTIVE', role: 'SUPERVISOR', q: 'Dana' })).toEqual({
+      status: 'INACTIVE',
+      role: 'SUPERVISOR',
+      q: 'Dana',
+    });
   });
 
   it('trims whitespace-only search to omitted, and trims real search text', () => {
@@ -25,10 +27,8 @@ describe('buildWorkerFilters', () => {
     });
   });
 
-  it('an empty-string companyId (the unselected placeholder) is omitted, not sent as companyId=0', () => {
-    expect(buildWorkerFilters({ ...DEFAULT_WORKER_FILTERS, companyId: '' })).toEqual({
-      status: 'ACTIVE',
-    });
+  it('has no companyId field at all — company scoping is the topbar\'s job (see WorkersPage), not this form\'s', () => {
+    expect(buildWorkerFilters(DEFAULT_WORKER_FILTERS)).not.toHaveProperty('companyId');
   });
 });
 

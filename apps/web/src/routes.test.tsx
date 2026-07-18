@@ -54,7 +54,6 @@ describe('AppRoutes', () => {
   it.each([
     ['/workers', 'Workers'],
     ['/companies', 'Companies'],
-    ['/requirements', 'Staffing Requirements'],
     ['/cost/2026-08', 'Cost Dashboard — August 2026'],
   ])('renders %s inside the authenticated Layout shell (topbar present)', async (path, expectedHeading) => {
     renderAt(path);

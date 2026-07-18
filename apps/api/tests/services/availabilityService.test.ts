@@ -59,13 +59,15 @@ describe('AvailabilityService', () => {
 
   describe('getMonth', () => {
     it('returns an empty object when nobody has any rows this month', async () => {
-      await makeWorker(601);
-      expect(await service.getMonth(FEB_2027)).toEqual({});
+      const company = await makeCompany('Empty Month Co 601');
+      await makeWorker(601, company);
+      expect(await service.getMonth(FEB_2027, company)).toEqual({});
     });
 
     it('groups rows per worker, sparse by date (no entry for a date with no row)', async () => {
-      const workerA = await makeWorker(602);
-      const workerB = await makeWorker(603);
+      const company = await makeCompany('Group Rows Co');
+      const workerA = await makeWorker(602, company);
+      const workerB = await makeWorker(603, company);
       await prisma.workerAvailability.createMany({
         data: [
           { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
@@ -74,7 +76,7 @@ describe('AvailabilityService', () => {
         ],
       });
 
-      const result = await service.getMonth(FEB_2027);
+      const result = await service.getMonth(FEB_2027, company);
       expect(result).toEqual({
         [String(workerA.id)]: { '2027-02-01': ['A'], '2027-02-03': ['A', 'B', 'C'] },
         [String(workerB.id)]: { '2027-02-01': ['B', 'C'] },
@@ -82,7 +84,8 @@ describe('AvailabilityService', () => {
     });
 
     it('excludes rows outside the requested month window', async () => {
-      const worker = await makeWorker(604);
+      const company = await makeCompany('Window Co 604');
+      const worker = await makeWorker(604, company);
       await prisma.workerAvailability.createMany({
         data: [
           { workerId: worker.id, date: new Date('2027-01-31T00:00:00.000Z'), shifts: 'A' },
@@ -91,8 +94,29 @@ describe('AvailabilityService', () => {
         ],
       });
 
-      const result = await service.getMonth(FEB_2027);
+      const result = await service.getMonth(FEB_2027, company);
       expect(result).toEqual({ [String(worker.id)]: { '2027-02-01': ['A'] } });
+    });
+
+    it('never returns another company\'s workers\' rows (v4 company scoping)', async () => {
+      const companyA = await makeCompany('Cross Get Co A');
+      const companyB = await makeCompany('Cross Get Co B');
+      const workerA = await makeWorker(650, companyA);
+      const workerB = await makeWorker(651, companyB);
+      await prisma.workerAvailability.createMany({
+        data: [
+          { workerId: workerA.id, date: new Date('2027-02-01T00:00:00.000Z'), shifts: 'A' },
+          { workerId: workerB.id, date: new Date('2027-02-02T00:00:00.000Z'), shifts: 'B' },
+        ],
+      });
+
+      const resultA = await service.getMonth(FEB_2027, companyA);
+      expect(resultA).toEqual({ [String(workerA.id)]: { '2027-02-01': ['A'] } });
+      expect(resultA).not.toHaveProperty(String(workerB.id));
+
+      const resultB = await service.getMonth(FEB_2027, companyB);
+      expect(resultB).toEqual({ [String(workerB.id)]: { '2027-02-02': ['B'] } });
+      expect(resultB).not.toHaveProperty(String(workerA.id));
     });
   });
 

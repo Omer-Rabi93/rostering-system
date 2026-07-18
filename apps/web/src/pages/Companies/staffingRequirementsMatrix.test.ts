@@ -4,10 +4,11 @@ import {
   CELLS,
   buildMatrixState,
   cellKey,
+  computeShiftTotals,
   mapBadRequestErrors,
   setCell,
   validateMatrix,
-} from './matrix.js';
+} from './staffingRequirementsMatrix.js';
 
 describe('CELLS', () => {
   it('is 9 cells, 3 roles x 3 shifts, in a fixed order', () => {
@@ -96,5 +97,21 @@ describe('mapBadRequestErrors', () => {
     expect(result.cellErrors[cellKey('GENERAL_GUARD', 'A')]).toBe('bad 0');
     expect(result.cellErrors[cellKey('SCREENER', 'C')]).toBe('bad 8');
     expect(result.generalErrors).toEqual(['dup']);
+  });
+});
+
+describe('computeShiftTotals', () => {
+  it('sums every role for each shift', () => {
+    const matrix = buildMatrixState([
+      { role: 'GENERAL_GUARD', shift: 'A', requiredCount: 2 },
+      { role: 'SUPERVISOR', shift: 'A', requiredCount: 1 },
+      { role: 'SCREENER', shift: 'B', requiredCount: 3 },
+    ]);
+    expect(computeShiftTotals(matrix)).toEqual({ A: 3, B: 3, C: 0 });
+  });
+
+  it('ignores a cell that does not currently parse as an integer (mid-edit invalid input)', () => {
+    const matrix = setCell(buildMatrixState([]), 'GENERAL_GUARD', 'A', '');
+    expect(computeShiftTotals(matrix)).toEqual({ A: 0, B: 0, C: 0 });
   });
 });

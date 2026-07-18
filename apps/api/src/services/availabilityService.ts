@@ -113,15 +113,17 @@ export class AvailabilityService {
   ) {}
 
   /**
-   * All `WorkerAvailability` rows in `month`'s date window, grouped per worker: `{ [workerId]:
-   * { [date]: shifts } }`. A worker/date with no row simply has no key -- built by only ever
-   * assigning entries that exist, never a `date: undefined` placeholder (Availability v2's sparse
-   * representation, `exactOptionalPropertyTypes`-safe by construction).
+   * All `WorkerAvailability` rows in `month`'s date window BELONGING TO `companyId` (v4: scoped
+   * end to end, matching `replaceMonth`'s own `worker: { companyId }` join -- never another
+   * company's rows), grouped per worker: `{ [workerId]: { [date]: shifts } }`. A worker/date with
+   * no row simply has no key -- built by only ever assigning entries that exist, never a `date:
+   * undefined` placeholder (Availability v2's sparse representation, `exactOptionalPropertyTypes`-
+   * safe by construction).
    */
-  async getMonth(month: Month): Promise<MonthAvailability> {
+  async getMonth(month: Month, companyId: number): Promise<MonthAvailability> {
     const { start, end } = monthDateRange(month);
     const rows = await this.prisma.workerAvailability.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: { date: { gte: start, lte: end }, worker: { companyId } },
       orderBy: [{ workerId: 'asc' }, { date: 'asc' }],
     });
 

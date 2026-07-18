@@ -21,7 +21,8 @@ export function cellKey(role: Role, shift: ShiftType): string {
 export type MatrixState = Readonly<Record<string, string>>; // cellKey -> raw input string
 
 /** Builds the editable matrix state from the server's (possibly sparse — a role×shift cell with
- * no row yet defaults to 0) list of requirement rows. */
+ * no row yet defaults to 0) list of requirement rows. A brand-new company (nothing saved yet)
+ * passes `[]`, giving an all-zero starting matrix. */
 export function buildMatrixState(rows: readonly StaffingRequirement[]): MatrixState {
   const state: Record<string, string> = {};
   for (const cell of CELLS) {
@@ -100,4 +101,20 @@ export function mapBadRequestErrors(errors: readonly BadRequestFieldError[]): Ma
   }
 
   return { cellErrors, generalErrors };
+}
+
+/** Sums every cell's parsed value per shift (ignoring any cell that doesn't currently parse to an
+ * integer — a mid-edit invalid cell just doesn't contribute rather than corrupting the total).
+ * Pure display helper shared by every place that renders the matrix (`CompanyFormModal`,
+ * `ActiveCompanyGate`'s first-run form). */
+export function computeShiftTotals(matrix: MatrixState): Record<ShiftType, number> {
+  const totals: Record<ShiftType, number> = { A: 0, B: 0, C: 0 };
+  for (const role of ROLES) {
+    for (const shift of SHIFT_TYPES) {
+      const raw = matrix[cellKey(role, shift)];
+      const n = Number(raw);
+      if (Number.isInteger(n)) totals[shift] += n;
+    }
+  }
+  return totals;
 }

@@ -37,6 +37,7 @@ describe('ActiveCompanyGate', () => {
           return { status: 201, body: created };
         },
       },
+      { method: 'PUT', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
     ]);
     const { store } = renderWithProviders(
       <ActiveCompanyGate>
@@ -49,12 +50,66 @@ describe('ActiveCompanyGate', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByText('×')).not.toBeInTheDocument();
     expect(screen.queryByTestId('probe')).not.toBeInTheDocument();
+    // The bootstrap form includes the staffing-requirements matrix inline (folded in from the old
+    // standalone /requirements page) -- the first company is fully usable the moment it's created.
+    expect(screen.getByLabelText('General Guard required, Shift A')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Company name', { exact: false }), 'New Co');
     await user.click(screen.getByRole('button', { name: 'Create company' }));
 
     expect(await screen.findByTestId('probe')).toHaveTextContent('active: 5');
     expect(store.getState().activeCompany.activeCompanyId).toBe(5);
+  });
+
+  it('a requirements-save failure after successful company creation on the bootstrap form retries without re-creating the company', async () => {
+    const user = userEvent.setup();
+    const companies: { id: number; name: string; createdAt: string }[] = [];
+    let postCount = 0;
+    let putCount = 0;
+    installMockFetch([
+      { method: 'GET', match: '/api/companies', respond: () => ({ status: 200, body: companies }) },
+      {
+        method: 'POST',
+        match: '/api/companies',
+        respond: () => {
+          postCount += 1;
+          const created = { id: 6, name: 'Retry Co', createdAt: '2026-01-06T00:00:00.000Z' };
+          companies.push(created);
+          return { status: 201, body: created };
+        },
+      },
+      {
+        method: 'PUT',
+        match: '/api/staffing-requirements',
+        respond: () => {
+          putCount += 1;
+          if (putCount === 1) {
+            return { status: 400, body: { errors: [{ path: '', message: 'Duplicate role+shift cell' }] } };
+          }
+          return { status: 200, body: [] };
+        },
+      },
+    ]);
+    const { store } = renderWithProviders(
+      <ActiveCompanyGate>
+        <Probe />
+      </ActiveCompanyGate>,
+    );
+
+    await screen.findByRole('heading', { name: 'Welcome — create your first company' });
+    await user.type(screen.getByLabelText('Company name', { exact: false }), 'Retry Co');
+    await user.click(screen.getByRole('button', { name: 'Create company' }));
+
+    expect(await screen.findByText('Duplicate role+shift cell')).toBeInTheDocument();
+    expect(screen.queryByTestId('probe')).not.toBeInTheDocument();
+    expect(postCount).toBe(1);
+
+    await user.click(screen.getByRole('button', { name: 'Retry saving requirements' }));
+
+    expect(await screen.findByTestId('probe')).toHaveTextContent('active: 6');
+    expect(store.getState().activeCompany.activeCompanyId).toBe(6);
+    expect(postCount).toBe(1); // never created twice
+    expect(putCount).toBe(2);
   });
 
   it('renders a picker (plus "+ New company") when companies exist but none is active, and activates the one clicked', async () => {
@@ -95,6 +150,7 @@ describe('ActiveCompanyGate', () => {
           return { status: 201, body: created };
         },
       },
+      { method: 'PUT', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
     ]);
     renderWithProviders(
       <ActiveCompanyGate>

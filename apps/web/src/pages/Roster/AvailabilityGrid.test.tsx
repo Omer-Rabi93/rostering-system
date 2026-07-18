@@ -133,6 +133,62 @@ describe('AvailabilityGrid', () => {
     expect(payload).toEqual({ '1': { '2026-08-03': ['B'] } });
   });
 
+  it('scopes both read queries (worker list and availability GET) to the active company — the topbar company switcher bug fix', async () => {
+    const { calls } = installMockFetch([WORKERS_ROUTE([makeWorker()]), availabilityRoute('2026-08', {})]);
+
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={7} />);
+    await screen.findByRole('table');
+
+    const workersCall = calls.find((c) => c.method === 'GET' && c.path.startsWith('/api/workers'));
+    expect(workersCall?.path).toContain('companyId=7');
+
+    const availabilityCall = calls.find((c) => c.method === 'GET' && c.path.startsWith('/api/availability/2026-08'));
+    expect(availabilityCall?.path).toBe('/api/availability/2026-08?companyId=7');
+  });
+
+  it('a different active company sees only that company\'s workers and availability, never the other company\'s cached data', async () => {
+    const companyAWorker = makeWorker({ id: 1, name: 'Dana Levi (Company A)' });
+    const companyBWorker = makeWorker({ id: 2, name: 'Omer Cohen (Company B)', companyId: 2 });
+
+    installMockFetch([
+      {
+        method: 'GET',
+        match: /^\/api\/workers/,
+        respond: (url) => ({
+          status: 200,
+          body: url.searchParams.get('companyId') === '2' ? [companyBWorker] : [companyAWorker],
+        }),
+      },
+      {
+        method: 'GET',
+        match: /^\/api\/availability\/2026-08/,
+        respond: (url) => ({
+          status: 200,
+          body:
+            url.searchParams.get('companyId') === '2'
+              ? { '2': { '2026-08-02': ['B'] } }
+              : { '1': { '2026-08-01': ['A'] } },
+        }),
+      },
+    ]);
+
+    // Two separate mounts (each gets its own fresh store/cache via `renderWithProviders`) rather
+    // than RTL's `rerender` — `rerender` re-renders at the root, which would strip the
+    // Redux `Provider`/`MemoryRouter` `renderWithProviders` wraps `AvailabilityGrid` in.
+    const companyA = renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
+    expect(await screen.findByText('Dana Levi (Company A)')).toBeInTheDocument();
+    expect(screen.queryByText('Omer Cohen (Company B)')).not.toBeInTheDocument();
+    const cellA = await screen.findByTestId('avail-cell-1-2026-08-01');
+    expect(cellA.getAttribute('aria-label')).toContain('available shift A');
+    companyA.unmount();
+
+    renderWithProviders(<AvailabilityGrid month="2026-08" companyId={2} />);
+    expect(await screen.findByText('Omer Cohen (Company B)')).toBeInTheDocument();
+    expect(screen.queryByText('Dana Levi (Company A)')).not.toBeInTheDocument();
+    const cellB = await screen.findByTestId('avail-cell-2-2026-08-02');
+    expect(cellB.getAttribute('aria-label')).toContain('available shift B');
+  });
+
   it('starts from the server-loaded availability, and "None" clears a worker entirely', async () => {
     const user = userEvent.setup();
     const { fetchMock, calls } = installMockFetch([

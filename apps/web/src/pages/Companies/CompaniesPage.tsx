@@ -2,13 +2,7 @@ import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { ConfirmDialog, EmptyState, Spinner, Table, Toast, ToastRegion, type Column } from '@rostering/ui';
 
-import {
-  useCreateCompanyMutation,
-  useDeleteCompanyMutation,
-  useListCompaniesQuery,
-  useRenameCompanyMutation,
-  type CompanyDto,
-} from '../../api/companies.api.js';
+import { useDeleteCompanyMutation, useListCompaniesQuery, type CompanyDto } from '../../api/companies.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { useToasts } from '../../hooks/useToasts.js';
@@ -28,8 +22,6 @@ export function CompaniesPage(): ReactElement {
   // backend endpoint, which Phase 9 isn't permitted to do.
   const { data: workers } = useListWorkersQuery();
 
-  const [createCompany, createResult] = useCreateCompanyMutation();
-  const [renameCompany, renameResult] = useRenameCompanyMutation();
   const [deleteCompany] = useDeleteCompanyMutation();
 
   const activeDialog = useAppSelector(selectActiveDialog);
@@ -72,23 +64,20 @@ export function CompaniesPage(): ReactElement {
     setEditingCompany(null);
   }
 
-  async function handleFormSubmit(name: string) {
-    try {
-      if (editingCompany) {
-        await renameCompany({ id: editingCompany.id, body: { name } }).unwrap();
-        pushToast('success', `"${name}" saved.`);
-      } else {
-        const created = await createCompany({ name }).unwrap();
-        // Creating a company from any entry point (here, or ActiveCompanyGate's first-run/picker
-        // "+ New company") sets it as the active company -- if you just created it you almost
-        // certainly want to work in it next.
-        dispatch(companySelected(created.id));
-        pushToast('success', `"${name}" created.`);
-      }
-      closeForm();
-    } catch {
-      // Error is surfaced inline via createResult/renameResult.error below; nothing else to do.
+  // Called by `CompanyFormModal` exactly once, only once BOTH the company and its
+  // staffing-requirements matrix have saved successfully (see that component's doc comment for
+  // the full create/edit submit sequencing and its post-creation-failure retry behavior).
+  function handleSaved(saved: CompanyDto) {
+    if (editingCompany) {
+      pushToast('success', `"${saved.name}" saved. Staffing requirements updated.`);
+    } else {
+      // Creating a company from any entry point (here, or ActiveCompanyGate's first-run/picker
+      // "+ New company") sets it as the active company -- if you just created it you almost
+      // certainly want to work in it next.
+      dispatch(companySelected(saved.id));
+      pushToast('success', `"${saved.name}" created. Staffing requirements saved.`);
     }
+    closeForm();
   }
 
   function requestDelete(row: CompanyRow) {
@@ -129,14 +118,6 @@ export function CompaniesPage(): ReactElement {
     setPendingDelete(null);
   }
 
-  const formError = editingCompany
-    ? classifyMutationError(renameResult.error).kind === 'conflictMessage'
-      ? `A company named "${editingCompany.name}" already exists.`
-      : undefined
-    : classifyMutationError(createResult.error).kind === 'conflictMessage'
-      ? 'A company with this name already exists (names are case-insensitive).'
-      : undefined;
-
   const columns: Column<CompanyRow>[] = [
     { key: 'name', header: 'Name', sortable: false },
     { key: 'workerCount', header: 'Workers', align: 'right' },
@@ -148,8 +129,11 @@ export function CompaniesPage(): ReactElement {
         <div>
           <h1>Companies</h1>
           <p>
-            The employer each worker belongs to — grouping and cost reporting only. Rostering
-            always pools workers globally regardless of company.
+            The employer each worker belongs to. Every worker is assigned to exactly one company,
+            and the topbar&apos;s company switcher scopes Workers, Roster, and Cost Dashboard to
+            whichever one is currently active — switching companies there changes what all of
+            those pages show. Each company&apos;s staffing requirements (required headcount per
+            role × shift) are edited alongside its name below.
           </p>
         </div>
         <button className="btn btn--primary" type="button" onClick={openCreate}>
@@ -187,11 +171,8 @@ export function CompaniesPage(): ReactElement {
 
       <CompanyFormModal
         isOpen={activeDialog?.kind === 'companyForm'}
-        mode={editingCompany ? 'edit' : 'create'}
-        initialName={editingCompany?.name ?? ''}
-        error={formError}
-        submitting={createResult.isLoading || renameResult.isLoading}
-        onSubmit={(name) => void handleFormSubmit(name)}
+        company={editingCompany}
+        onSaved={handleSaved}
         onCancel={closeForm}
       />
 

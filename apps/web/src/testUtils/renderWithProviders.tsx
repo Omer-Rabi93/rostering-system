@@ -12,7 +12,7 @@ export interface RenderWithProvidersOptions {
   /** Wraps `ui` in an `ActiveCompanyContext.Provider` supplying this id, standing in for what
    * `ActiveCompanyGate` would normally provide once it's confirmed a company is active — lets a
    * page-level test render a page that calls `useActiveCompanyId()` directly (`RosterPage`,
-   * `RequirementsPage`, `CostDashboardPage`, ...) without also having to drive the gate itself
+   * `CostDashboardPage`, ...) without also having to drive the gate itself
    * (that's `ActiveCompanyGate.test.tsx`'s job). Does NOT touch the store's own `activeCompany`
    * slice -- see `preloadedState` for that. */
   readonly activeCompanyId?: number;

@@ -20,9 +20,10 @@ import {
 
 export interface AvailabilityGridProps {
   readonly month: Month;
-  /** v4: the bulk `PUT /api/availability/:month` save requires a `companyId` (see
-   * `apps/api/src/routes/availability.ts`'s `companyIdQuerySchema`), threaded from `RosterPage`
-   * (which already reads it via `useActiveCompanyId()`) rather than re-reading the context here. */
+  /** v4: both the `GET`/`PUT /api/availability/:month` reads/save require a `companyId` (see
+   * `apps/api/src/routes/availability.ts`'s `companyIdQuerySchema`) -- used to scope the worker
+   * list, the availability read, and the save, threaded from `RosterPage` (which already reads it
+   * via `useActiveCompanyId()`) rather than re-reading the context here. */
   readonly companyId: number;
 }
 
@@ -142,8 +143,8 @@ const AvailabilityCell = memo(function AvailabilityCell(props: AvailabilityCellP
  * is simply absent from the request body, never sent as an empty array).
  */
 export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): ReactElement {
-  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE' });
-  const { data: monthAvailability, isLoading } = useGetMonthAvailabilityQuery(month);
+  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE', companyId });
+  const { data: monthAvailability, isLoading } = useGetMonthAvailabilityQuery({ month, companyId });
   const [replaceMonthAvailability, replaceResult] = useReplaceMonthAvailabilityMutation();
 
   const [draft, setDraft] = useState<AvailabilityDraft>(() => draftFromMonthAvailability(monthAvailability));

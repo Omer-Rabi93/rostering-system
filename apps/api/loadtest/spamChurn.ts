@@ -41,6 +41,7 @@ import type { Readable } from 'node:stream';
 import {
   API_BASE_URL,
   buildWorkerCsv,
+  checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
   fmtMs,
@@ -170,6 +171,7 @@ function spawnDedicatedWorker(): { child: ChildProcessByStdio<null, Readable, Re
 const UNHANDLED_REJECTION_PATTERNS = [/unhandledRejection/i, /UnhandledPromiseRejection/i, /uncaughtException/i];
 
 async function main(): Promise<void> {
+  await checkStackReachable();
   const prisma = getPrisma();
 
   section('Spawning a dedicated worker replica for this run (log-capture for assertion #4)');

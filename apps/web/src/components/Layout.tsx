@@ -11,11 +11,12 @@ import { ActiveCompanyGate } from './ActiveCompanyGate.js';
 /**
  * Authenticated app shell: topbar + primary nav, matching `docs/design/ui/kit.css`'s
  * `.topbar`/`.page` chrome (byte-for-byte reused via `@rostering/ui/styles.css`). Every
- * authenticated page (Workers, Companies, Requirements, Roster, Cost Dashboard) renders inside
- * this shell, gated behind `ActiveCompanyGate` (see its own doc comment) so no page ever renders
- * without a valid active company. The public schedule page deliberately does NOT use this
- * component — see `pages/PublicSchedule/PublicSchedulePage.tsx` and
- * `docs/design/ui/README.md`'s "no authenticated chrome on an unauthenticated page" rule.
+ * authenticated page (Workers, Companies, Roster, Cost Dashboard) renders inside this shell,
+ * gated behind `ActiveCompanyGate` (see its own doc comment) so no page ever renders without a
+ * valid active company. Staffing requirements are edited as part of the Companies create/edit
+ * form (`CompanyFormModal`) rather than as their own nav destination. The public schedule page
+ * deliberately does NOT use this component — see `pages/PublicSchedule/PublicSchedulePage.tsx`
+ * and `docs/design/ui/README.md`'s "no authenticated chrome on an unauthenticated page" rule.
  */
 export function Layout({ children }: { children: ReactNode }): ReactElement {
   const month = currentMonth();
@@ -44,9 +45,6 @@ export function Layout({ children }: { children: ReactNode }): ReactElement {
             </li>
             <li>
               <NavLink to="/companies">Companies</NavLink>
-            </li>
-            <li>
-              <NavLink to="/requirements">Requirements</NavLink>
             </li>
             <li>
               <NavLink to={`/roster/${month}`}>Roster</NavLink>

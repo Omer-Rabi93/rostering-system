@@ -58,7 +58,8 @@ export function createAvailabilityRouter(prisma: PrismaClient, boss: PgBoss): Ro
     '/availability/:month',
     asyncHandler(async (req, res) => {
       const month = monthSchema.parse(req.params.month);
-      const availability = await availabilityService.getMonth(month);
+      const { companyId } = companyIdQuerySchema.parse(req.query);
+      const availability = await availabilityService.getMonth(month, companyId);
       res.status(200).json(availability);
     }),
   );

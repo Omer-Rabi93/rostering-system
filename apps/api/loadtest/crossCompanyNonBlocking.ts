@@ -17,6 +17,7 @@
 
 import {
   buildWorkerCsv,
+  checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
   fmtMs,
@@ -45,6 +46,7 @@ const PREFIX_BASE = 3_000_000 + RUN_SALT;
 const ALLOWED_SLOWDOWN_FACTOR = 3;
 
 async function main(): Promise<void> {
+  await checkStackReachable();
   const prisma = getPrisma();
 
   section(`Seeding ${COMPANY_COUNT} companies`);

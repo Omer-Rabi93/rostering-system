@@ -10,19 +10,28 @@ export interface EnqueueJobResponse {
   readonly jobId: string;
 }
 
-/** Month-scoped `Availability` tag — mirrors `rosterTag(month)`/`costSummaryTag(month)` in
- * `rosters.api.ts` — so replacing one month's availability only invalidates that month's cached
- * grid, not every cached month. */
-function availabilityTag(month: Month) {
-  return { type: 'Availability' as const, id: month };
+/** Company-scoped availability: `GET/PUT /api/availability/:month` are now scoped to a
+ * `(companyId, month)` pair, not `month` alone -- mirrors `rosters.api.ts`'s own `CompanyMonth`. */
+export interface CompanyMonth {
+  readonly companyId: number;
+  readonly month: Month;
+}
+
+/** `(companyId, month)`-scoped `Availability` tag — mirrors `rosterTag`/`costSummaryTag` in
+ * `rosters.api.ts` — so replacing one company's month's availability only invalidates that
+ * company's cached grid for that month, never a different company's cached data for the same
+ * month (a flat `month`-only tag would over-invalidate across companies). */
+function availabilityTag({ companyId, month }: CompanyMonth) {
+  return { type: 'Availability' as const, id: `${companyId}:${month}` };
 }
 
 /**
  * `GET/PUT /api/availability/:month` (bulk JSON, Availability v2) + the month-scoped availability
  * CSV import/export.
  *
- * `replaceMonthAvailability` invalidates only that month's `Availability` tag — deliberately NOT
- * `Roster`/`CostSummary`. Availability alone never changes an already-computed roster or its cost;
+ * `replaceMonthAvailability` invalidates only that `(companyId, month)`'s `Availability` tag —
+ * deliberately NOT `Roster`/`CostSummary`. Availability alone never changes an already-computed
+ * roster or its cost;
  * only a *future regeneration* does, and `jobs.api.ts`'s `roster-generation` job-completion handler
  * already owns invalidating `['Roster', 'CostSummary']` at that point. Co-invalidating them here
  * (the way `addShiftWorker`/`moveShiftWorker`/`removeShiftWorker` co-invalidate `Roster` +
@@ -37,18 +46,18 @@ function availabilityTag(month: Month) {
  * carries no month field — so the month-scoped invalidation is done by the caller (the component
  * that already knows both the jobId and the month it started the import for), not generically here.
  *
- * v4: both `replaceMonthAvailability` (bulk `PUT`) and `importAvailabilityCsv` gain a required
- * `companyId`, matching `apps/api/src/routes/availability.ts`'s new company-scoping —
- * `replaceMonthAvailability` sends it as a query param (`companyIdQuerySchema`, since the `PUT`
- * body is already fully occupied by the `MonthAvailability` payload itself), `importAvailabilityCsv`
+ * v4: `getMonthAvailability` (bulk `GET`), `replaceMonthAvailability` (bulk `PUT`), and
+ * `importAvailabilityCsv` all require a `companyId`, matching
+ * `apps/api/src/routes/availability.ts`'s new company-scoping — `getMonthAvailability`/
+ * `replaceMonthAvailability` send it as a query param (`companyIdQuerySchema`), `importAvailabilityCsv`
  * sends it as a form field alongside `file` (`companyIdFormFieldSchema`), mirroring
  * `csvApi.importWorkersCsv`.
  */
 export const availabilityApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getMonthAvailability: builder.query<MonthAvailability, Month>({
-      query: (month) => `/availability/${month}`,
-      providesTags: (_result, _error, month) => [availabilityTag(month)],
+    getMonthAvailability: builder.query<MonthAvailability, CompanyMonth>({
+      query: ({ month, companyId }) => `/availability/${month}?companyId=${companyId}`,
+      providesTags: (_result, _error, arg) => [availabilityTag(arg)],
     }),
 
     replaceMonthAvailability: builder.mutation<
@@ -60,7 +69,7 @@ export const availabilityApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (_result, _error, { month }) => [availabilityTag(month)],
+      invalidatesTags: (_result, _error, arg) => [availabilityTag(arg)],
     }),
 
     importAvailabilityCsv: builder.mutation<EnqueueJobResponse, { month: Month; companyId: number; file: File }>({

@@ -18,6 +18,7 @@ import autocannon from 'autocannon';
 import { config } from 'dotenv';
 
 import { createPrismaClient, type PrismaClient } from '../src/db/client.js';
+import { monthDays } from '../src/engine/calendar.js';
 
 export const here = path.dirname(fileURLToPath(import.meta.url));
 export const FIXTURES_DIR = path.join(here, '..', 'tests', 'fixtures', 'csv');
@@ -233,6 +234,101 @@ export async function createLoadtestCompany(prisma: PrismaClient, name: string):
 }
 
 // ---------------------------------------------------------------------------------------------
+// Roster-generation seeding + HTTP helpers -- shared by `rosterGenerationLoad.ts` and
+// `publicScheduleLoad.ts` (the latter needs a real PUBLISHED roster to read from).
+// ---------------------------------------------------------------------------------------------
+
+export interface SeededRosterCompany {
+  readonly companyId: number;
+  readonly workerId: number;
+  readonly workerName: string;
+  readonly shareToken: string;
+}
+
+/** One worker, fully available for shift A every day of `month`, and a matching single-slot
+ * requirement -- the minimal recipe for the real CP-SAT solver to find a feasible, zero-alert
+ * solution near-instantly (stolen from `tests/services/rosterGenerationService.test.ts`'s
+ * `seedOneWorker` + its real-solver test's `WorkerAvailability` seeding). */
+export async function seedSingleWorkerCompanyForRoster(
+  prisma: PrismaClient,
+  name: string,
+  prefix: number,
+  month: string,
+): Promise<SeededRosterCompany> {
+  const companyId = await createLoadtestCompany(prisma, name);
+  const worker = await prisma.worker.create({
+    data: {
+      nationalId: deriveValidIsraeliId(prefix),
+      name: `Loadtest Roster Worker ${prefix}`,
+      role: 'GENERAL_GUARD',
+      status: 'ACTIVE',
+      companyId,
+    },
+  });
+  await prisma.contract.create({
+    // `maxMonthlyHours: 260` (not the vitest fixture's `200`) -- a single worker on 8h shifts
+    // every day of a 31-day month needs 248h; the fixture's `200` cap left this seed's single
+    // worker legally unable to cover ~6 of the month's days (200/8 = 25 workable days), producing
+    // 6 real UNFILLABLE_SLOT alerts instead of the feasible, alert-free solve this recipe is
+    // supposed to give a load-test script a clean/predictable roster to assert against.
+    data: { workerId: worker.id, hourlyCostIls: 45, minMonthlyHours: 0, maxMonthlyHours: 260 },
+  });
+  await prisma.staffingRequirement.create({
+    data: { companyId, role: 'GENERAL_GUARD', shift: 'A', requiredCount: 1 },
+  });
+  await prisma.workerAvailability.createMany({
+    data: monthDays(month).map((date) => ({
+      workerId: worker.id,
+      date: new Date(`${date}T00:00:00.000Z`),
+      shifts: 'A',
+    })),
+  });
+  return { companyId, workerId: worker.id, workerName: worker.name, shareToken: worker.shareToken };
+}
+
+export interface GenerateResponse {
+  readonly statusCode: number;
+  readonly body: { jobId?: string; message?: string; reason?: string };
+}
+
+/** `POST /api/rosters/generate` -- plain `fetch`, not `autocannon`: this is a small JSON body, not
+ * a multipart file upload, so none of `uploadWorkersCsv`'s temp-file/form machinery applies. */
+export async function postRosterGenerate(companyId: number, month: string): Promise<GenerateResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/rosters/generate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ companyId, month }),
+  });
+  const body = (await response.json()) as GenerateResponse['body'];
+  return { statusCode: response.status, body };
+}
+
+export interface JobPollResult {
+  readonly state: 'created' | 'active' | 'completed' | 'failed';
+  readonly result: { rosterId?: number; alertCount?: number } | null;
+}
+
+/** Polls `GET /api/jobs/:id` (pg-boss's own job state, collapsed to 4 values -- see
+ * `routes/jobs.ts`) until the roster-generation job reaches a terminal state. There is no
+ * `Roster.status` "processing" state to poll instead -- the row doesn't exist until the job fully
+ * persists its result, see `schema.prisma`'s `RosterStatus` enum (`DRAFT | PUBLISHED` only). */
+export async function pollGenerationJobUntilSettled(
+  jobId: string,
+  { timeoutMs = 60_000, intervalMs = 150 }: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<JobPollResult> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}`);
+    const body = (await response.json()) as JobPollResult;
+    if (body.state === 'completed' || body.state === 'failed') return body;
+    if (Date.now() > deadline) {
+      throw new Error(`job ${jobId} did not settle within ${timeoutMs}ms (last state: ${body.state})`);
+    }
+    await sleep(intervalMs);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // ImportTask polling.
 // ---------------------------------------------------------------------------------------------
 
@@ -302,6 +398,29 @@ export async function pollAllUntilSettled(
     await sleep(intervalMs);
   }
   return settled;
+}
+
+/** Pings `GET /api/health` before a script does any real work, so a missing dev stack fails fast
+ * with a clear, actionable message instead of every subsequent request silently timing out /
+ * connection-refusing and surfacing as a wall of `statusCode: -1, body: undefined` autocannon
+ * results (see `uploadWorkersCsv`'s `-1` fallback) that look like a race-condition bug rather than
+ * "nothing is listening on this port". */
+export async function checkStackReachable(): Promise<void> {
+  const timeoutMs = 3_000;
+  let reason: string;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (response.ok) return;
+    reason = `GET /api/health responded with ${response.status}`;
+  } catch (err) {
+    reason = err instanceof Error ? err.message : String(err);
+  }
+  throw new Error(
+    `Cannot reach the API dev server at ${API_BASE_URL} (${reason}). Loadtest scripts require a running dev ` +
+      `stack: Postgres (docker compose -f docker-compose.dev.yml up -d), the API ` +
+      `(pnpm --filter @rostering/api dev), and the worker (pnpm --filter @rostering/api exec tsx src/worker.ts) ` +
+      `-- see apps/api/loadtest/README.md. Start those first, then re-run this script.`,
+  );
 }
 
 export function fmtMs(ms: number): string {

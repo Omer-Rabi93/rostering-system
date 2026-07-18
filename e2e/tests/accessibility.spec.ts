@@ -42,9 +42,13 @@ async function checkCompanies(page: Page, label: string) {
 }
 
 async function checkStaffingRequirements(page: Page, label: string) {
-  await page.goto('/requirements');
-  await expect(page.getByRole('heading', { name: 'Staffing Requirements' })).toBeVisible();
-  await assertNoSeriousViolations(page, `${label} — Staffing Requirements`);
+  // Staffing requirements are now edited as part of the company edit form (folded in from the old
+  // standalone /requirements page) rather than their own route -- open a company's edit dialog,
+  // which renders the same role×shift matrix inline.
+  await page.goto('/companies');
+  await page.getByRole('button', { name: 'Rename' }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Rename company' })).toBeVisible();
+  await assertNoSeriousViolations(page, `${label} — Company edit dialog (staffing requirements)`);
 }
 
 async function checkRoster(page: Page, seed: SeedResult, dbAdmin: DbAdmin, label: string) {

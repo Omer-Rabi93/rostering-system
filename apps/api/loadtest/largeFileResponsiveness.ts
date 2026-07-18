@@ -13,6 +13,7 @@
 
 import {
   buildWorkerCsv,
+  checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
   fmtMs,
@@ -48,6 +49,7 @@ const LARGE_PREFIX_BASE = 5_000_000 + RUN_SALT;
 const SMALL_PREFIX_BASE = 5_500_000 + RUN_SALT;
 
 async function main(): Promise<void> {
+  await checkStackReachable();
   const prisma = getPrisma();
 
   section('Seeding one company');

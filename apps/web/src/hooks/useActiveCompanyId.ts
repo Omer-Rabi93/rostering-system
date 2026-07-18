@@ -14,7 +14,7 @@ export const ActiveCompanyContext = createContext<number | null>(null);
  * Returns the app's guaranteed non-null active company id. Every authenticated page reads its
  * company scope through this hook instead of re-deriving/defending against an absent company
  * itself (the per-page "companies loading" spinner and "no companies yet" empty state that used
- * to be copy-pasted into `RosterPage`/`RequirementsPage`/`CostDashboardPage` now live once, in
+ * to be copy-pasted into `RosterPage`/`CostDashboardPage` now live once, in
  * `ActiveCompanyGate`).
  *
  * Throws if called outside an `ActiveCompanyContext.Provider` — that should never happen in

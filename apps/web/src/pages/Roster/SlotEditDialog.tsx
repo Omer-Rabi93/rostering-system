@@ -117,8 +117,9 @@ export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
   // "add" candidate here (no cross-company leakage into the manual-edit picker).
   const { data: workers } = useListWorkersQuery({ status: 'ACTIVE', companyId });
   // The same date-specific availability cache `AvailabilityGrid` reads for this roster's month —
-  // eligibility hints below are keyed off the edit's exact `date`, not a weekday.
-  const { data: monthAvailability } = useGetMonthAvailabilityQuery(roster.month);
+  // eligibility hints below are keyed off the edit's exact `date`, not a weekday. Scoped to this
+  // roster's own company, same as the worker list above.
+  const { data: monthAvailability } = useGetMonthAvailabilityQuery({ month: roster.month, companyId });
   // The "Y required" half of each role section's "assigned X of Y required" count — the
   // role×shift staffing matrix, decoupled from any individual assignment (see this file's
   // module-level context: role-correctness is enforced by each section's picker being filtered to

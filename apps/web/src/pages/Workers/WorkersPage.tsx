@@ -22,6 +22,7 @@ import {
 } from '../../api/workers.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { formatIls } from '../../lib/format.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { useToasts } from '../../hooks/useToasts.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
@@ -43,8 +44,12 @@ const ROLE_LABEL: Record<(typeof ROLES)[number], string> = {
 };
 
 export function WorkersPage(): ReactElement {
+  // Company-scoped like every other page (Requirements/Roster/Cost Dashboard): the topbar's active
+  // company, not an independent "All companies" filter of this page's own (removed; see the v4
+  // topbar company-scoping fix).
+  const companyId = useActiveCompanyId();
   const [filterForm, setFilterForm] = useState<WorkerFilterFormState>(DEFAULT_WORKER_FILTERS);
-  const filters = useMemo(() => buildWorkerFilters(filterForm), [filterForm]);
+  const filters = useMemo(() => ({ ...buildWorkerFilters(filterForm), companyId }), [filterForm, companyId]);
 
   const { data: workers, isLoading } = useListWorkersQuery(filters);
   const { data: companies } = useListCompaniesQuery();
@@ -62,7 +67,7 @@ export function WorkersPage(): ReactElement {
 
   const companyName = useMemo(() => {
     const map = new Map((companies ?? []).map((c) => [c.id, c.name]));
-    return (companyId: number) => map.get(companyId) ?? `#${companyId}`;
+    return (id: number) => map.get(id) ?? `#${id}`;
   }, [companies]);
 
   function openCreate() {
@@ -189,20 +194,6 @@ export function WorkersPage(): ReactElement {
               ...ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] })),
             ]}
             onChange={(e) => setFilterForm((f) => ({ ...f, role: e.target.value as typeof f.role }))}
-          />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label className="field__label" htmlFor="f-company">
-            Company
-          </label>
-          <Select
-            id="f-company"
-            value={filterForm.companyId}
-            options={[
-              { value: ALL_VALUE, label: 'All companies' },
-              ...(companies ?? []).map((c) => ({ value: String(c.id), label: c.name })),
-            ]}
-            onChange={(e) => setFilterForm((f) => ({ ...f, companyId: e.target.value }))}
           />
         </div>
         <div className="field" style={{ marginBottom: 0, minWidth: '220px' }}>

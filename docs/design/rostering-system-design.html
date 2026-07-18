@@ -12,12 +12,14 @@
     --accent: #3b5bdb;
     --code-bg: #f3f4f6;
     --card: #fafafa;
+    --warn: #b45309;
+    --warn-bg: #fffbeb;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0 auto;
     padding: 2.5rem 1.25rem 4rem;
-    max-width: 860px;
+    max-width: 900px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.55;
@@ -46,7 +48,7 @@
     width: 100%;
     border-collapse: collapse;
     margin: .8rem 0 1.2rem;
-    font-size: .93rem;
+    font-size: .9rem;
   }
   th, td {
     text-align: left;
@@ -65,12 +67,7 @@
     font-size: .8rem;
     line-height: 1.45;
   }
-  pre code {
-    background: none;
-    border-radius: 0;
-    padding: 0;
-    font-size: 1em;
-  }
+  pre code { background: none; border-radius: 0; padding: 0; font-size: 1em; }
   .toc {
     background: var(--card);
     border: 1px solid var(--line);
@@ -79,12 +76,7 @@
     margin: 1.2rem 0 1.6rem;
     font-size: .93rem;
   }
-  .toc ol {
-    margin: .35rem 0 0;
-    padding-left: 1.3rem;
-    columns: 2;
-    column-gap: 2.2rem;
-  }
+  .toc ol { margin: .35rem 0 0; padding-left: 1.3rem; columns: 2; column-gap: 2.2rem; }
   .toc li { break-inside: avoid; margin: .2rem 0; }
   .toc a { color: var(--accent); text-decoration: none; }
   .toc a:hover { text-decoration: underline; }
@@ -97,23 +89,31 @@
     border-radius: 0 6px 6px 0;
   }
   .decision strong { color: var(--accent); }
-  .diagram-wrap {
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fff;
-    padding: .75rem;
-    overflow-x: auto;
+  .caveat {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn);
+    padding: .55rem .8rem;
+    margin: .8rem 0;
+    font-size: .93rem;
+    border-radius: 0 6px 6px 0;
   }
+  .caveat strong { color: var(--warn); }
+  .badge {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    padding: .1em .5em;
+    border-radius: 999px;
+    margin-left: .4em;
+    vertical-align: middle;
+  }
+  .badge.done { background: #ecfdf5; color: #059669; border: 1px solid #059669; }
+  .badge.progress { background: #fffbeb; color: var(--warn); border: 1px solid var(--warn); }
+  .badge.deferred { background: #f3f4f6; color: var(--muted); border: 1px solid var(--line); }
+  .diagram-wrap { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: .75rem; overflow-x: auto; }
   .diagram-wrap svg { display: block; min-width: 760px; width: 100%; height: auto; }
-  .legend {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    align-items: center;
-    font-size: .85rem;
-    color: var(--muted);
-    margin-top: .6rem;
-  }
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; font-size: .85rem; color: var(--muted); margin-top: .6rem; }
   .legend svg { vertical-align: middle; }
 
   /* ---------- Sequence diagram styles ---------- */
@@ -125,96 +125,70 @@
   .act.engine { animation: pulse 2.4s ease-in-out infinite; }
   .msg { fill: none; stroke: #1f2937; stroke-width: 1.8; }
   .msg.ret { stroke: #6b7280; stroke-dasharray: 6 5; }
-  .lbl {
-    font-size: 12px;
-    fill: #1f2937;
-    text-anchor: middle;
-    paint-order: stroke;
-    stroke: #ffffff;
-    stroke-width: 4px;
-    stroke-linejoin: round;
-  }
+  .lbl { font-size: 12px; fill: #1f2937; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
   .lbl.ret { fill: #4b5563; }
   .frag { fill: #fffbeb; fill-opacity: .55; stroke: #b45309; stroke-width: 1.2; stroke-dasharray: 4 3; }
   .frag-tag { fill: #b45309; }
   .frag-tag-txt { font-size: 12px; font-weight: 700; fill: #fff; text-anchor: middle; }
   .frag-guard { font-size: 12px; font-style: italic; fill: #92400e; text-anchor: start; }
-
-  /* Arrows draw in sequence, hold visible, then the loop restarts.
-     Base state (animation off / reduced motion): fully visible. */
-  .anim {
-    stroke-dasharray: 400 400;
-    stroke-dashoffset: 0;
-    animation: draw 24s linear infinite;
-  }
-  @keyframes draw {
-    0%    { stroke-dashoffset: 400; }
-    5.4%  { stroke-dashoffset: 0; }
-    100%  { stroke-dashoffset: 0; }
-  }
-  @keyframes pulse {
-    0%, 100% { fill-opacity: .15; }
-    50%      { fill-opacity: .5; }
-  }
-  .d1  { animation-delay: 0s; }
-  .d2  { animation-delay: 1.3s; }
-  .d3  { animation-delay: 2.6s; }
-  .d4  { animation-delay: 3.9s; }
-  .d5  { animation-delay: 5.2s; }
-  .d6  { animation-delay: 6.5s; }
-  .d7  { animation-delay: 7.8s; }
-  .d8  { animation-delay: 9.1s; }
-  .d9  { animation-delay: 10.4s; }
-  .d10 { animation-delay: 11.7s; }
-  .d11 { animation-delay: 13s; }
-  .d12 { animation-delay: 14.3s; }
-  .d13 { animation-delay: 15.6s; }
-  .d14 { animation-delay: 16.9s; }
-  .d15 { animation-delay: 18.2s; }
-  @media (prefers-reduced-motion: reduce) {
-    .anim, .act.engine { animation: none; }
-  }
+  .anim { stroke-dasharray: 400 400; stroke-dashoffset: 0; animation: draw 24s linear infinite; }
+  @keyframes draw { 0% { stroke-dashoffset: 400; } 5.4% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
+  @keyframes pulse { 0%, 100% { fill-opacity: .15; } 50% { fill-opacity: .5; } }
+  .d1 { animation-delay: 0s; } .d2 { animation-delay: 1.3s; } .d3 { animation-delay: 2.6s; }
+  .d4 { animation-delay: 3.9s; } .d5 { animation-delay: 5.2s; } .d6 { animation-delay: 6.5s; }
+  .d7 { animation-delay: 7.8s; } .d8 { animation-delay: 9.1s; } .d9 { animation-delay: 10.4s; }
+  .d10 { animation-delay: 11.7s; } .d11 { animation-delay: 13s; } .d12 { animation-delay: 14.3s; }
+  .d13 { animation-delay: 15.6s; } .d14 { animation-delay: 16.9s; } .d15 { animation-delay: 18.2s; }
+  @media (prefers-reduced-motion: reduce) { .anim, .act.engine { animation: none; } }
 </style>
 </head>
 <body>
 
 <h1>Rostering System — Technical Design</h1>
 
-<p>A single-site, planner-facing web application that manages security workers and their contracts,
-and auto-generates a monthly roster over three fixed daily shifts (A 00:00–08:00, B 08:00–16:00,
-C 16:00–00:00). The design is a conventional three-tier stack — a React + TypeScript SPA, a
-Node.js/Express REST API, and PostgreSQL — with the scheduling engine as a CP-SAT
-constraint-optimization model (Google OR-Tools) run in a small Python sidecar invoked by the
-roster-generation worker, while all validation and orchestration stay in TypeScript. All hard rules
-(availability, the 2-shifts-per-calendar-day cap) are enforced server-side by one shared validator
-used by both auto-generation and manual edits, so a contract violation cannot be persisted through
-any path. Soft rules (min/max monthly hours) surface as alerts that the planner must explicitly
-acknowledge before a roster can be saved. There are no worker logins: workers get a read-only,
-printable schedule page.</p>
+<p>A multi-company, planner-facing web application that manages security workers and their
+contracts, and auto-generates a monthly roster over three fixed daily shifts (A 00:00–08:00,
+B 08:00–16:00, C 16:00–00:00) <strong>independently per company</strong>. The design is a
+conventional three-tier stack — a React + TypeScript SPA, a Node.js/Express REST API, and
+PostgreSQL — with the scheduling engine as a CP-SAT constraint-optimization model (Google OR-Tools)
+run in a small Python sidecar. All hard rules (availability, role match, the 2-shifts-per-calendar-day
+cap) are enforced server-side by one shared validator used by both auto-generation and manual edits,
+so a contract violation cannot be persisted through any path. Soft rules (min/max monthly hours)
+surface as alerts the planner must explicitly acknowledge before a roster can be saved. There are no
+worker logins — workers get a read-only, printable schedule page — and, as of this revision,
+<strong>no planner logins either</strong> (see <a href="#security">Security &amp; Scope
+Boundaries</a>).</p>
 
-<div class="decision"><strong>Design revision (2026-07-17, "Availability v2"):</strong> worker
-availability was corrected from a weekly pattern (7 weekdays × 3 shifts, stored on <code>Contract</code>)
-to <strong>date-specific</strong> availability — a new <code>WorkerAvailability</code> table with one
-row per <em>(worker, exact calendar date)</em>, entered per target month before generation. This
-better matches the source requirements (per-real-date entry, not a recurring weekly default) and
-touches the data model, the CP-SAT solver's decision-variable creation, <code>RosterValidator</code>'s
-<code>withinAvailability</code> rule, the REST API, and the CSV import/export surface (worker CSV
-dropped its 21 <code>avail_*</code> columns; a new month-scoped availability CSV was added). Every
-section below reflects the current (v2) model; no weekly-matrix behavior remains.</div>
+<div class="decision"><strong>Design revision (this document):</strong> rewritten to reflect the
+full body of work since "Availability v2" (2026-07-17) — every company now has its own independent
+worker pool, staffing requirements, and roster (previously one global candidate pool shared across
+all companies); worker/availability CSV imports are company-scoped, tracked as first-class
+<code>ImportTask</code> rows with cancel-and-replace semantics instead of a single ad hoc pg-boss
+job; the background-job layer grew a third queue and per-company partitioning; and the whole
+Docker/nginx/scaling deployment layer — entirely undocumented in the previous revision — is now
+covered. Sections below are labeled <span class="badge done">shipped</span>,
+<span class="badge progress">in progress</span>, or <span class="badge deferred">deferred</span>
+against what's actually merged to <code>main</code> as of this writing; see
+<a href="#roadmap">Known Limitations &amp; Roadmap</a> for the full picture.</p></div>
 
 <nav class="toc">
   <strong>Contents</strong>
   <ol>
     <li><a href="#components">Components &amp; Responsibilities</a></li>
+    <li><a href="#tenancy">Multi-Tenancy &amp; Company Scoping</a></li>
     <li><a href="#data-model">Data Model</a></li>
     <li><a href="#engine-flow">Scheduling Engine Flow</a></li>
-    <li><a href="#background-jobs">Background Jobs &amp; Workers</a></li>
+    <li><a href="#background-jobs">Background Jobs, Queues &amp; Import Tasks</a></li>
     <li><a href="#uml">UML Diagram (animated)</a></li>
     <li><a href="#stack">Stack &amp; Project Structure</a></li>
     <li><a href="#db-schema">Database Schema</a></li>
     <li><a href="#api">REST API Reference</a></li>
     <li><a href="#algorithms">Core Algorithms &amp; Validation</a></li>
-    <li><a href="#csv-jobs">CSV Schema &amp; Jobs Detail</a></li>
+    <li><a href="#csv-jobs">CSV Schema &amp; Import Pipeline</a></li>
+    <li><a href="#frontend">Frontend Architecture</a></li>
+    <li><a href="#security">Security &amp; Scope Boundaries</a></li>
+    <li><a href="#deployment">Deployment &amp; Scaling</a></li>
+    <li><a href="#roadmap">Known Limitations &amp; Roadmap</a></li>
   </ol>
 </nav>
 
@@ -224,224 +198,303 @@ section below reflects the current (v2) model; no weekly-matrix behavior remains
   <tr><th style="width:22%">Component</th><th>Owns</th></tr>
   <tr>
     <td><strong>Web UI (SPA)</strong></td>
-    <td>Worker/contract CRUD screens, staffing-requirements settings, monthly calendar grid with
-    drag/click editing, the pre-save alert checklist, and the cost dashboard. Client-side checks are
-    <em>hints only</em> (e.g. greying out unavailable workers in the edit dialog) — never the source of truth.</td>
+    <td>Company selection/creation (gates every other screen — see <a href="#tenancy">Multi-Tenancy</a>),
+    worker/contract CRUD, staffing-requirements settings, monthly calendar grid with drag/click
+    editing, the pre-save alert checklist, and the cost dashboard (including per-worker
+    comparison/detail views). Client-side checks are <em>hints only</em> — never the source of truth.</td>
   </tr>
   <tr>
     <td><strong>REST API</strong></td>
-    <td>All business validation, server-side and authoritative: Israeli-ID checksum, contract bounds,
-    and the shared <code>RosterValidator</code> that blocks hard-rule violations (HTTP 422) and returns
-    soft-rule warnings requiring a confirmation flag. Also enforces the save gate: a roster with
-    unacknowledged alerts cannot be saved.</td>
+    <td>All business validation, server-side and authoritative: Israeli-ID checksum, contract
+    bounds, and the shared <code>RosterValidator</code> that blocks hard-rule violations (HTTP 422)
+    and returns soft-rule warnings requiring a confirmation flag. Enforces company scoping on every
+    resource that needs it (workers, staffing requirements, rosters, availability, CSV imports).</td>
   </tr>
   <tr>
     <td><strong>Scheduling Engine</strong></td>
-    <td>A CP-SAT solver sidecar: a small Python script built on Google OR-Tools CP-SAT. The Node
-    worker spawns it with a JSON problem file (month, workers + contracts, staffing requirements)
-    and reads back a JSON solution (assignments + slack-derived alerts). Still pure and
-    deterministic — fixed seed, single search worker — with no side effects beyond stdin/stdout.
-    The <code>RosterValidator</code> remains in TypeScript and still gates all manual edits, so
-    nothing invalid is ever persisted through any path.</td>
+    <td>A CP-SAT solver sidecar invoked once per <em>(company, month)</em> generation job — never
+    across companies. Deterministic (fixed seed, single search worker); the <code>RosterValidator</code>
+    remains in TypeScript and still gates all manual edits.</td>
   </tr>
   <tr>
     <td><strong>CSV Import/Export</strong></td>
-    <td>Two independent CSV schemas. The worker CSV is a combined workers+contracts sync (8 columns,
-    no availability data); export is re-importable unmodified, import validates per row, upserts by
-    Israeli ID, and returns a per-row error report — one bad row never aborts the batch. Import is a
-    <strong>full sync</strong>: existing workers whose ID is absent from the file are set Inactive
-    (never deleted — contract and shift history kept). A separate, month-scoped availability CSV
-    (<code>national_id</code> + one <code>dNN</code> column per calendar date of the target month)
-    imports/exports <code>WorkerAvailability</code> rows for that month only, with per-row errors but
-    <em>no</em> sync-deactivation sweep — see <a href="#csv-jobs">CSV Schema &amp; Jobs Detail</a>.</td>
+    <td>Two independent CSV pipelines today (worker sync, availability sync — see
+    <a href="#roadmap">Roadmap</a> for the planned merge into one combined upload), both scoped to
+    one company per upload and tracked as <code>ImportTask</code> rows with cancel-and-replace
+    semantics — see <a href="#csv-jobs">CSV Schema &amp; Import Pipeline</a>.</td>
   </tr>
   <tr>
     <td><strong>Background Workers</strong></td>
-    <td>A worker process consuming a job queue: CSV imports and roster generation run asynchronously
-    instead of inside the HTTP request, and a scheduler triggers recurring (cron) jobs. Workers reuse
-    the same engine, validator, and CSV modules as the API — no duplicated logic.</td>
+    <td>A separate process consuming three pg-boss queues (worker CSV import, availability CSV
+    import, roster generation), each partitioned per company (or per company+month) so one
+    company's slow job never blocks another's. Reuses the same engine, validator, and CSV modules
+    as the API — no duplicated logic.</td>
   </tr>
   <tr>
     <td><strong>Relational DB</strong></td>
-    <td>PostgreSQL. Uniqueness and referential integrity at the schema level, including the
-    <code>shift_workers</code> composite primary key that makes duplicate slot assignments
-    impossible. Scales comfortably with significant workforce growth; the engine's working set for
-    one month fits in memory.</td>
+    <td>PostgreSQL. Uniqueness and referential integrity at the schema level, including per-company
+    composite uniqueness on <code>Roster</code> and <code>StaffingRequirement</code>, and a partial
+    unique index enforcing "at most one in-flight import per company+kind."</td>
   </tr>
 </table>
 
 <div class="decision"><strong>Design decision:</strong> the worker schedule view is a read-only page
-served at a non-guessable per-worker token URL (plus a print stylesheet), so no worker accounts are needed.</div>
+served at a non-guessable per-worker token URL (plus a print stylesheet), so no worker accounts are
+needed.</div>
 <div class="decision"><strong>Design decision:</strong> single planner/HR user model — no role-based
-permissions or audit trail in this version; the schema leaves room to add both later.</div>
+permissions, audit trail, or authentication in this version; see <a href="#security">Security &amp;
+Scope Boundaries</a> for the full, explicit list of what this means in practice.</div>
+
+<h2 id="tenancy">Multi-Tenancy &amp; Company Scoping</h2>
+
+<p>Every company is a fully independent scheduling unit: its own workers, its own staffing
+requirements, its own roster per month. Nothing in the scheduling engine or candidate-selection
+logic ever mixes workers or requirements across companies — <code>StaffingRequirement</code> and
+<code>Roster</code> both carry a required <code>companyId</code> and are uniquely keyed on
+<code>(companyId, ...)</code>, and <code>RosterGenerationService.generate()</code> filters every
+input query (active workers, requirements, availability) by <code>companyId</code> before ever
+building the CP-SAT problem.</p>
+
+<p>This is <strong>not</strong> a server-enforced authorization boundary — see
+<a href="#security">Security &amp; Scope Boundaries</a> — it's a data-partitioning and
+UX concept. On the frontend, an "active company" is chosen once (create-or-pick, gated in front of
+every authenticated screen — <code>ActiveCompanyGate.tsx</code>) and persisted to
+<code>localStorage</code>; every subsequent page/query/mutation threads that id through. A company
+switcher in the top bar changes it without navigating away.</p>
+
+<table>
+  <tr><th style="width:30%">Resource</th><th>Scoping mechanism</th></tr>
+  <tr><td><code>Worker</code></td><td>Required <code>companyId</code> FK; <code>nationalId</code>
+  stays globally unique (a real person's ID doesn't change with employer) — a CSV row whose ID
+  already belongs to a <em>different</em> company is a per-row error, never a silent reassignment.</td></tr>
+  <tr><td><code>StaffingRequirement</code></td><td><code>@@unique([companyId, role, shift])</code></td></tr>
+  <tr><td><code>Roster</code></td><td><code>@@unique([companyId, month])</code> — one roster per
+  company per month, not one roster per month system-wide.</td></tr>
+  <tr><td><code>ImportTask</code></td><td><code>companyId</code> + a partial unique index allowing
+  at most one non-terminal task per <code>(companyId, kind)</code> — see
+  <a href="#csv-jobs">CSV Schema &amp; Import Pipeline</a>.</td></tr>
+  <tr><td>Background job queues</td><td>pg-boss <code>singletonKey</code> partitioned per company
+  (or per company+month for roster generation) on shared queues — see
+  <a href="#background-jobs">Background Jobs</a>.</td></tr>
+</table>
+
+<div class="caveat"><strong>Not enforced server-side:</strong> nothing prevents an API client from
+passing any <code>companyId</code> it likes — there is no session tying a request to "the company
+this caller is allowed to act as." The active-company gate is a client-side UX convenience, not an
+authorization boundary. This is a deliberate, documented scope limitation (see
+<a href="#security">Security &amp; Scope Boundaries</a>), not an oversight.</div>
 
 <h2 id="data-model">Data Model</h2>
 
 <table>
-  <tr><th style="width:24%">Entity</th><th>Key fields</th><th style="width:30%">Relationships</th></tr>
+  <tr><th style="width:22%">Entity</th><th>Key fields</th><th style="width:32%">Relationships</th></tr>
   <tr>
     <td><strong>Company</strong></td>
     <td>name (unique, case-insensitive)</td>
-    <td>1 → many Workers (the worker's employer); grouping and reporting only — rostering stays
-    global across companies</td>
+    <td>1 → many Workers, StaffingRequirements, Rosters, ImportTasks — the root of all scoping</td>
   </tr>
   <tr>
     <td><strong>Worker</strong></td>
-    <td>national ID (9-digit, checksum-validated, unique), name, role (General Guard | Supervisor | Screener),
-    status (Active | Inactive)</td>
-    <td>belongs to Company (required); 1 → 1 Contract; 1 → many ShiftWorkers</td>
+    <td>national ID (9-digit, checksum-validated, globally unique), name, role (General Guard |
+    Supervisor | Screener), status (Active | Inactive), share token (public schedule URL)</td>
+    <td>belongs to Company (required); 1 → 1 Contract; 1 → many ShiftWorker, WorkerAvailability;
+    optional FK to the <code>ImportTask</code> that last synced it (<code>lastImportTaskId</code>)</td>
   </tr>
   <tr>
     <td><strong>Contract</strong></td>
     <td>hourly cost (ILS), min monthly hours, max monthly hours</td>
-    <td>belongs to Worker</td>
+    <td>belongs to Worker (1:1, cascade delete)</td>
   </tr>
   <tr>
     <td><strong>WorkerAvailability</strong></td>
     <td>date, shift subset (non-empty ordered subset of A/B/C)</td>
-    <td>belongs to Worker; one row per <em>(worker, calendar date)</em> — <strong>absence of a row
-    means unavailable that date</strong>, there is no weekly default or fallback</td>
+    <td>belongs to Worker; one row per <em>(worker, calendar date)</em>. Current (v2) meaning:
+    the subset is shifts the worker <strong>can</strong> work; absence of a row = unavailable that
+    date. <span class="badge progress">A semantics inversion is in progress</span> — see
+    <a href="#roadmap">Roadmap</a>.</td>
   </tr>
   <tr>
     <td><strong>StaffingRequirement</strong></td>
     <td>role, shift (A|B|C), required headcount</td>
-    <td>standalone settings; one row per role × shift</td>
+    <td>belongs to Company; one row per company × role × shift (≤ 9 rows per company)</td>
   </tr>
   <tr>
     <td><strong>Roster</strong></td>
-    <td>month (YYYY-MM, unique), status (<code>draft</code> | <code>published</code>),
-    generated-at timestamp</td>
-    <td>1 → many Shifts; 1 → many Alerts</td>
+    <td>month (YYYY-MM), status (<code>draft</code> | <code>published</code>), generated-at
+    timestamp</td>
+    <td>belongs to Company; one row per company × month; 1 → many Shifts, Alerts</td>
   </tr>
   <tr>
     <td><strong>Shift</strong></td>
-    <td>date, shift type (A|B|C); <em>unique (roster, date, shift type)</em> — one row per calendar
-    slot of the month, created when the roster is generated</td>
-    <td>belongs to Roster; 1 → many ShiftWorkers</td>
+    <td>date, shift type (A|B|C); <em>unique (roster, date, shift type)</em></td>
+    <td>belongs to Roster; 1 → many ShiftWorker</td>
   </tr>
   <tr>
     <td><strong>ShiftWorker</strong></td>
-    <td>role snapshot (the worker's role at assignment time); <em>PK (shift, worker)</em>; 8 hours
-    each, so cost and hour totals derive from a count × rate</td>
+    <td>role snapshot (the worker's role at assignment time); <em>PK (shift, worker)</em></td>
     <td>junction: joins Shift ↔ Worker</td>
   </tr>
   <tr>
     <td><strong>Alert</strong></td>
-    <td>type (<code>unfillable_slot</code> | <code>min_hours_shortfall</code>), detail
-    (slot or worker + missing hours), acknowledged flag + timestamp</td>
-    <td>belongs to Roster; all must be acknowledged before save</td>
+    <td>type (<code>unfillable_slot</code> | <code>min_hours_shortfall</code>), detail, acknowledged
+    flag + timestamp</td>
+    <td>belongs to Roster; all must be acknowledged before publish</td>
   </tr>
   <tr>
-    <td><strong>Job</strong></td>
-    <td>type (<code>csv-import</code> | <code>roster-generation</code>), status
-    (<code>created</code> | <code>active</code> | <code>completed</code> | <code>failed</code>),
-    payload, result (e.g. per-row CSV error report), timestamps</td>
-    <td>standalone; realized by pg-boss's own <code>pgboss.job</code> table (see
-    <a href="#db-schema">Database Schema</a>); polled by the UI for progress and results</td>
+    <td><strong>ImportTask</strong></td>
+    <td>kind (<code>WORKER_SYNC</code> | <code>AVAILABILITY_SYNC</code>), status
+    (<code>PENDING</code>→<code>PROCESSING</code>→<code>COMPLETED</code>/<code>FAILED</code>/<code>CANCELLED</code>),
+    pg-boss job id, row/error counts, timestamps</td>
+    <td>belongs to Company; a worker last synced by a task tracks it via
+    <code>Worker.lastImportTaskId</code> — see <a href="#csv-jobs">CSV Schema &amp; Import
+    Pipeline</a></td>
   </tr>
 </table>
 
 <p>Inactive workers keep their contract and history but are filtered out of every engine and
-candidate query. Projected cost per worker = assigned shifts × 8 × hourly rate (a
-<code>shift_workers</code> join); the roster total is the sum, and grouping the same join by the
-worker's company yields the per-company cost breakdown for reporting — no extra tables needed for
-the cost dashboard.</p>
+candidate query — as are workers whose <code>lastImportTaskId</code> no longer matches their
+company's latest <em>completed</em> <code>WORKER_SYNC</code> task (unless they've never been
+touched by a CSV sync at all, in which case they're always eligible — see
+<a href="#csv-jobs">CSV Schema &amp; Import Pipeline</a>). Projected cost per worker = assigned
+shifts × 8 × hourly rate; the roster total is the sum.</p>
 
-<div class="decision"><strong>Design decision:</strong> Company is the worker's <em>employer</em>
-(subcontractor grouping). It exists for grouping and reporting only — the scheduling engine never
-partitions by company: one global candidate pool fills every slot, and per-company views (worker
-lists, cost breakdowns) are computed at read time.</div>
-
-<div class="decision"><strong>Design decision:</strong> roster lifecycle is <code>draft → published</code>;
-regenerating or re-editing an already-published month reopens it as a draft, and publishing again
-re-runs the full alert/acknowledgment gate.</div>
+<div class="decision"><strong>Design decision:</strong> roster lifecycle is <code>draft →
+published</code>; regenerating or re-editing an already-published month reopens it as a draft, and
+publishing again re-runs the full alert/acknowledgment gate.</div>
 
 <h2 id="engine-flow">Scheduling Engine Flow</h2>
 
-<p>The engine is a <strong>CP-SAT constraint-optimization model</strong> (Google OR-Tools), built and
-solved per generation job in a small Python sidecar. The whole month is optimized in one model
-rather than filled slot by slot:</p>
+<p>The engine is a <strong>CP-SAT constraint-optimization model</strong> (Google OR-Tools), built
+and solved once per <em>(company, month)</em> generation job in a small Python sidecar. The whole
+month is optimized in one model rather than filled slot by slot, using only that company's own
+active workers and requirements:</p>
 
 <ul>
   <li><strong>Decision variables.</strong> Booleans <code>x[w,d,s] ∈ {0,1}</code> — worker
   <code>w</code> assigned to day <code>d</code>, shift <code>s</code>. A variable is only created
   where worker <code>w</code> has a <code>WorkerAvailability</code> row for the exact calendar date
-  <code>d</code> whose shift subset contains <code>s</code> — a per-date, not per-weekday, lookup —
-  which prunes the model before solving even starts. A worker with no availability rows in the
-  month contributes no variables at all.</li>
-  <li><strong>Hard constraints.</strong> (a) <em>Role coverage per slot:</em> for each
-  day × shift × role, the sum of <code>x</code> over workers of that role plus a shortfall slack
-  equals the required headcount; (b) <em>≤ 2 shifts</em> per worker per calendar day;
-  (c) <em>max monthly hours:</em> <code>8·Σx ≤ maxMonthlyHours</code> per worker.</li>
-  <li><strong>Soft constraints via slack variables.</strong> Coverage shortfall slacks — every
-  positive value in the solution becomes an <code>unfillable_slot</code> alert — and per-worker
-  min-hours shortfall slacks (<code>8·Σx + shortfall ≥ minMonthlyHours</code>), each positive value
-  becoming a <code>min_hours_shortfall</code> alert.</li>
-  <li><strong>Objective (lexicographic via weights).</strong> Minimize coverage shortfalls first
-  (large weight), then min-hours shortfalls, then a fairness term: minimize the spread between the
-  most- and least-loaded workers relative to their contracted hours — the even-distribution
-  preference expressed directly in the objective.</li>
+  <code>d</code> whose shift subset contains <code>s</code>. A worker with no availability rows in
+  the month contributes no variables at all.</li>
+  <li><strong>Hard constraints.</strong> (a) <em>Role coverage per slot:</em> for each day × shift ×
+  role, the sum of <code>x</code> over eligible workers of that role plus a shortfall slack equals
+  the required headcount; (b) <em>≤ 2 shifts</em> per worker per calendar day; (c) <em>max monthly
+  hours:</em> <code>8·Σx ≤ maxMonthlyHours</code> per worker.</li>
+  <li><strong>Soft constraints via slack variables.</strong> Coverage shortfall slacks (each
+  positive value becomes an <code>unfillable_slot</code> alert) and per-worker min-hours shortfall
+  slacks (each positive value becomes a <code>min_hours_shortfall</code> alert).</li>
+  <li><strong>Objective (lexicographic via weights).</strong> Minimize coverage shortfalls first,
+  then min-hours shortfalls, then a fairness term minimizing the spread between the most- and
+  least-loaded workers.</li>
   <li><strong>Determinism &amp; degradation.</strong> Fixed <code>random_seed</code>,
-  <code>num_search_workers = 1</code>, and a solver time limit (e.g. 30&nbsp;s) with the best
-  feasible solution accepted. Infeasibility is impossible by construction — the slacks absorb any
-  shortage — so the model always returns a roster plus alerts, never an error.</li>
+  <code>num_search_workers = 1</code>, and a ~30&nbsp;s solver time limit. The model is built so a
+  feasible solution should always exist (slacks absorb any shortage), but on a large enough problem
+  the solver can still exhaust its time budget before recording <em>any</em> solution — the solver
+  now checks its own status and fails loudly with a clear error in that case, rather than crashing
+  with an opaque exception (a real bug found by load-testing at ~1,000 workers, fixed).</li>
 </ul>
 
 <p><strong>Manual edits never touch the solver.</strong> Every move/add/remove on the calendar goes
-through the server-side TypeScript <code>RosterValidator</code>: hard violations (third shift in a
-day, outside the worker's availability for that exact date) are rejected outright; min/max-hours breaches return a warning the UI
-turns into a confirm dialog, and alerts are recomputed so the save gate always reflects the current
-grid.</p>
+through the server-side TypeScript <code>RosterValidator</code>: hard violations are rejected
+outright; min/max-hours breaches return a warning the UI turns into a confirm dialog.</p>
 
 <div class="decision"><strong>Design decision:</strong> CP-SAT is chosen over a greedy assignment
 pass because it finds globally optimal rosters and handles the coverage / min-hours / fairness
-interplay in one model instead of heuristic tie-breaks; the trade-off — a Python sidecar and solver
-runtime — is absorbed by the async job worker, where a few seconds of solving is invisible to the
-API.</div>
+interplay in one model instead of heuristic tie-breaks.</div>
 
-<div class="decision"><strong>Design decision:</strong> back-to-back Shift C → next-day Shift A is
-allowed — the brief mandates only the per-calendar-day cap and no further labour-law simulation.</div>
+<div class="caveat"><strong>Known scaling limit:</strong> generation currently always solves and
+persists the <em>entire</em> month from scratch, every time — there's no way to regenerate just a
+range of dates while leaving the rest of the month's assignments untouched. See
+<a href="#roadmap">Known Limitations &amp; Roadmap</a>.</div>
 
-<h2 id="background-jobs">Background Jobs &amp; Workers</h2>
+<h2 id="background-jobs">Background Jobs, Queues &amp; Import Tasks</h2>
 
-<p>Heavy or long-running work never runs inside an HTTP request. The API enqueues a <code>Job</code>
-row and returns immediately with the job id; a separate worker process picks jobs off the queue,
-executes them, and writes progress and results back to the job record, which the UI polls.</p>
+<p>Heavy or long-running work never runs inside an HTTP request. The API enqueues a pg-boss job and
+returns <code>202 {jobId}</code> immediately; a separate worker process picks jobs off the queue,
+executes them, and (for CSV imports) also maintains a first-class <code>ImportTask</code> row the
+UI polls independently of the raw pg-boss job record.</p>
 
-<ul>
-  <li><strong>CSV import worker.</strong> Parses and validates the uploaded file row by row using the
-  shared CSV module, upserts valid rows by national ID, then runs the <em>sync sweep</em>: every
-  existing worker whose national ID appears nowhere in the file (valid or failed row) is set
-  Inactive. Stores the per-row error report plus the deactivation list as the job result — a large
-  file can never time out the request, and one bad row never aborts the batch.</li>
-  <li><strong>Roster generation worker.</strong> Runs the CP-SAT sidecar for the requested month:
-  it builds the problem JSON, spawns <code>python3 solver/solve_roster.py</code>, passes the problem
-  on stdin, parses the solution JSON (assignments + alerts), and persists the draft roster — the
-  month's <code>shifts</code> rows plus their <code>shift_workers</code> rows — and alerts inside
-  one transaction as the job result. The API stays responsive while the solver runs, and
-  generation for a month can't run twice concurrently
-  (one in-flight <code>roster_generation</code> job per month).</li>
-  <li><strong>Scheduler (cron).</strong> A recurring job runs near the end of each month (e.g. the
-  25th) to auto-generate next month's <em>draft</em> roster with its alerts, so planners start from a
-  prepared draft instead of a blank month. The draft still goes through the normal review,
-  acknowledgment, and publish gate — cron never publishes.</li>
-</ul>
+<table>
+  <tr><th style="width:22%">Queue</th><th>Concurrency</th><th>Partitioning</th></tr>
+  <tr><td><code>csv-import</code></td><td><code>CSV_IMPORT_CONCURRENCY</code>, default 8 —
+  I/O-bound, safe to raise (bounded by the Prisma connection pool)</td>
+  <td><code>singletonKey = "companyId:WORKER_SYNC"</code></td></tr>
+  <tr><td><code>availability-import</code></td><td><code>AVAILABILITY_IMPORT_CONCURRENCY</code>,
+  default 8, same reasoning</td><td><code>singletonKey = "companyId:AVAILABILITY_SYNC"</code></td></tr>
+  <tr><td><code>roster-generation</code></td><td><code>ROSTER_GENERATION_CONCURRENCY</code>, default
+  2 — CP-SAT is CPU-bound and deliberately single-threaded per solve (for determinism), so this
+  should track available CPU cores per worker replica, not be raised arbitrarily</td>
+  <td><code>singletonKey = "companyId:month"</code></td></tr>
+</table>
 
-<p>The queue is DB-backed: <strong>pg-boss</strong>, a PostgreSQL-based job queue that claims jobs
-with <code>SELECT … FOR UPDATE SKIP LOCKED</code>, so no infrastructure beyond Postgres is needed.
-pg-boss also supplies the cron scheduler and per-key singleton jobs (used for the one-in-flight
-generation-per-month rule); swapping in a dedicated queue (e.g. Redis) later is an implementation
-detail behind the same job interface. Queue names, retry policy, the cron entry, and the polling
-endpoint shape are specified in <a href="#csv-jobs">CSV Schema &amp; Jobs Detail</a>.</p>
+<p>All three queues use pg-boss's <code>stately</code> policy, which requires an explicit
+<code>singletonKey</code> to partition uniqueness per company — <strong>omitting it does not
+disable the uniqueness constraint, it collapses every job on the queue onto one shared implicit
+key</strong>, making the whole queue globally single-flight across every company instead of
+per-company (a regression found and reverted during development; the key is required, not an
+optimization).</p>
 
-<div class="decision"><strong>Design decision:</strong> job execution is asynchronous but results are
-delivered by UI polling of the job record — no WebSockets or push channels in this version.</div>
+<h3>Cancel-and-replace: at most one import in flight per company</h3>
+
+<p>A worker-CSV or availability-CSV upload is tracked as an <code>ImportTask</code> row
+(<code>PENDING</code> → <code>PROCESSING</code> → <code>COMPLETED</code>/<code>FAILED</code>/<code>CANCELLED</code>),
+independent of pg-boss's own generic job bookkeeping. Uploading a new file while one is still
+processing for the same company+kind <strong>cancels the in-progress one and proceeds with the
+new one</strong>:</p>
+
+<ol>
+  <li>The route marks any existing non-terminal task for that company+kind <code>CANCELLED</code>
+  and best-effort cancels its pg-boss job, then creates a fresh <code>PENDING</code> task.</li>
+  <li><code>boss.cancel()</code> reliably stops a job that hasn't started yet, but cannot forcibly
+  interrupt code already executing inside a running handler — so the row-processing loop itself
+  re-checks its own task's status every ~50 rows and stops (without ever reaching
+  <code>COMPLETED</code>) if it's been superseded.</li>
+  <li>A worker's <code>lastImportTaskId</code> is stamped <strong>in one bulk write, only once the
+  task is confirmed <code>COMPLETED</code></strong> — never per-row mid-loop. An earlier version
+  stamped it optimistically per row, which allowed a worker already correctly stamped by an
+  <em>earlier</em> completed sync to have that valid stamp overwritten and lost by a later task
+  that touched their row before itself getting cancelled — a real bug, found at scale (5,000+
+  workers mis-stamped in a load test) and fixed.</li>
+  <li>Two independently-raced resources — the <code>import_tasks</code> DB row (guarded by a
+  partial unique index, <code>(companyId, kind)</code> where status is non-terminal) and the
+  pg-boss job row (guarded by <code>singletonKey</code>) — mean a single retry attempt is not
+  enough under genuine concurrent load; the route retries the whole cancel-then-enqueue sequence,
+  not just one half of it, up to a bounded count.</li>
+</ol>
+
+<p>Under a sustained, realistic upload cadence (tested: 60 uploads over 60 seconds, each replacing
+50–100% of the file's contents) this converges cleanly to exactly one <code>COMPLETED</code> task
+with zero data corruption. Under a more extreme, less realistic pattern (10 literally simultaneous
+requests within the same sub-second window) the retry can still occasionally fail to converge to a
+single winner — documented as a known limitation (no crash, no data corruption, just an occasional
+clean "nobody won, try again"), not chased further since it isn't the scenario the system needs to
+handle. A fully airtight fix would need a Postgres advisory lock serializing the whole sequence.</p>
+
+<h3>Roster-eligibility gate</h3>
+
+<p>A worker dropped from a new CSV upload <strong>stays <code>ACTIVE</code></strong> (no automatic
+deactivation — an earlier, removed "sync sweep" behavior silently deactivated workers, and did so
+<em>globally across every company</em>, not just the uploading one, since company resolution used
+to happen per-row rather than per-upload). Instead, they become ineligible for roster generation
+until they reappear in a completed sync: <code>RosterGenerationService</code> only considers active
+workers whose <code>lastImportTaskId</code> matches the company's latest <em>completed</em>
+<code>WORKER_SYNC</code> task, <strong>or</strong> who have never been touched by a CSV sync at all
+(so a company that manages workers entirely by hand can still generate a roster).</p>
+
+<p>The queue is DB-backed: <strong>pg-boss</strong>, claiming jobs with
+<code>SELECT … FOR UPDATE SKIP LOCKED</code>, so no infrastructure beyond Postgres is needed. It
+also supplies the cron scheduler (06:00 on the 25th of every month, auto-generates next month's
+draft — never publishes) and the singleton-key mechanism described above.</p>
+
+<div class="decision"><strong>Design decision:</strong> job execution is asynchronous but results
+are delivered by UI polling of the job/task record — no WebSockets or push channels.</div>
 
 <h2 id="uml">UML Diagram (animated)</h2>
 
-<p>Sequence of one roster generation, from the planner's click to the saved roster. Messages draw in
-order and the cycle repeats; the engine's lifeline pulses while it is active. "Scheduling Engine" in
-the diagram is the CP-SAT solver sidecar invoked by the roster-generation worker.</p>
+<p>Sequence of one roster generation, from the planner's click to the saved roster — the core flow,
+now always scoped to one company (the diagram omits company selection and CSV import for clarity;
+see <a href="#tenancy">Multi-Tenancy</a> and <a href="#csv-jobs">CSV Schema &amp; Import
+Pipeline</a> for those). Messages draw in order and the cycle repeats; the engine's lifeline pulses
+while active.</p>
 
 <div class="diagram-wrap">
 <svg viewBox="0 0 860 720" role="img" aria-label="Animated sequence diagram of roster generation: Planner to Web UI to API to Scheduling Engine, constraint check and assignment loop, alerts returned, planner acknowledges, save to Database.">
@@ -454,14 +507,12 @@ the diagram is the CP-SAT solver sidecar invoked by the roster-generation worker
     </marker>
   </defs>
 
-  <!-- Lifelines -->
   <line class="lifeline" x1="80"  y1="56" x2="80"  y2="700"/>
   <line class="lifeline" x1="260" y1="56" x2="260" y2="700"/>
   <line class="lifeline" x1="430" y1="56" x2="430" y2="700"/>
   <line class="lifeline" x1="600" y1="56" x2="600" y2="700"/>
   <line class="lifeline" x1="780" y1="56" x2="780" y2="700"/>
 
-  <!-- Head boxes -->
   <rect class="head-box" x="30"  y="20" width="100" height="36" rx="6"/>
   <rect class="head-box" x="210" y="20" width="100" height="36" rx="6"/>
   <rect class="head-box" x="380" y="20" width="100" height="36" rx="6"/>
@@ -473,80 +524,63 @@ the diagram is the CP-SAT solver sidecar invoked by the roster-generation worker
   <text class="head-txt" x="600" y="43">Scheduling Engine</text>
   <text class="head-txt" x="780" y="43">Database</text>
 
-  <!-- Activation bars -->
   <rect class="act" x="256" y="96"  width="8" height="596"/>
   <rect class="act" x="426" y="134" width="8" height="524"/>
   <rect class="act engine" x="596" y="244" width="8" height="166"/>
   <rect class="act" x="776" y="172" width="8" height="42"/>
   <rect class="act" x="776" y="578" width="8" height="42"/>
 
-  <!-- 1. Planner -> Web UI -->
-  <text class="lbl" x="170" y="94">generate roster (month)</text>
+  <text class="lbl" x="170" y="94">generate roster (company, month)</text>
   <line class="msg anim d1" x1="80" y1="100" x2="254" y2="100" marker-end="url(#arr)"/>
 
-  <!-- 2. Web UI -> API -->
-  <text class="lbl" x="345" y="132">POST /rosters/generate</text>
+  <text class="lbl" x="345" y="132">POST /rosters/generate {companyId, month}</text>
   <line class="msg anim d2" x1="264" y1="138" x2="424" y2="138" marker-end="url(#arr)"/>
 
-  <!-- 3. API -> DB -->
-  <text class="lbl" x="605" y="170">load active workers, contracts, staffing requirements</text>
+  <text class="lbl" x="605" y="170">load company's active workers, contracts, requirements</text>
   <line class="msg anim d3" x1="434" y1="176" x2="774" y2="176" marker-end="url(#arr)"/>
 
-  <!-- 4. DB -> API (return) -->
   <text class="lbl ret" x="605" y="204">input data</text>
   <line class="msg ret anim d4" x1="776" y1="210" x2="436" y2="210" marker-end="url(#arrRet)"/>
 
-  <!-- 5. API -> Engine -->
-  <text class="lbl" x="515" y="242">generate(month, inputs)</text>
+  <text class="lbl" x="515" y="242">generate(company, month, inputs)</text>
   <line class="msg anim d5" x1="434" y1="248" x2="594" y2="248" marker-end="url(#arr)"/>
 
-  <!-- Loop fragment -->
   <rect class="frag" x="555" y="266" width="290" height="118" rx="4"/>
   <rect class="frag-tag" x="555" y="266" width="44" height="18" rx="3"/>
   <text class="frag-tag-txt" x="577" y="279">loop</text>
   <text class="frag-guard" x="606" y="280">[each day &#215; shift &#215; role slot]</text>
 
-  <!-- 6. Engine self-message: constraint check + assignment -->
   <text class="lbl" x="713" y="300" text-anchor="middle">filter eligible: role, availability,</text>
   <text class="lbl" x="713" y="315" text-anchor="middle">&#8804; max hrs, &lt; 2 shifts/day</text>
   <path class="msg anim d6" d="M604,324 L706,324 L706,348 L610,348" marker-end="url(#arr)"/>
   <text class="lbl" x="713" y="368" text-anchor="middle">assign fewest-hours worker,</text>
   <text class="lbl" x="713" y="381" text-anchor="middle">else record unfillable-slot alert</text>
 
-  <!-- 7. Engine -> API (return) -->
   <text class="lbl ret" x="515" y="412">draft assignments + alerts</text>
   <line class="msg ret anim d7" x1="596" y1="418" x2="436" y2="418" marker-end="url(#arrRet)"/>
 
-  <!-- 8. API -> Web UI (return) -->
   <text class="lbl ret" x="345" y="432">draft roster + alerts</text>
   <text class="lbl ret" x="345" y="446">(unfillable slots, min-hrs shortfalls)</text>
   <line class="msg ret anim d8" x1="426" y1="452" x2="266" y2="452" marker-end="url(#arrRet)"/>
 
-  <!-- 9. Web UI -> Planner (return) -->
   <text class="lbl ret" x="170" y="480">display calendar grid + alert list</text>
   <line class="msg ret anim d9" x1="256" y1="486" x2="82" y2="486" marker-end="url(#arrRet)"/>
 
-  <!-- 10. Planner -> Web UI -->
   <text class="lbl" x="170" y="518">acknowledge each alert, save</text>
   <line class="msg anim d10" x1="80" y1="524" x2="254" y2="524" marker-end="url(#arr)"/>
 
-  <!-- 11. Web UI -> API -->
-  <text class="lbl" x="345" y="552">POST /rosters/:id/save {ackIds}</text>
+  <text class="lbl" x="345" y="552">POST /rosters/:id/publish {ackIds}</text>
   <line class="msg anim d11" x1="264" y1="558" x2="424" y2="558" marker-end="url(#arr)"/>
 
-  <!-- 12. API -> DB -->
   <text class="lbl" x="605" y="576">persist roster, assignments, acknowledgments (tx)</text>
   <line class="msg anim d12" x1="434" y1="582" x2="774" y2="582" marker-end="url(#arr)"/>
 
-  <!-- 13. DB -> API (return) -->
   <text class="lbl ret" x="605" y="610">committed</text>
   <line class="msg ret anim d13" x1="776" y1="616" x2="436" y2="616" marker-end="url(#arrRet)"/>
 
-  <!-- 14. API -> Web UI (return) -->
   <text class="lbl ret" x="345" y="644">saved (draft &#8594; published)</text>
   <line class="msg ret anim d14" x1="426" y1="650" x2="266" y2="650" marker-end="url(#arrRet)"/>
 
-  <!-- 15. Web UI -> Planner (return) -->
   <text class="lbl ret" x="170" y="678">confirmation</text>
   <line class="msg ret anim d15" x1="256" y1="684" x2="82" y2="684" marker-end="url(#arrRet)"/>
 </svg>
@@ -573,74 +607,70 @@ the diagram is the CP-SAT solver sidecar invoked by the roster-generation worker
 <table>
   <tr><th style="width:30%">Choice</th><th>Rationale</th></tr>
   <tr><td><strong>Node.js + TypeScript (Express)</strong></td>
-      <td>One language and one type system across API, engine, jobs, and UI; Express stays thin so
-      the engine and services carry the design weight.</td></tr>
+      <td>One language and one type system across API, engine, jobs, and UI.</td></tr>
   <tr><td><strong>Prisma ORM on PostgreSQL</strong></td>
-      <td>PostgreSQL is a fixed requirement of this design. Prisma gives schema-first migrations;
-      the uniqueness rules the design relies on are declared once in <code>schema.prisma</code> and
-      enforced by the database.</td></tr>
+      <td>Schema-first migrations; every uniqueness rule the design relies on (including per-company
+      composite keys) is declared once in <code>schema.prisma</code> and enforced by the database.</td></tr>
   <tr><td><strong>Zod</strong></td>
-      <td>Runtime validation at every API boundary with inferred TypeScript types, so request shapes
-      and validation can never drift apart.</td></tr>
+      <td>Runtime validation at every API boundary with inferred TypeScript types.</td></tr>
   <tr><td><strong>pg-boss</strong></td>
-      <td>Postgres-backed queue (<code>SKIP LOCKED</code>) with built-in cron and singleton keys —
-      background jobs and scheduling with zero extra infrastructure.</td></tr>
-  <tr><td><strong>React + Vite + TypeScript</strong></td>
-      <td>Fast SPA tooling; typed API hooks reuse the Zod-inferred shapes from the server.</td></tr>
+      <td>Postgres-backed queue (<code>SKIP LOCKED</code>) with built-in cron and per-company
+      singleton keys — background jobs and scheduling with zero extra infrastructure.</td></tr>
+  <tr><td><strong>React + Vite + TypeScript + Redux Toolkit</strong></td>
+      <td>Fast SPA tooling; typed API hooks reuse the Zod-inferred shapes from the server; Redux
+      holds only client-side UI state (active company, dialogs, in-flight edits), never a cache of
+      server data (that's RTK Query's job).</td></tr>
   <tr><td><strong>Python + OR-Tools CP-SAT (solver sidecar)</strong></td>
-      <td>Industrial constraint solver for the roster model. OR-Tools has no official Node binding,
-      so the solver is a ~100-line Python script invoked per generation job — JSON in, JSON out —
-      keeping the rest of the codebase pure TypeScript.</td></tr>
+      <td>Industrial constraint solver. No official Node binding, so it's a standalone script
+      invoked per generation job — JSON in over stdin, JSON out over stdout — keeping the rest of
+      the codebase pure TypeScript.</td></tr>
+  <tr><td><strong>pnpm workspaces + Turborepo</strong></td>
+      <td>Four workspaces (<code>apps/api</code>, <code>apps/web</code>, <code>packages/shared</code>,
+      <code>packages/ui</code>) with cached, dependency-aware <code>build</code>/<code>lint</code>/
+      <code>typecheck</code>/<code>test</code> across all of them.</td></tr>
 </table>
 
-<p>A single npm-workspaces monorepo with a <code>server/</code> and a <code>client/</code> package,
-plus a plain <code>solver/</code> directory for the Python sidecar (not an npm workspace):</p>
-
 <pre><code>rostering-system/
-├─ package.json                    # npm workspaces: server, client
-├─ server/
-│  ├─ prisma/
-│  │  ├─ schema.prisma             # full schema in "Database Schema" below
-│  │  └─ migrations/
-│  ├─ src/
-│  │  ├─ app.ts                    # Express app assembly (routes + error middleware, no listen)
-│  │  ├─ index.ts                  # HTTP entrypoint
-│  │  ├─ worker.ts                 # pg-boss worker entrypoint (separate process)
-│  │  ├─ routes/                   # thin HTTP layer: parse (Zod) → service → respond
-│  │  │  ├─ companies.ts           #   /api/companies CRUD (employer grouping)
-│  │  │  ├─ workers.ts             #   /api/workers, nested /contract, /share-link
-│  │  │  ├─ staffingRequirements.ts
-│  │  │  ├─ rosters.ts             #   generate, get by month, publish, cost-summary
-│  │  │  ├─ shiftWorkers.ts        #   /api/shifts/:shiftId/workers add / move / remove, ?confirm=true
-│  │  │  ├─ importExport.ts        #   CSV upload (multipart) + export
-│  │  │  ├─ jobs.ts                #   job-status polling
-│  │  │  └─ publicSchedule.ts      #   token-URL worker schedule (no auth)
-│  │  ├─ services/                 # business logic + transactions (rosterService, workerService…)
-│  │  ├─ engine/                   # pure, dependency-free validation + solver I/O module
-│  │  │  ├─ problem.ts             #   builds solver problem JSON / parses solution JSON
-│  │  │  ├─ validator.ts           #   RosterValidator: HARD + SOFT rules
-│  │  │  └─ types.ts
-│  │  ├─ jobs/                     # pg-boss wiring
-│  │  │  ├─ queue.ts               #   boss instance, queue names, cron registration
-│  │  │  ├─ csvImport.job.ts
-│  │  │  └─ rosterGeneration.job.ts
-│  │  ├─ validators/               # Zod schemas incl. israeliId.ts (checksum)
-│  │  └─ csv/                      # shared parse/serialize used by import job AND export route
-│  └─ tests/
+├─ apps/
+│  ├─ api/                            # Express REST API + pg-boss background worker
+│  │  ├─ prisma/
+│  │  │  ├─ schema.prisma
+│  │  │  └─ migrations/
+│  │  ├─ src/
+│  │  │  ├─ app.ts                    # Express app assembly (routes + error middleware)
+│  │  │  ├─ index.ts                  # HTTP entrypoint
+│  │  │  ├─ worker.ts                 # pg-boss worker entrypoint (separate process)
+│  │  │  ├─ routes/                   # companies, workers, staffingRequirements, rosters,
+│  │  │  │                            #   shiftWorkers, availability, importExport, importTasks,
+│  │  │  │                            #   jobs, publicSchedule — thin: parse (Zod) → service → respond
+│  │  │  ├─ services/                 # business logic + transactions
+│  │  │  ├─ engine/                   # pure, dependency-free: problem.ts, validator.ts, runSolver.ts
+│  │  │  ├─ jobs/                     # pg-boss wiring: queue.ts, csvImport.job.ts,
+│  │  │  │                            #   availabilityImport.job.ts, rosterGeneration.job.ts
+│  │  │  └─ csv/                      # shared parse/serialize for both CSV pipelines
+│  │  └─ loadtest/                    # autocannon-based concurrency/scale load tests
+│  └─ web/                            # React SPA
+│     └─ src/
+│        ├─ api/                      # RTK Query slices (typed fetch hooks)
+│        ├─ components/               # ActiveCompanyGate, Layout, …
+│        ├─ hooks/                    # useActiveCompanyId, …
+│        ├─ pages/                    # Workers, Companies, Requirements, Roster, CostDashboard,
+│        │                            #   PublicSchedule
+│        └─ store/                    # Redux slices (client-only UI state)
+├─ packages/
+│  ├─ shared/                         # Zod schemas + domain constants/types (@rostering/shared)
+│  └─ ui/                             # presentational component kit (@rostering/ui)
 ├─ solver/
-│  ├─ solve_roster.py              # OR-Tools CP-SAT model: problem JSON in → solution JSON out
-│  └─ requirements.txt             # pins ortools
-└─ client/
-   ├─ vite.config.ts
-   └─ src/
-      ├─ api/                      # typed fetch hooks: useWorkers, useRoster, useJobPolling…
-      ├─ pages/                    # Workers, Requirements, Roster, CostDashboard, PublicSchedule
-      ├─ components/               # CalendarGrid, AlertChecklist, ConfirmDialog, ImportReport…
-      └─ types/                    # shapes shared with server validators
+│  ├─ solve_roster.py                 # OR-Tools CP-SAT model: problem JSON in → solution JSON out
+│  └─ tests/                          # pytest — determinism, fairness, coverage-shortfall, etc.
+├─ infra/                             # Dockerfiles (api, worker, web/nginx) + nginx.conf
+├─ e2e/                                # Playwright end-to-end tests
+├─ docs/                              # this design doc, csv-schema.md, PRD
+└─ .notes/                            # design/plan docs per feature wave (see Roadmap)
 </code></pre>
 
-<div class="decision"><strong>Design decision:</strong> <code>server/src/engine/</code> imports
-nothing from Express, Prisma, or pg-boss — it is a pure module over plain data, so the API, the
+<div class="decision"><strong>Design decision:</strong> <code>apps/api/src/engine/</code> imports
+nothing from Express, Prisma, or pg-boss — a pure module over plain data, so the API, the
 background worker, and unit tests all call the identical code.</div>
 
 <h2 id="db-schema">Database Schema</h2>
@@ -648,36 +678,68 @@ background worker, and unit tests all call the identical code.</div>
 <p>The full Prisma schema (PostgreSQL). Every business-critical uniqueness rule is a database
 constraint, not just application logic:</p>
 
-<pre><code>enum Role         { GENERAL_GUARD  SUPERVISOR  SCREENER }
-enum ShiftType    { A  B  C }                       // A 00–08, B 08–16, C 16–24
-enum WorkerStatus { ACTIVE  INACTIVE }
-enum RosterStatus { DRAFT  PUBLISHED }
-enum AlertType    { UNFILLABLE_SLOT  MIN_HOURS_SHORTFALL }
+<pre><code>enum Role             { GENERAL_GUARD  SUPERVISOR  SCREENER }
+enum ShiftType         { A  B  C }                       // A 00–08, B 08–16, C 16–24
+enum WorkerStatus       { ACTIVE  INACTIVE }
+enum RosterStatus       { DRAFT  PUBLISHED }
+enum AlertType          { UNFILLABLE_SLOT  MIN_HOURS_SHORTFALL }
+enum ImportTaskKind     { WORKER_SYNC  AVAILABILITY_SYNC }
+enum ImportTaskStatus   { PENDING  PROCESSING  COMPLETED  FAILED  CANCELLED }
 
 model Company {                                     // table: companies
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(120)               // unique case-insensitively: raw-SQL migration
-                                                    // CREATE UNIQUE INDEX ON companies (lower(name))
-  createdAt DateTime @default(now())
-  workers   Worker[]
+  id                   Int                   @id @default(autoincrement())
+  name                 String                @db.VarChar(120) // unique case-insensitively (raw-SQL index)
+  createdAt            DateTime              @default(now())
+  workers              Worker[]
+  staffingRequirements StaffingRequirement[]
+  rosters              Roster[]
+  importTasks          ImportTask[]
   @@map("companies")
 }
 
+model ImportTask {                                  // table: import_tasks
+  id            Int               @id @default(autoincrement())
+  companyId     Int
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  kind          ImportTaskKind
+  status        ImportTaskStatus  @default(PENDING)
+  pgBossJobId   String?
+  month         String?           @db.Char(7)        // set only for AVAILABILITY_SYNC
+  totalRows     Int?
+  processedRows Int?
+  insertedCount Int?
+  updatedCount  Int?
+  failedCount   Int?
+  errors        Json?
+  createdAt     DateTime          @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  workers       Worker[]                            // workers last touched by this task
+  @@index([companyId, kind, status])
+  @@index([companyId, kind, finishedAt])             // "latest COMPLETED task" lookup
+  // + a hand-written partial unique index (not expressible in Prisma schema syntax):
+  //   CREATE UNIQUE INDEX ON import_tasks (companyId, kind) WHERE status IN ('PENDING','PROCESSING')
+  @@map("import_tasks")
+}
+
 model Worker {                                      // table: workers
-  id          Int              @id @default(autoincrement())
-  nationalId  String           @unique @db.Char(9) // Israeli ID; checksum checked in Zod
-  name        String           @db.VarChar(120)
-  companyId   Int                                   // ← employer, required
-  company     Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  role        Role
-  status      WorkerStatus     @default(ACTIVE)
-  shareToken  String           @unique @default(uuid())  // public schedule URL token
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  contract    Contract?
-  shiftWorkers ShiftWorker[]
-  @@index([companyId])                              // company filters/joins
-  @@index([status])                                 // engine loads ACTIVE workers (see partial index note)
+  id               Int                  @id @default(autoincrement())
+  nationalId       String               @unique @db.Char(9) // Israeli ID; checksum checked in Zod
+  name             String               @db.VarChar(120)
+  companyId        Int                                      // ← employer, required
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  role             Role
+  status           WorkerStatus         @default(ACTIVE)
+  shareToken       String               @unique @default(uuid())  // public schedule URL token
+  lastImportTaskId Int?                                      // ← last CSV sync that touched this worker
+  lastImportTask   ImportTask?          @relation(fields: [lastImportTaskId], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  contract         Contract?
+  shiftWorkers     ShiftWorker[]
+  availability     WorkerAvailability[]
+  @@index([companyId])
+  @@index([status])                                          // partial-index note below
   @@map("workers")
 }
 
@@ -686,7 +748,7 @@ model Contract {                                    // table: contracts
   workerId        Int      @unique                  // ← one contract per worker
   worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
   hourlyCostIls   Decimal  @db.Decimal(8, 2)        // NOT NULL, ≥ 0 (Zod)
-  minMonthlyHours Int                               // NOT NULL, 0 ≤ min ≤ max (Zod)
+  minMonthlyHours Int
   maxMonthlyHours Int
   updatedAt       DateTime @updatedAt
   @@map("contracts")
@@ -696,44 +758,53 @@ model WorkerAvailability {                          // table: worker_availabilit
   id        Int      @id @default(autoincrement())
   workerId  Int
   worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  date      DateTime @db.Date                        // exact calendar date, not a weekday
-  shifts    String                                   // canonical shift subset, e.g. "A", "AB", "ABC"
-  @@unique([workerId, date])                          // ← one row per worker × date; absence of a
-                                                      //   row IS the "unavailable that date" state
-  @@index([date])                                     // month-window queries (planner grid, solver
-                                                      //   problem-builder, CSV export)
+  date      DateTime @db.Date
+  shifts    String   @db.VarChar(3)                  // canonical subset of "ABC"; meaning is
+                                                       // currently "shifts the worker CAN work"
+                                                       // (v2) — an inversion to "shifts EXCLUDED" is
+                                                       // in progress, see Roadmap
+  updatedAt DateTime @updatedAt
+  @@unique([workerId, date])
+  @@index([date])
   @@map("worker_availability")
 }
 
 model StaffingRequirement {                         // table: staffing_requirements
   id            Int       @id @default(autoincrement())
+  companyId     Int
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   role          Role
   shift         ShiftType
-  requiredCount Int                                 // NOT NULL, ≥ 0
-  @@unique([role, shift])                           // ← one row per role × shift (≤ 9 rows)
+  requiredCount Int
+  @@unique([companyId, role, shift])                // ← per company, ≤ 9 rows
+  @@index([companyId])
   @@map("staffing_requirements")
 }
 
 model Roster {                                      // table: rosters
   id          Int          @id @default(autoincrement())
-  month       String       @unique @db.Char(7)     // ← "YYYY-MM"; one roster per month
+  companyId   Int
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  month       String       @db.Char(7)               // "YYYY-MM"
   status      RosterStatus @default(DRAFT)
   generatedAt DateTime?
   publishedAt DateTime?
   shifts      Shift[]
   alerts      Alert[]
+  @@unique([companyId, month])                       // ← one roster per company per month
+  @@index([companyId])
   @@map("rosters")
 }
 
 model Shift {                                       // table: shifts
-  id        Int       @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   rosterId  Int
-  roster    Roster    @relation(fields: [rosterId], references: [id], onDelete: Cascade)
-  date      DateTime  @db.Date
+  roster    Roster        @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
   shiftType ShiftType
   workers   ShiftWorker[]
-  @@unique([rosterId, date, shiftType])             // ← one row per calendar slot of the month
-  @@index([rosterId, date])                         // calendar-grid reads
+  @@unique([rosterId, date, shiftType])
+  @@index([rosterId, date])
   @@map("shifts")
 }
 
@@ -743,9 +814,8 @@ model ShiftWorker {                                 // table: shift_workers (jun
   workerId Int
   worker   Worker @relation(fields: [workerId], references: [id], onDelete: Restrict)
   role     Role                                     // ← snapshot of worker.role at assignment time
-  @@id([shiftId, workerId])                         // ← same worker never twice in one slot;
-                                                    //   8 h each: cost = count × 8 × rate
-  @@index([workerId])                               // per-worker schedule + daily-cap checks
+  @@id([shiftId, workerId])
+  @@index([workerId])
   @@map("shift_workers")
 }
 
@@ -754,435 +824,272 @@ model Alert {                                       // table: alerts
   rosterId       Int
   roster         Roster    @relation(fields: [rosterId], references: [id], onDelete: Cascade)
   type           AlertType
-  detail         Json      @db.JsonB                // {date,shift,role} or {workerId,deficitHours}
+  detail         Json      @db.JsonB
   acknowledged   Boolean   @default(false)
   acknowledgedAt DateTime?
   @@index([rosterId])
   @@map("alerts")
 }</code></pre>
 
-<p>Constraint-to-rule map: <code>companies lower(name) UNIQUE</code> → no duplicate employers, and
-the CSV resolve-or-create key; <code>workers.national_id UNIQUE</code> → no duplicate IDs and the CSV
-upsert key; <code>contracts.worker_id UNIQUE</code> → exactly one contract per worker;
-<code>staffing_requirements (role, shift) UNIQUE</code> → a single headcount setting per role × shift;
-<code>rosters.month UNIQUE</code> → one roster per month; <code>shifts (roster_id, date, shift_type)
-UNIQUE</code> → exactly one row per calendar slot; <code>shift_workers PK (shift_id, worker_id)</code>
-→ the same worker can never occupy one slot twice, even under concurrent edits — because a shift row
-<em>is</em> a roster + date + shift type, this one key replaces the old flat
-(roster, worker, date, shift) uniqueness. The 2-shifts-per-day cap cannot be expressed by the
-database alone; it — and every other cross-row rule — is enforced by the <code>RosterValidator</code>
-on every write path.</p>
-
 <div class="decision"><strong>Design decision:</strong> the shifts–workers connection is normalized
-into a <code>shifts</code> table (one row per roster + date + shift type, created at generation)
-plus a <code>shift_workers</code> junction, replacing the flat <code>shift_assignments</code> table.
-The junction snapshots the worker's <code>role</code> at assignment time, so a historical roster
-stays accurate even if the worker is later promoted or reassigned.</div>
+into a <code>shifts</code> table (one row per roster + date + shift type) plus a
+<code>shift_workers</code> junction that snapshots the worker's <code>role</code> at assignment
+time, so a historical roster stays accurate even if the worker is later promoted or reassigned.</div>
 
 <h3>Schema optimization notes</h3>
 
 <ul>
-  <li><strong>Native Postgres enums</strong> for <code>role</code>, <code>shift_type</code>, worker
-  and roster <code>status</code>, and alert <code>type</code> — compact storage, self-documenting,
-  and invalid values are rejected by the database itself.</li>
-  <li><strong>Every FK used in joins is indexed:</strong> <code>workers.company_id</code>,
-  <code>shifts.roster_id</code> (leading column of the <code>[rosterId, date]</code> index),
-  <code>shift_workers.worker_id</code>, and <code>alerts.roster_id</code>;
-  <code>shift_workers.shift_id</code> is covered as the leading column of the composite PK.</li>
-  <li><strong>Partial index</strong> <code>ON workers (id) WHERE status = 'ACTIVE'</code> (raw-SQL
-  migration) — every engine and candidate query filters on active workers.</li>
+  <li><strong>Native Postgres enums</strong> everywhere a fixed set of values applies — invalid
+  values are rejected by the database itself.</li>
+  <li><strong>Every FK used in joins is indexed:</strong> <code>companyId</code> on
+  <code>Worker</code>/<code>StaffingRequirement</code>/<code>Roster</code>, plus the
+  <code>ImportTask</code> composite lookups above.</li>
+  <li><strong>Partial indexes:</strong> <code>ON workers (id) WHERE status = 'ACTIVE'</code>, and
+  the <code>import_tasks</code> "at most one non-terminal task per company+kind" uniqueness
+  constraint described in <a href="#background-jobs">Background Jobs</a>.</li>
   <li><strong>Cascade rules:</strong> <code>ON DELETE CASCADE</code> down roster → shifts →
-  shift_workers and roster → alerts, so regenerating a draft month wipes cleanly in one delete;
-  <code>ON DELETE RESTRICT</code> from companies → workers and workers → shift_workers, so no
-  employer or shift history is ever orphaned.</li>
-  <li><strong>No stored derived values:</strong> hours and cost are always computed as
-  count × 8 × rate at read time, so totals can never drift from the assignments.</li>
-  <li><strong><code>updated_at</code></strong> is maintained by Prisma's <code>@updatedAt</code> on
-  mutable tables — no database triggers to migrate or debug.</li>
+  shift_workers and roster → alerts; <code>ON DELETE RESTRICT</code> from companies → workers,
+  companies → staffing requirements/rosters, and workers → shift_workers (no employer, requirement
+  setting, or shift history is ever silently orphaned); <code>ON DELETE SET NULL</code> from
+  workers → their last import task.</li>
+  <li><strong>No stored derived values:</strong> hours and cost are always computed at read time.</li>
 </ul>
 
 <p><strong>pg-boss schema:</strong> pg-boss creates and migrates its own <code>pgboss</code> schema
-(<code>pgboss.job</code>, <code>pgboss.archive</code>, <code>pgboss.schedule</code>, …) on first
-start; it lives outside Prisma and needs no hand-written job table.</p>
-
-<div class="decision"><strong>Design decision:</strong> availability is date-specific, not a weekly
-pattern — the previous design's 21-boolean weekly matrix (stored as one <code>jsonb</code> column on
-<code>Contract</code>) has been replaced by a <code>WorkerAvailability</code> table with one row per
-<em>(worker, calendar date)</em> and a canonical shift-subset string per row. Absence of a row means
-unavailable that date; there is no default or fallback. This matches how planners actually think
-about a specific month's roster (date-by-date, not "every Sunday") and lets the engine, validator,
-and CSV layer all key off the exact date instead of deriving a weekday from it.</div>
+on first start; it lives outside Prisma.</p>
 
 <h2 id="api">REST API Reference</h2>
 
-<p>All endpoints are JSON under <code>/api</code> except the public schedule page. Error convention:
-<code>400</code> Zod validation failure (<code>{ errors: [{path, message}] }</code>);
-<code>404</code> unknown resource; <code>422</code> hard-rule violation
-(<code>{ violations: [{code, detail}] }</code>) — never persisted, no override;
-<code>409</code> either a state conflict or soft-rule warnings
-(<code>{ warnings: [{code, detail}], confirmRequired: true }</code>) — the UI shows a confirm dialog
-and resubmits the identical request with <code>?confirm=true</code>.</p>
+<p>All endpoints are JSON under <code>/api</code> except the public schedule page. Error
+convention: <code>400</code> Zod validation failure; <code>404</code> unknown resource;
+<code>422</code> hard-rule violation — never persisted, no override; <code>409</code> a state
+conflict or soft-rule warnings requiring <code>?confirm=true</code> resubmission.
+<strong>No endpoint requires authentication</strong> — see <a href="#security">Security &amp; Scope
+Boundaries</a>.</p>
 
 <table>
-  <tr><th style="width:27%">Method &amp; path</th><th style="width:20%">Purpose</th>
-      <th>Key request fields</th><th style="width:14%">Success</th><th style="width:22%">Errors</th></tr>
-  <tr><td><code>GET /api/companies</code></td><td>List companies</td><td>—</td>
-      <td><code>200</code> Company[]</td><td>—</td></tr>
-  <tr><td><code>POST /api/companies</code></td><td>Create company</td>
-      <td><code>name</code></td><td><code>201</code> Company</td>
-      <td><code>409</code> duplicate name (case-insensitive)</td></tr>
-  <tr><td><code>PATCH /api/companies/:id</code></td><td>Rename company</td>
-      <td><code>name</code></td><td><code>200</code> Company</td>
-      <td><code>404</code>; <code>409</code> duplicate name</td></tr>
-  <tr><td><code>DELETE /api/companies/:id</code></td><td>Delete company</td><td>—</td>
-      <td><code>204</code></td>
-      <td><code>409</code> company still has workers; <code>404</code></td></tr>
-  <tr><td><code>GET /api/workers</code></td><td>List workers + contracts</td>
-      <td>query: <code>status</code>, <code>role</code>, <code>companyId</code>, <code>q</code></td>
-      <td><code>200</code> Worker[]</td><td>—</td></tr>
-  <tr><td><code>POST /api/workers</code></td><td>Create worker</td>
-      <td><code>nationalId</code>, <code>name</code>, <code>companyId</code>, <code>role</code>,
-      <code>status</code></td>
-      <td><code>201</code> Worker</td>
-      <td><code>400</code> bad ID checksum or unknown <code>companyId</code>;
-      <code>409</code> duplicate <code>nationalId</code></td></tr>
-  <tr><td><code>GET /api/workers/:id</code></td><td>Read one worker</td><td>—</td>
-      <td><code>200</code> Worker + Contract</td><td><code>404</code></td></tr>
-  <tr><td><code>PUT /api/workers/:id</code></td><td>Update worker</td>
-      <td>same fields as create (incl. <code>companyId</code>)</td><td><code>200</code> Worker</td>
-      <td><code>400</code>/<code>404</code>/<code>409</code> as create</td></tr>
-  <tr><td><code>DELETE /api/workers/:id</code></td><td>Delete worker</td><td>—</td>
-      <td><code>204</code></td>
-      <td><code>409</code> has shift history (<code>shift_workers</code> RESTRICT) → deactivate
-      (set Inactive) instead</td></tr>
-  <tr><td><code>GET /api/workers/:id/contract</code></td><td>Read contract</td><td>—</td>
-      <td><code>200</code> Contract</td><td><code>404</code></td></tr>
-  <tr><td><code>PUT /api/workers/:id/contract</code></td><td>Create/replace contract (upsert)</td>
-      <td><code>hourlyCostIls</code>, <code>minMonthlyHours</code>, <code>maxMonthlyHours</code></td>
-      <td><code>200</code> Contract</td>
-      <td><code>400</code> min &gt; max, negative values; <code>404</code></td></tr>
-  <tr><td><code>GET /api/availability/:month</code></td><td>All <code>WorkerAvailability</code> rows
-      for the month, grouped per worker (planner grid data source)</td><td>—</td>
-      <td><code>200</code> map of <code>workerId → {date: shifts}</code></td>
-      <td><code>400</code> malformed <code>:month</code></td></tr>
-  <tr><td><code>PUT /api/availability/:month</code></td><td>Full-replace availability for the month
-      in one transaction (delete month window + insert payload)</td>
-      <td>map of <code>workerId → {date: shifts}</code> (route-scoped 2&nbsp;MB JSON body limit,
-      not the app-wide 100&nbsp;KB default)</td>
-      <td><code>200</code> updated map</td>
-      <td><code>400</code> malformed <code>:month</code>, out-of-month date, illegal shift subset,
-      unknown <code>workerId</code>, or entry count over <code>MAX_AVAILABILITY_ENTRIES</code></td></tr>
-  <tr><td><code>POST /api/import/availability/:month</code></td><td>Month-scoped availability CSV
-      bulk import</td>
-      <td>multipart <code>file</code></td>
-      <td><code>202</code> <code>{jobId}</code></td>
-      <td><code>400</code> not CSV / header day-count mismatch for <code>:month</code> / over size
-      limit</td></tr>
-  <tr><td><code>GET /api/export/availability/:month</code></td><td>Month-scoped availability CSV
-      export (re-importable)</td><td>—</td>
-      <td><code>200</code> <code>text/csv</code></td><td><code>400</code> malformed <code>:month</code></td></tr>
-  <tr><td><code>GET /api/staffing-requirements</code></td><td>Read headcount matrix</td><td>—</td>
-      <td><code>200</code> rows[≤9]</td><td>—</td></tr>
-  <tr><td><code>PUT /api/staffing-requirements</code></td><td>Replace full role × shift matrix</td>
-      <td><code>[{role, shift, requiredCount}]</code></td>
-      <td><code>200</code> rows</td><td><code>400</code> duplicate cell, negative count</td></tr>
-  <tr><td><code>POST /api/rosters/generate</code></td><td>Enqueue roster generation</td>
-      <td><code>month</code> "YYYY-MM"; <code>force: true</code> to regenerate a published month
-      (reopens as draft)</td>
-      <td><code>202</code> <code>{jobId}</code></td>
-      <td><code>409</code> generation already in flight for month, or month published without
-      <code>force</code></td></tr>
-  <tr><td><code>GET /api/jobs/:id</code></td><td>Poll job status</td><td>—</td>
-      <td><code>200</code> job record (shape in <a href="#csv-jobs">§10</a>)</td>
-      <td><code>404</code></td></tr>
-  <tr><td><code>GET /api/rosters/:month</code></td><td>Roster + shifts + assigned workers + alerts
-      for a month</td>
-      <td>—</td><td><code>200</code> Roster</td><td><code>404</code> not generated yet</td></tr>
-  <tr><td><code>POST /api/shifts/:shiftId/workers</code></td><td>Add worker to a shift</td>
-      <td><code>workerId</code>; <code>?confirm=true</code></td>
-      <td><code>201</code> shift-worker row + recomputed alerts</td>
-      <td><code>422</code> hard rule; <code>409</code> soft warning without <code>confirm</code>;
-      <code>404</code> unknown shift</td></tr>
-  <tr><td><code>POST /api/shifts/:shiftId/workers/:workerId/move</code></td><td>Move worker to
-      another shift (remove + add in one transaction)</td>
-      <td><code>targetShiftId</code>; <code>?confirm=true</code></td>
-      <td><code>200</code> shift-worker row + recomputed alerts</td>
-      <td><code>422</code> hard rule; <code>409</code> soft warning; <code>404</code></td></tr>
-  <tr><td><code>DELETE /api/shifts/:shiftId/workers/:workerId</code></td><td>Remove worker from a
-      shift</td>
-      <td><code>?confirm=true</code></td>
-      <td><code>204</code> (+ recomputed alerts)</td>
-      <td><code>409</code> drops worker below min hours without <code>confirm</code>;
-      <code>404</code></td></tr>
-  <tr><td><code>POST /api/rosters/:id/alerts/:alertId/ack</code></td><td>Acknowledge one alert</td>
-      <td>—</td><td><code>200</code> alert</td><td><code>404</code></td></tr>
-  <tr><td><code>POST /api/rosters/:id/publish</code></td><td>Publish (save gate)</td><td>—</td>
-      <td><code>200</code> <code>{status: "published"}</code></td>
-      <td><code>409</code> <code>{unacknowledgedAlertIds}</code> — any alert unacknowledged</td></tr>
-  <tr><td><code>POST /api/import/workers</code></td><td>CSV bulk import</td>
-      <td>multipart <code>file</code></td>
-      <td><code>202</code> <code>{jobId}</code></td>
-      <td><code>400</code> not CSV / missing required headers / over size limit</td></tr>
-  <tr><td><code>GET /api/export/workers</code></td><td>CSV export (re-importable)</td><td>—</td>
-      <td><code>200</code> <code>text/csv</code></td><td>—</td></tr>
-  <tr><td><code>GET /api/workers/:id/share-link</code></td><td>Get (or rotate via
-      <code>POST …/share-link/rotate</code>) the worker's public schedule URL</td><td>—</td>
-      <td><code>200</code> <code>{url: "/schedule/&lt;token&gt;"}</code></td>
-      <td><code>404</code></td></tr>
-  <tr><td><code>GET /api/schedule/:token?month=YYYY-MM</code></td><td>Public read-only worker
-      schedule data (no auth; consumed by the frontend's own <code>/schedule/:token</code> SPA
-      route, which is not this endpoint — kept under <code>/api</code> specifically so the two
-      don't collide on one literal path)</td><td>—</td>
-      <td><code>200</code> JSON, published rosters only</td>
-      <td><code>404</code> unknown token (indistinguishable from no data)</td></tr>
-  <tr><td><code>GET /api/rosters/:month/cost-summary</code></td><td>Projected labor cost — roster
-      total, per worker, and grouped per company (reporting)</td><td>—</td>
-      <td><code>200</code> <code>{totalIls, perCompany: [{companyId, name, costIls}],
-      perWorker: [{workerId, shifts, hours, costIls}]}</code></td>
-      <td><code>404</code></td></tr>
+  <tr><th style="width:36%">Method &amp; path</th><th style="width:16%">Company-scoped</th><th>Notes</th></tr>
+  <tr><td colspan="3"><strong>Companies</strong></td></tr>
+  <tr><td><code>GET /api/companies</code></td><td>—</td><td>List all companies</td></tr>
+  <tr><td><code>POST /api/companies</code></td><td>—</td><td>Create (name, case-insensitively unique)</td></tr>
+  <tr><td><code>PATCH /api/companies/:id</code></td><td>—</td><td>Rename</td></tr>
+  <tr><td><code>DELETE /api/companies/:id</code></td><td>—</td><td>409 if it still has workers</td></tr>
+  <tr><td colspan="3"><strong>Workers</strong></td></tr>
+  <tr><td><code>GET /api/workers</code></td><td>optional filter</td><td>query: status, role, companyId, q</td></tr>
+  <tr><td><code>POST /api/workers</code></td><td>body</td><td>—</td></tr>
+  <tr><td><code>GET /api/workers/:id</code></td><td>—</td><td>—</td></tr>
+  <tr><td><code>PUT /api/workers/:id</code></td><td>body</td><td>—</td></tr>
+  <tr><td><code>DELETE /api/workers/:id</code></td><td>—</td><td>409 if shift history exists</td></tr>
+  <tr><td><code>GET</code> / <code>PUT /api/workers/:id/contract</code></td><td>—</td><td>—</td></tr>
+  <tr><td><code>GET /api/workers/:id/share-link</code></td><td>—</td><td>Public schedule URL</td></tr>
+  <tr><td><code>POST /api/workers/:id/share-link/rotate</code></td><td>—</td><td>Invalidates the old link</td></tr>
+  <tr><td colspan="3"><strong>Staffing requirements</strong></td></tr>
+  <tr><td><code>GET</code> / <code>PUT /api/staffing-requirements</code></td><td><strong>required (query)</strong></td><td>Full role×shift matrix read/replace</td></tr>
+  <tr><td colspan="3"><strong>Availability</strong></td></tr>
+  <tr><td><code>GET</code> / <code>PUT /api/availability/:month</code></td><td><strong>required (query)</strong></td><td><code>PUT</code> has its own 2MB body limit (route-scoped, wider than the app-wide 100kb default)</td></tr>
+  <tr><td><code>GET /api/export/availability/:month</code></td><td>—</td><td>CSV export</td></tr>
+  <tr><td><code>POST /api/import/availability/:month</code></td><td><strong>required (form field)</strong></td><td>202 + jobId — see <a href="#csv-jobs">CSV Schema</a></td></tr>
+  <tr><td colspan="3"><strong>Rosters</strong></td></tr>
+  <tr><td><code>POST /api/rosters/generate</code></td><td><strong>required (body)</strong></td><td>202 + jobId</td></tr>
+  <tr><td><code>GET /api/rosters/:month</code></td><td><strong>required (query)</strong></td><td>Roster + shifts + workers + alerts</td></tr>
+  <tr><td><code>GET /api/rosters/:month/cost-summary</code></td><td><strong>required (query)</strong></td><td>—</td></tr>
+  <tr><td><code>POST /api/rosters/:id/alerts/:alertId/ack</code></td><td>—</td><td>—</td></tr>
+  <tr><td><code>POST /api/rosters/:id/publish</code></td><td>—</td><td>Blocked by unacknowledged alerts</td></tr>
+  <tr><td><code>POST /api/shifts/:shiftId/workers</code></td><td>—</td><td>Add worker (<code>?confirm=true</code> for soft-warning override)</td></tr>
+  <tr><td><code>POST /api/shifts/:shiftId/workers/:workerId/move</code></td><td>—</td><td>—</td></tr>
+  <tr><td><code>DELETE /api/shifts/:shiftId/workers/:workerId</code></td><td>—</td><td>—</td></tr>
+  <tr><td colspan="3"><strong>Worker CSV</strong></td></tr>
+  <tr><td><code>POST /api/import/workers</code></td><td><strong>required (form field)</strong></td><td>202 + jobId</td></tr>
+  <tr><td><code>GET /api/export/workers</code></td><td>—</td><td>CSV export</td></tr>
+  <tr><td colspan="3"><strong>Import tasks &amp; jobs</strong></td></tr>
+  <tr><td><code>GET /api/import-tasks/active</code></td><td><strong>required (query)</strong> + <code>kind</code></td><td>200 with the in-flight <code>ImportTask</code> or <code>null</code> — never 404</td></tr>
+  <tr><td><code>GET /api/jobs/:id</code></td><td>—</td><td>Generic pg-boss poll (created/active/completed/failed) across all 3 queues</td></tr>
+  <tr><td colspan="3"><strong>Public</strong></td></tr>
+  <tr><td><code>GET /api/schedule/:token?month=YYYY-MM</code></td><td>—</td><td>Unauthenticated, per-worker share-token, rate-limited (30 req/min)</td></tr>
 </table>
-
-<div class="decision"><strong>Design decision:</strong> the confirm flow is stateless — a
-<code>409</code> soft-warning response carries everything the dialog needs, and the client simply
-repeats the same request with <code>?confirm=true</code>; the server re-validates hard rules
-regardless of the flag, so <code>confirm</code> can never override a <code>422</code>.</div>
 
 <h2 id="algorithms">Core Algorithms &amp; Validation</h2>
 
-<h3>Israeli ID (Teudat Zehut) checksum — <code>validators/israeliId.ts</code></h3>
+<p><code>RosterValidator</code> runs five hard rules on every manual edit, in this order:
+<code>workerIsActive</code>, <code>roleMatchesSlot</code>, <code>withinAvailability</code>,
+<code>noDuplicateSlot</code>, <code>maxTwoShiftsPerDay</code>. Any violation returns
+<code>422</code> and the edit is never persisted. Soft rules (min/max monthly hours) return
+<code>409</code> with a warning; the client resubmits the identical request with
+<code>?confirm=true</code> to proceed anyway, and alerts are recomputed so the save gate always
+reflects the current grid.</p>
 
-<pre><code>function isValidIsraeliId(raw: string): boolean {
-  if (!/^\d{1,9}$/.test(raw)) return false;
-  const id = raw.padStart(9, '0');               // short IDs are left-padded with zeros
-  let sum = 0;
-  for (let i = 0; i &lt; 9; i++) {
-    const product = Number(id[i]) * (i % 2 === 0 ? 1 : 2);   // alternate weights 1,2,1,2…
-    sum += product &gt; 9 ? product - 9 : product;  // sum the digits of two-digit products
-  }
-  return sum % 10 === 0;
-}</code></pre>
+<p>Israeli national ID validation uses the standard weighted-digit checksum (alternating ×1/×2 with
+digit-sum reduction), applied uniformly at every write boundary (manual worker create/edit, CSV
+import) via a shared Zod schema — never duplicated logic.</p>
 
-<h3>CP-SAT roster model — <code>solver/solve_roster.py</code></h3>
+<h2 id="csv-jobs">CSV Schema &amp; Import Pipeline</h2>
 
-<pre><code># problem JSON on stdin → solution JSON on stdout; SHIFT_HOURS = 8
-from ortools.sat.python import cp_model
+<p><span class="badge done">shipped</span> Two independent CSV pipelines today; a merge into one
+combined upload is <span class="badge progress">in progress</span> — see
+<a href="#roadmap">Roadmap</a>.</p>
 
-def solve(p):                                     # p: month, workers+contracts, requirements
-    m = cp_model.CpModel()
+<h3>Worker CSV — 7 columns</h3>
+<pre><code>national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours</code></pre>
+<p>Scoped to one company at upload time (a required <code>companyId</code> form field) — not
+resolved per row. (History: originally 18 columns including 10 weekly-availability columns and a
+per-row <code>company_name</code> column; the availability columns were dropped when availability
+became date-specific, and <code>company_name</code> was dropped when upload became company-scoped —
+resolving per row was a real bug, since it let one upload silently touch/deactivate workers at
+companies never mentioned in the file.) Matching is by <code>national_id</code> (upsert); a row
+whose ID already belongs to a <em>different</em> company is a per-row error, never a silent
+reassignment. <strong>No automatic deactivation</strong> — see the roster-eligibility gate in
+<a href="#background-jobs">Background Jobs</a> for how "absent from the latest sync" is actually
+handled.</p>
 
-    # Decision vars x[w,d,s] — created ONLY where the worker has a WorkerAvailability row for the
-    # EXACT date d whose shift subset contains s (date-keyed, not weekday-keyed; prunes the model)
-    x = {(w.id, d, s): m.new_bool_var(f"x_{w.id}_{d}_{s}")
-         for w in p.workers for (d, s) in p.slots
-         if s in p.availability.get(w.id, {}).get(d, [])}
+<h3>Availability CSV — <code>national_id</code> + one column per calendar day</h3>
+<pre><code>national_id,d01,d02,...,d&lt;N&gt;   // N = the target month's actual day count</code></pre>
+<p>Also scoped to one company at upload time. Cell = empty (no row — currently means unavailable
+that date, see the semantics-inversion note in <a href="#roadmap">Roadmap</a>) or a canonical
+ordered shift-subset string (<code>A</code>, <code>AB</code>, <code>ABC</code>, …). File-level
+errors (bad header, wrong row shape) abort the whole import; a bad cell inside an otherwise
+well-formed row fails only that row. Formula-injection guarding applied uniformly to every cell.</p>
 
-    # HARD (a): role coverage per day × shift × role, with shortfall slack
-    short = {}
-    for (d, s, role, required) in p.requirements:
-        short[d, s, role] = m.new_int_var(0, required, f"short_{d}_{s}_{role}")
-        m.add(sum(x[w.id, d, s] for w in p.workers
-                  if w.role == role and (w.id, d, s) in x)
-              + short[d, s, role] == required)
+<p>Both pipelines: <code>MAX_ROWS = 10,000</code>; imports run as a pg-boss job (202 + jobId),
+tracked as an <code>ImportTask</code> with the cancel-and-replace semantics described in
+<a href="#background-jobs">Background Jobs</a>; each row runs in its own transaction so one bad
+row never aborts the batch, and the job result includes a per-row error report.</p>
 
-    # HARD (b): ≤ 2 shifts per worker per calendar day
-    for w in p.workers:
-        for d in p.days:
-            m.add(sum(x[w.id, d, s] for s in "ABC" if (w.id, d, s) in x) &lt;= 2)
-
-    # HARD (c): max monthly hours; SOFT: min-hours shortfall slack
-    deficit, load = {}, {}
-    for w in p.workers:
-        total = sum(v for (wid, _, _), v in x.items() if wid == w.id)
-        m.add(8 * total &lt;= w.max_monthly_hours)
-        deficit[w.id] = m.new_int_var(0, w.min_monthly_hours, f"deficit_{w.id}")
-        m.add(8 * total + deficit[w.id] &gt;= w.min_monthly_hours)
-        load[w.id] = scaled_load(m, total, w)     # 8·total·100 / contracted hours
-                                                  # (add_division_equality)
-
-    # Fairness: minimize spread between most- and least-loaded workers
-    load_max = m.new_int_var(0, 100, "load_max"); m.add_max_equality(load_max, load.values())
-    load_min = m.new_int_var(0, 100, "load_min"); m.add_min_equality(load_min, load.values())
-
-    # Lexicographic objective via weights: coverage ≫ min-hours ≫ even distribution
-    m.minimize(10_000 * sum(short.values())
-             +    100 * sum(deficit.values())
-             +      1 * (load_max - load_min))
-
-    solver = cp_model.CpSolver()
-    solver.parameters.random_seed = 42            # fixed seed        ┐ deterministic:
-    solver.parameters.num_search_workers = 1      # single-threaded   ┘ same input → same roster
-    solver.parameters.max_time_in_seconds = 30    # best feasible solution accepted at the limit
-    solver.solve(m)                               # never INFEASIBLE — slacks absorb any shortage
-
-    return {
-      "assignments": [{"workerId": w, "date": d, "shift": s}
-                      for (w, d, s), v in x.items() if solver.value(v) == 1],
-      "alerts":
-        [{"type": "unfillable_slot", "date": d, "shift": s, "role": r,
-          "missing": solver.value(v)} for (d, s, r), v in short.items() if solver.value(v) &gt; 0]
-      + [{"type": "min_hours_shortfall", "workerId": w,
-          "deficitHours": solver.value(v)} for w, v in deficit.items() if solver.value(v) &gt; 0],
-    }</code></pre>
-
-<h3>RosterValidator rules — <code>engine/validator.ts</code></h3>
-
-<p>One rule list in TypeScript, mirroring the solver's constraints and consumed by every manual-edit
-endpoint — manual edits go through this validator, never the solver.
-HARD failures return <code>422</code> and are never persisted; SOFT failures return <code>409</code>
-warnings that require <code>?confirm=true</code>.</p>
-
-<pre><code>type Verdict =
-  | { ok: true;  warnings: SoftWarning[] }     // persist; warnings gate on confirm=true
-  | { ok: false; violations: HardViolation[] } // reject with 422 — no override exists
-
-const HARD_RULES = [
-  maxTwoShiftsPerDay,        // would be the worker's 3rd shift on that calendar date
-  withinAvailability,        // a WorkerAvailability row for the edit's EXACT date must exist and
-                              // its shift subset must contain the slot's shift
-  roleMatchesSlot,           // worker.role === slot.role
-  workerIsActive,            // status === ACTIVE
-  noDuplicateSlot,           // (shift_id, worker_id) — also the shift_workers primary key
-];
-
-const SOFT_RULES = [
-  exceedsMaxMonthlyHours,    // on add/move: month total would exceed contract.maxMonthlyHours
-  belowMinMonthlyHours,      // on delete/move-away: month total would drop under minMonthlyHours
-];
-
-function validateEdit(edit: Edit, ctx: MonthContext): Verdict { /* run HARD, then SOFT */ }</code></pre>
-
-<h2 id="csv-jobs">CSV Schema &amp; Jobs Detail</h2>
-
-<h3>Worker CSV columns (import and export — identical, so export re-imports unmodified)</h3>
-
-<p>Availability v2: this worker CSV carries <strong>no availability data at all</strong> — a
-previous design revision's 21 <code>avail_*</code> boolean columns have been removed entirely.
-Availability is date-specific and lives in the separate month-scoped CSV below.</p>
+<h2 id="frontend">Frontend Architecture</h2>
 
 <table>
-  <tr><th style="width:34%">Column</th><th>Type / allowed values</th></tr>
-  <tr><td><code>national_id</code></td><td>9 digits (shorter values are zero-padded), checksum-valid;
-      the upsert match key</td></tr>
-  <tr><td><code>name</code></td><td>non-empty string ≤ 120 chars</td></tr>
-  <tr><td><code>company_name</code></td><td>non-empty string ≤ 120 chars; import resolves it to an
-      existing company (case-insensitive) or creates one; export writes the company's name, so the
-      file stays re-importable unmodified</td></tr>
-  <tr><td><code>role</code></td><td><code>General Guard</code> | <code>Supervisor</code> |
-      <code>Screener</code></td></tr>
-  <tr><td><code>status</code></td><td><code>Active</code> | <code>Inactive</code></td></tr>
-  <tr><td><code>hourly_cost_ils</code></td><td>decimal ≥ 0, dot separator (e.g. <code>62.50</code>)</td></tr>
-  <tr><td><code>min_monthly_hours</code>, <code>max_monthly_hours</code></td>
-      <td>integers, <code>0 ≤ min ≤ max</code></td></tr>
+  <tr><th style="width:30%">Route</th><th>Notes</th></tr>
+  <tr><td><code>/</code></td><td>Redirects to <code>/workers</code></td></tr>
+  <tr><td><code>/workers</code>, <code>/companies</code>, <code>/requirements</code></td><td>—</td></tr>
+  <tr><td><code>/roster/:month</code></td><td>Calendar grid + generate/publish + availability tab</td></tr>
+  <tr><td><code>/cost/:month</code></td><td>Cost dashboard</td></tr>
+  <tr><td><code>/cost/:month/worker/:workerId</code></td><td>Per-worker cost detail</td></tr>
+  <tr><td><code>/cost/:month/compare</code></td><td>Multi-worker cost comparison</td></tr>
+  <tr><td><code>/schedule/:token</code></td><td><strong>Not</strong> wrapped in the authenticated
+  layout or gated by active-company — a fully self-contained, unauthenticated page with zero
+  dependency on the Redux store, enforced by its own architecture test</td></tr>
 </table>
 
-<p>Header row (one line, 8 columns) and one sample row:</p>
+<p>Every route except <code>/schedule/:token</code> renders inside <code>&lt;Layout&gt;</code>,
+which wraps its children in <code>ActiveCompanyGate</code>: driven by the <em>live</em> company
+list (never the persisted value alone, to guard against a stale/deleted company id in
+<code>localStorage</code>), it shows a loading state, a create-first-company form (zero companies,
+non-dismissable), a pick-or-create screen (companies exist but none active), or the actual page
+content wrapped in a React context providing the active company id to every descendant. Creating a
+company from any entry point activates it immediately; a company switcher in the top bar changes it
+without leaving the current page.</p>
 
-<pre><code>national_id,name,company_name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
-123456782,Dana Levi,Shamir Security Ltd,Supervisor,Active,62.50,120,182</code></pre>
+<h2 id="security">Security &amp; Scope Boundaries</h2>
 
-<p><strong>Full-sync semantics:</strong> each row is validated in full (Zod + ID checksum);
-<code>company_name</code> is resolved to an existing company by case-insensitive name or a new
-company is created; then, if <code>national_id</code> exists the worker and its contract are updated,
-otherwise both are created — in one transaction per row, so a failing row rolls back only itself and
-the batch continues. After all rows are processed, a <strong>sync sweep</strong> sets every existing
-worker whose <code>national_id</code> appears nowhere in the file to <code>Inactive</code> — the CSV
-is the authoritative workforce list. Deactivation never deletes: the worker keeps their contract,
-share token, and shift history, and is simply excluded from future rostering. A worker whose row is
-<em>present but failed validation</em> is <em>not</em> deactivated (they are in the file; only the
-bad row is reported). The
-import job's result is a per-row report:</p>
+<p>This section states plainly, with no hedging, what this system deliberately does <em>not</em>
+do — verified directly against the code, not inferred:</p>
 
-<pre><code>type ImportResult = {
-  totalRows: number; inserted: number; updated: number; failed: number;
-  deactivated: number;                     // sync sweep: workers absent from the file
-  deactivatedWorkers: Array&lt;{ workerId: number; nationalId: string; name: string }&gt;;
-  errors: Array&lt;{ row: number;            // 1-based data-row number
-                  nationalId?: string;
-                  field?: string;          // offending column, when attributable
-                  message: string }&gt;;
-};</code></pre>
+<ul>
+  <li><strong>No authentication anywhere.</strong> No login, session, JWT, API key, or any other
+  credential mechanism exists on any route. Every endpoint except the public schedule page is
+  reachable by anyone who can reach the server, with no identity check. The "active company"
+  concept is a client-side UX convenience only — nothing server-side ties a request to "the company
+  this caller is allowed to act as," and nothing prevents a client from passing any
+  <code>companyId</code> it likes.</li>
+  <li><strong>No role-based permissions or audit trail.</strong> Single planner/HR user model — the
+  schema leaves room to add both later, but neither exists today. <code>Worker.role</code> is a job
+  title (General Guard / Supervisor / Screener), not an application permission.</li>
+  <li><strong>No CORS configuration.</strong> By design, not oversight — the containerized
+  deployment serves the SPA and proxies <code>/api</code> from the same origin via nginx, so no
+  cross-origin request is ever expected. Running the API standalone against a different-origin
+  frontend would require adding CORS handling.</li>
+  <li><strong>Rate limiting is minimal and narrow.</strong> Only <code>/api/schedule/*</code> (the
+  one intentionally public, unauthenticated route) is rate-limited — 30 requests/minute per IP, both
+  at the application layer (<code>express-rate-limit</code>) and again at the nginx edge
+  (defense-in-depth). Every other route has no rate limiting at all.</li>
+  <li><strong>No WebSockets or push channels.</strong> All async results (CSV import progress,
+  roster generation) are delivered by client-side polling of the job/task record.</li>
+  <li><strong>The public schedule link is the one deliberate exception</strong> to "no
+  authentication" — access control there is a per-worker, non-guessable, rotatable share token
+  (UUID), not a login. It exposes only that one worker's own name and published shifts, never
+  national ID, hourly rate, or any other worker's data.</li>
+</ul>
 
-<div class="decision"><strong>Design decision:</strong> import = sync. Because an accidental
-partial file would silently deactivate everyone omitted, the UI's import panel states this rule
-up front and requires an explicit confirmation ("workers not in this file will be deactivated")
-before upload; the completion report lists every deactivated worker by name so the action is
-visible and reversible (re-import a full file, or flip the worker back to Active in the UI).</div>
+<div class="caveat"><strong>Practical implication:</strong> this system is appropriate for a
+trusted, single-operator deployment (one planner or HR team operating it directly, on a network
+they control) — not for exposing directly to the public internet or to multiple mutually
+untrusting parties without adding an authentication/authorization layer in front of it first.</div>
 
-<h3>Availability CSV columns (Availability v2 — separate month-scoped schema)</h3>
+<h2 id="deployment">Deployment &amp; Scaling</h2>
 
-<p><code>POST /api/import/availability/:month</code> and <code>GET /api/export/availability/:month</code>
-speak a month-scoped format, independent of the worker CSV above: <code>national_id</code> plus one
-<code>dNN</code> column per calendar date of the target month (<code>d01</code> … <code>d28</code>/
-<code>d29</code>/<code>d30</code>/<code>d31</code>, count depends on the month). Header row for a
-31-day month and one sample row:</p>
+<p>Two separate Docker Compose files, deliberately namespaced so both can run simultaneously on one
+machine without collision:</p>
 
-<pre><code>national_id,d01,d02,...,d31
-123456782,ABC,ABC,,A,AB,,,ABC,...</code></pre>
+<table>
+  <tr><th style="width:24%">File</th><th>Purpose</th></tr>
+  <tr><td><code>docker-compose.yml</code></td><td>Production-shaped stack (project name
+  <code>rostering-prod</code>): Postgres (internal-only, no published port), a one-shot
+  <code>migrate</code> service (<code>prisma migrate deploy</code>) that <code>api</code>/
+  <code>worker</code> wait on, <code>api</code> (no published port, healthchecked), <code>worker</code>
+  (no HTTP healthcheck — pg-boss just polls Postgres), and <code>nginx</code> as the <em>only</em>
+  published port (<code>80</code>). One command: <code>docker compose up --build --scale api=2</code>.</td></tr>
+  <tr><td><code>docker-compose.dev.yml</code></td><td>Dev-only Postgres (bound to
+  <code>127.0.0.1</code> only) + pgAdmin (also loopback-only, desktop-mode). Project name
+  <code>rostering-system</code> — deliberately distinct from the prod stack's namespace.</td></tr>
+</table>
 
-<p>Each <code>dNN</code> cell is either empty (no <code>WorkerAvailability</code> row for that date
-— unavailable) or a canonical shift-subset string in <code>A</code>&lt;<code>B</code>&lt;<code>C</code>
-order with no duplicates (<code>A</code>, <code>B</code>, <code>C</code>, <code>AB</code>,
-<code>AC</code>, <code>BC</code>, <code>ABC</code>); anything else (<code>AD</code>, <code>AA</code>,
-<code>BA</code>) is a per-row error. Import rejects a file whose header day-count/order does not
-exactly match <code>:month</code> before anything is enqueued — a 31-day export imported against a
-30-day target month is a 400, not a partial import.</p>
+<h3>Scaling</h3>
 
-<p><strong>Import semantics differ from the worker CSV in one key way: there is no sync-deactivation
-sweep.</strong> Each row (one worker) is validated and applied in its own transaction — a row that
-passes <strong>replaces</strong> that worker's <code>WorkerAvailability</code> rows for the whole
-target month with exactly what the row specifies; a row that fails (unknown <code>national_id</code>,
-illegal cell) is reported with its 1-based row number without aborting the batch; and a worker whose
-<code>national_id</code> is simply absent from the file keeps whatever availability rows they already
-have — nothing is deactivated by an availability import.</p>
+<p>Both <code>api</code> and <code>worker</code> have no <code>container_name</code> and no
+host-port binding, so both scale via <code>docker compose up --scale api=N --scale worker=N</code>
+with no config change needed. Scaling the worker is safe specifically because the
+"at-most-one-non-terminal-task-per-company" invariant is enforced at the database level
+(<a href="#background-jobs">Background Jobs</a>'s cancel-and-replace sequence + partial unique
+index) <em>before</em> a job is ever handed to pg-boss — adding more worker replicas just adds more
+concurrent claimers of an already-correct, already-deduplicated pool of job rows; it can't create a
+race that the DB layer doesn't already prevent.</p>
 
-<pre><code>type AvailabilityImportResult = {
-  totalRows: number; applied: number; failed: number;
-  errors: Array&lt;{ row: number; nationalId?: string; field?: string; message: string }&gt;;
-};</code></pre>
+<p>The real ceiling on replica count is <strong>Postgres connections, not CPU</strong>: each
+process holds two separate, independently-sized connection pools — Prisma's own
+(<code>DB_POOL_SIZE_PRISMA</code>, default 10) and pg-boss's (<code>DB_POOL_SIZE_BOSS</code>,
+default 10) — so a worker replica alone can hold up to ~20 connections. At Postgres's default
+<code>max_connections = 100</code>, that's a practical ceiling around 4–5 total replicas before
+either lowering the per-instance pool sizes or introducing PgBouncer becomes necessary.</p>
 
-<div class="decision"><strong>Design decision:</strong> the availability CSV is deliberately a
-separate endpoint/file from the worker CSV, not extra columns bolted onto it, because the two have
-different scopes (whole-workforce sync vs. one month's dates) and different import semantics
-(deactivation sweep vs. none) — conflating them would force one file format to awkwardly serve two
-different "what does an absent row mean" rules.</div>
+<p><code>ROSTER_GENERATION_CONCURRENCY</code> should be tuned to available CPU cores per worker
+replica, not raised freely like the two CSV queues — CP-SAT is deliberately single-threaded per
+solve (for determinism), so throughput scales with cores, and setting concurrency above the actual
+core count just makes every concurrent solve slower via OS scheduling contention, not faster
+overall.</p>
 
-<h3>pg-boss specifics</h3>
+<h2 id="roadmap">Known Limitations &amp; Roadmap</h2>
 
-<pre><code>// jobs/queue.ts — shared by API (send) and worker.ts (work)
-const boss = new PgBoss(process.env.DATABASE_URL); // owns the `pgboss` schema
+<p>Design/plan documents for every feature wave live in <code>.notes/</code>, in order:</p>
 
-export const QUEUES = { CSV_IMPORT: 'csv-import', ROSTER_GENERATION: 'roster-generation' };
-
-// worker.ts
-await boss.work(QUEUES.CSV_IMPORT,        { teamSize: 1 }, handleCsvImport);
-await boss.work(QUEUES.ROSTER_GENERATION, { teamSize: 1 }, handleRosterGeneration);
-// handleRosterGeneration: build problem JSON (engine/problem.ts) →
-// spawn `python3 solver/solve_roster.py`, problem JSON on stdin, solution JSON on stdout →
-// persist draft roster (shifts + shift_workers rows) + alerts in ONE transaction
-
-// API: enqueue generation — singletonKey = month ⇒ at most ONE queued/active
-// generation job per month; a second request gets null ⇒ respond 409
-const jobId = await boss.send(QUEUES.ROSTER_GENERATION, { month }, { singletonKey: month });
-
-// cron: 06:00 on the 25th of every month → auto-generate NEXT month's draft
-await boss.schedule(QUEUES.ROSTER_GENERATION, '0 6 25 * *', { month: 'next' });</code></pre>
-
-<p><strong>Job polling endpoint shape</strong> — <code>GET /api/jobs/:id</code>, read from
-<code>pgboss.job</code>; the SPA polls every 1.5&nbsp;s until a terminal state:</p>
-
-<pre><code>{ "id": "8f1c…", "name": "csv-import",
-  "state": "created" | "active" | "completed" | "failed",
-  "createdAt": "…", "completedAt": "…" | null,
-  "result": ImportResult                      // csv-import
-          | { "rosterId": 42, "alertCount": 3 }  // roster-generation
-          | { "error": "…" } }                // failed</code></pre>
-
-<div class="decision"><strong>Design decision:</strong> both job handlers run with
-<code>retryLimit: 2</code> (exponential backoff) because they are idempotent — import upserts by
-<code>national_id</code> (and resolves-or-creates companies by name; the sync sweep re-deactivates
-the same absent set), and generation
-deletes-and-rewrites the month's draft shifts, shift-worker rows, and alerts inside a single
-transaction, so a retried job converges on the same state.</div>
+<table>
+  <tr><th style="width:20%">Status</th><th>Item</th></tr>
+  <tr><td><span class="badge done">shipped</span></td><td><strong>Date-specific availability</strong>
+  (v2) — replaced a weekly-pattern matrix with one <code>WorkerAvailability</code> row per exact
+  calendar date.</td></tr>
+  <tr><td><span class="badge done">shipped</span></td><td><strong>Global active-company context</strong>
+  (v3) — company chosen once at app entry, gates every screen, replacing per-page company filters.</td></tr>
+  <tr><td><span class="badge done">shipped</span></td><td><strong>Per-company CSV import queues
+  &amp; tasks</strong> (v4, Part A) — the multi-tenancy, <code>ImportTask</code>, and
+  cancel-and-replace mechanisms described throughout this document. Includes a companion load-test
+  suite (Part C) and pgAdmin dev tooling (Part D).</td></tr>
+  <tr><td><span class="badge deferred">deferred</span></td><td><strong>Partial/range-scoped roster
+  regeneration</strong> (v4, Part B) — today, generating a roster always rebuilds the <em>entire</em>
+  month from scratch. Regenerating just a date range (leaving the rest of the month's assignments
+  untouched) would require the CP-SAT model to accept out-of-range assignments as fixed constants
+  rather than decision variables — a genuine solver-architecture change, deliberately scoped out of
+  the per-company-queues work and not yet started.</td></tr>
+  <tr><td><span class="badge progress">in progress</span></td><td><strong>Availability exclusion
+  semantics</strong> (v5, Part F) — inverting <code>WorkerAvailability</code> so an empty cell/row
+  means available for everything and listed shifts mean <em>excluded</em>, instead of today's
+  "listed shifts = included, empty = unavailable." No production data exists to migrate (confirmed
+  fresh dev history), so this is a clean reinterpretation, not a data migration — but it touches the
+  solver's problem-builder, the manual-edit validator, and the CSV/grid UI, so it's being verified
+  in isolation (including re-proving solver determinism) before the next item builds on it.</td></tr>
+  <tr><td><span class="badge progress">in progress</span></td><td><strong>Combined workforce
+  CSV</strong> (v5, Part G) — merging the worker CSV and availability CSV into one upload/endpoint/
+  <code>ImportTask</code> kind, replacing the two-pipeline model described in
+  <a href="#csv-jobs">CSV Schema &amp; Import Pipeline</a>. Planned to land after Part F, on top of
+  the already-correct new semantics.</td></tr>
+</table>
 
 </body>
 </html>

@@ -10,7 +10,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "test": "turbo run test",
+    "test": "turbo run test && pnpm test:load",
+    "test:load": "pnpm --filter @rostering/api exec tsx loadtest/crossCompanyNonBlocking.ts && pnpm --filter @rostering/api exec tsx loadtest/rapidFireReupload.ts && pnpm --filter @rostering/api exec tsx loadtest/largeFileResponsiveness.ts && pnpm --filter @rostering/api exec tsx loadtest/spamChurn.ts && pnpm --filter @rostering/api exec tsx loadtest/rosterGenerationLoad.ts && pnpm --filter @rostering/api exec tsx loadtest/publicScheduleLoad.ts",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
