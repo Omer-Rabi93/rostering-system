@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
 
 import { config as loadDotenv } from 'dotenv';
-import { isValidIsraeliId, ROLES, SHIFT_TYPES } from '@rostering/shared';
+import { computeAvailableShifts, isValidIsraeliId, ROLES, SHIFT_TYPES } from '@rostering/shared';
 import type { Role, ShiftType } from '@rostering/shared';
 
 import { createPrismaClient, type PrismaClient } from '../src/db/client.js';
@@ -93,16 +93,19 @@ const ROLE_PATTERN: readonly Role[] = [
   'SCREENER',
 ];
 
-/** Deterministic per-worker availability-subset mix (same subset every day of the month, for
+/** Deterministic per-worker EXCLUDED-shift-subset mix (same subset every day of the month, for
  * simplicity) -- NOT specified by the design doc's scale-tier text verbatim, but necessary for the
- * "solve" stage to be a meaningful benchmark at all: with zero `WorkerAvailability` rows, every
- * worker is unavailable every date (Availability v2's absence-is-unavailable rule), the solver's
- * candidate pool is empty, and "solve" would trivially return near-instantly regardless of worker
+ * "solve" stage to be a meaningful benchmark at all: with a `WorkerAvailability` row excluding
+ * every shift for every date, every worker would be unavailable every date, the solver's candidate
+ * pool would be empty, and "solve" would trivially return near-instantly regardless of worker
  * count -- which would silently defeat the entire point of this benchmark (the design doc's
  * explicit "solve is almost certainly the dominant cost at the top tier" question). Skewed toward
- * full availability (mirrors a workforce that mostly CAN work), with some 1-2-shift workers mixed
- * in for realistic constraint variety. See the tier report's notes for this explicit call-out. */
-const AVAILABILITY_PATTERN: readonly string[] = ['ABC', 'ABC', 'ABC', 'ABC', 'AB', 'AB', 'BC', 'AC', 'A', 'C'];
+ * full availability (mirrors a workforce that mostly CAN work -- empty string = nothing excluded =
+ * fully available, Availability v3), with some 1-2-shift-excluded workers mixed in for realistic
+ * constraint variety -- the exact complement of the pre-Availability-v3 INCLUDED-shift pattern this
+ * replaced (`'ABC','ABC','ABC','ABC','AB','AB','BC','AC','A','C'`), preserving the same real-world
+ * mix under the new semantics. See the tier report's notes for this explicit call-out. */
+const AVAILABILITY_PATTERN: readonly string[] = ['', '', '', '', 'C', 'C', 'A', 'B', 'BC', 'AB'];
 
 const VENV_PYTHON = path.resolve(REPO_ROOT, 'solver/.venv/bin/python3');
 const RESULTS_DIR = path.resolve(currentDir, 'results');
@@ -223,11 +226,17 @@ async function scaleStaffingRequirements(
 async function seedAvailability(prisma: PrismaClient, companyId: number, month: string): Promise<number> {
   const workers = await prisma.worker.findMany({ where: { companyId }, select: { id: true } });
   const days = monthDays(month);
-  const rows: { workerId: number; date: Date; shifts: string }[] = [];
+  const rows: { workerId: number; date: Date; excludedShifts: string }[] = [];
   for (const worker of workers) {
-    const pattern = AVAILABILITY_PATTERN[worker.id % AVAILABILITY_PATTERN.length] ?? 'ABC';
+    const pattern = AVAILABILITY_PATTERN[worker.id % AVAILABILITY_PATTERN.length] ?? '';
+    // An empty excluded-shifts pattern means fully available (Availability v3: absence of a row =
+    // available for everything) -- no row to create for that worker at all, matching the schema's
+    // non-empty-or-absent invariant.
+    if (pattern.length === 0) {
+      continue;
+    }
     for (const date of days) {
-      rows.push({ workerId: worker.id, date: new Date(`${date}T00:00:00.000Z`), shifts: pattern });
+      rows.push({ workerId: worker.id, date: new Date(`${date}T00:00:00.000Z`), excludedShifts: pattern });
     }
   }
   const CHUNK = 5000;
@@ -309,7 +318,7 @@ async function shadowDataFetchAndBuild(
     availabilityRows = rows.map((row) => ({
       workerId: row.workerId,
       date: row.date.toISOString().slice(0, 10),
-      shifts: row.shifts.split('') as ShiftType[],
+      shifts: computeAvailableShifts(row.excludedShifts.split('') as ShiftType[]),
     }));
   }
 

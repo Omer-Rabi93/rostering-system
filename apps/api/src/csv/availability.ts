@@ -1,6 +1,8 @@
-// Month-scoped availability CSV (Availability v2): `national_id` + one `dNN` column per calendar
-// date of the target month, cell value = a canonical shift-subset string (`A`, `AB`, `ABC`, ...)
-// or empty (= unavailable that date). Deliberately mirrors the worker CSV's structure
+// Month-scoped availability CSV (Availability v3 — exclusion semantics): `national_id` + one `dNN`
+// column per calendar date of the target month, cell value = a canonical shift-subset string
+// (`A`, `AB`, `ABC`, ...) listing the shifts the worker is EXCLUDED from (cannot work) that date,
+// or empty (= no exclusions = available for every shift that date; `ABC` = excluded from all
+// three, i.e. unavailable all day). Deliberately mirrors the worker CSV's structure
 // (`csv/{parse,serialize,record}.ts`): real CSV tokenizer/writer (`csv-parse`/`csv-stringify`),
 // the exact same `guardCell`/`unguardCell` formula-injection guard applied to EVERY cell
 // (including `national_id` and every `dNN` cell -- not special-cased out just because their
@@ -59,10 +61,11 @@ export class AvailabilityCsvHeaderError extends Error {}
 export class AvailabilityCsvRowShapeError extends Error {}
 
 /** One raw (formula-guard-stripped) row: the worker's `national_id` cell plus every `dNN` cell as
- * an untouched raw string (`''` = no cell value = candidate "unavailable that date", a non-empty
- * string = an as-yet-unvalidated shift-subset candidate). Validating those strings into real
- * `ShiftType[]` entries is `toAvailabilityEntries`'s job, deliberately kept separate from framing
- * so a bad cell can be reported as a per-row error without the whole file failing to parse. */
+ * an untouched raw string (`''` = no cell value = candidate "no exclusions, available all day", a
+ * non-empty string = an as-yet-unvalidated excluded-shift-subset candidate). Validating those
+ * strings into real `ShiftType[]` entries is `toAvailabilityEntries`'s job, deliberately kept
+ * separate from framing so a bad cell can be reported as a per-row error without the whole file
+ * failing to parse. */
 export interface AvailabilityCsvRawRow {
   readonly rowNumber: number; // 1-based, matching the worker CSV's `ImportRowError.row` convention
   readonly nationalId: string;
@@ -117,7 +120,8 @@ export function parseAvailabilityCsv(csvText: string, month: Month): Availabilit
   });
 }
 
-/** One validated (worker, date) availability entry parsed from a single `dNN` cell. */
+/** One validated (worker, date) exclusion entry parsed from a single `dNN` cell: the shifts the
+ * worker is EXCLUDED from (cannot work) on `date`, not the shifts they can work. */
 export interface AvailabilityCsvEntry {
   readonly date: string; // "YYYY-MM-DD"
   readonly shifts: readonly ShiftType[];
@@ -139,8 +143,10 @@ const SHIFT_LETTERS = new Set<string>(SHIFT_TYPES);
 
 /** Validates one `dNN` cell's raw string against the canonical shift-subset rules
  * (`@rostering/shared`'s `shiftSubsetSchema`: non-empty, `A`<`B`<`C` order, no duplicates/unknown
- * letters). An empty cell is valid and means "no entry" -- represented as `null`, never an empty
- * array (Availability v2: absence of the row IS the unavailable state). */
+ * letters). The letters name the shifts the worker is EXCLUDED from (cannot work), not the shifts
+ * they can work. An empty cell is valid and means "no exclusions" -- represented as `null`, never
+ * an empty array (Availability v3: absence of the row IS the fully-available state; a cell listing
+ * all three letters, `ABC`, is how "unavailable all day" is now expressed). */
 function parseShiftSubsetCell(raw: string, field: string): readonly ShiftType[] | null {
   if (raw === '') {
     return null;
@@ -163,9 +169,13 @@ function parseShiftSubsetCell(raw: string, field: string): readonly ShiftType[] 
 }
 
 /** Raw (already formula-guard-stripped, framing-validated) row -> the worker's non-empty
- * availability entries for `month`. Throws `AvailabilityCsvCellError` on the FIRST illegal cell --
- * the caller (the import service) treats a row with any bad cell as one failed row (same
- * granularity as the worker CSV's per-row transaction), not a partial per-cell apply. */
+ * exclusion entries for `month` (each entry lists the shifts the worker cannot work that date; a
+ * date with no entry means no exclusions, i.e. fully available -- an entry is pushed only when the
+ * cell is non-empty, mirroring "no row = fully available" the same mechanical way "no row =
+ * unavailable" used to work before the exclusion-semantics inversion). Throws
+ * `AvailabilityCsvCellError` on the FIRST illegal cell -- the caller (the import service) treats a
+ * row with any bad cell as one failed row (same granularity as the worker CSV's per-row
+ * transaction), not a partial per-cell apply. */
 export function toAvailabilityEntries(row: AvailabilityCsvRawRow, month: Month): AvailabilityCsvEntry[] {
   const entries: AvailabilityCsvEntry[] = [];
   for (const column of dayColumns(month)) {
@@ -178,20 +188,24 @@ export function toAvailabilityEntries(row: AvailabilityCsvRawRow, month: Month):
   return entries;
 }
 
-/** One worker's full month of availability, ready to serialize -- `entries` need only cover the
- * dates the worker has a row for; every other date in the month is written as an empty cell. */
+/** One worker's full month of exclusions, ready to serialize -- `entries` need only cover the
+ * dates the worker has a row for (i.e. dates with at least one excluded shift); every other date
+ * in the month is written as an empty cell, meaning no exclusions / fully available. */
 export interface AvailabilityCsvExportRow {
   readonly nationalId: string;
   readonly entries: readonly AvailabilityCsvEntry[];
 }
 
-/** `ShiftType[]` -> the canonical cell string (`SHIFT_TYPES` order, e.g. `"AB"`, `"ABC"`). Every
- * `WorkerAvailability` row is Zod-validated on write to already be in canonical order, so this is
- * a plain join, not a re-sort. */
+/** `ShiftType[]` -> the canonical cell string (`SHIFT_TYPES` order, e.g. `"AB"`, `"ABC"`) naming
+ * the excluded (cannot-work) shifts. Every `WorkerAvailability` row is Zod-validated on write to
+ * already be in canonical order, so this is a plain join, not a re-sort. */
 function shiftsToCell(shifts: readonly ShiftType[]): string {
   return shifts.join('');
 }
 
+/** Serializes each row's exclusion entries back to CSV cells: a date with an entry writes that
+ * date's excluded-shift letters, a date with no entry writes an empty cell (no exclusions, fully
+ * available that date). */
 export function serializeAvailabilityCsv(rows: readonly AvailabilityCsvExportRow[], month: Month): string {
   const header = availabilityCsvHeader(month);
   const lines = rows.map((row) => {

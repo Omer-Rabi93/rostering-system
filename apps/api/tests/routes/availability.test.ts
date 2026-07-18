@@ -78,7 +78,7 @@ describe('/api/availability/:month (bulk JSON) and availability CSV import/expor
     it('returns grouped availability for the month', async () => {
       const worker = await makeWorker(701);
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'AB' },
+        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), excludedShifts: 'AB' },
       });
 
       const response = await request(app).get(`/api/availability/${FEB_2027}`);
@@ -161,7 +161,7 @@ describe('/api/availability/:month (bulk JSON) and availability CSV import/expor
       const companyB = await prisma.company.create({ data: { name: 'Cross PUT Co B' } });
       const workerB = await makeWorker(721, companyB.id);
       await prisma.workerAvailability.create({
-        data: { workerId: workerB.id, date: new Date('2027-02-10T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: workerB.id, date: new Date('2027-02-10T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
 
       const response = await request(app)
@@ -172,7 +172,7 @@ describe('/api/availability/:month (bulk JSON) and availability CSV import/expor
       expect(response.status).toBe(400);
       const rows = await prisma.workerAvailability.findMany({ where: { workerId: workerB.id } });
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.shifts).toBe('ABC'); // untouched
+      expect(rows[0]?.excludedShifts).toBe('ABC'); // untouched
     });
 
     it('accepts a dense, legal payload whose JSON body exceeds the app-wide 100kb limit (route-scoped 2mb)', async () => {
@@ -232,7 +232,7 @@ describe('/api/availability/:month (bulk JSON) and availability CSV import/expor
     it('returns text/csv with the security headers and a re-importable body', async () => {
       const worker = await makeWorker(705);
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), shifts: 'ABC' },
+        data: { workerId: worker.id, date: new Date('2027-02-05T00:00:00.000Z'), excludedShifts: 'ABC' },
       });
 
       const response = await request(app).get(`/api/export/availability/${FEB_2027}`);

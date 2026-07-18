@@ -79,8 +79,10 @@ structure of `apps/api/src/db/seedData.ts`, safe to re-import unmodified.
 # Availability CSV Schema
 
 `POST /api/import/availability/:month` and `GET /api/export/availability/:month` speak a
-month-scoped CSV format (Availability v2): `national_id` plus one column per calendar date of the
-target month (`d01` … `d28`/`d29`/`d30`/`d31`, count depends on the month). Implemented in
+month-scoped CSV format (Availability v3 — exclusion semantics): `national_id` plus one column per
+calendar date of the target month (`d01` … `d28`/`d29`/`d30`/`d31`, count depends on the month).
+Each `dNN` cell lists the shifts that worker is **excluded from** (cannot work) that date, not the
+shifts they can work — see [Cell values](#cell-values) below. Implemented in
 `apps/api/src/csv/availability.ts`.
 
 ## Header (exact order and names, computed per month)
@@ -96,13 +98,21 @@ target month is rejected with a 400 before anything is enqueued.
 
 ## Cell values
 
-Each `dNN` cell is either:
+Each `dNN` cell names the shifts the worker is **excluded from** (cannot work) on that date — it is
+NOT a list of shifts they can work. A `dNN` cell is either:
 
-- **empty** — the worker has no `WorkerAvailability` entry for that date (unavailable that date), or
+- **empty** — the worker has no `WorkerAvailability` entry for that date, meaning no exclusions:
+  they are available for every shift that date, or
 - a **canonical shift-subset string**: one or more of the letters `A`, `B`, `C` (shift order
   00:00–08:00 / 08:00–16:00 / 16:00–24:00), always in `A` < `B` < `C` order with no duplicates —
-  `A`, `B`, `C`, `AB`, `AC`, `BC`, `ABC`. Any other value (unknown letter, duplicate letter,
-  out-of-order letters, e.g. `AD` or `AA` or `BA`) is rejected for that row.
+  `A`, `B`, `C`, `AB`, `AC`, `BC`, `ABC`, naming the excluded shift(s). Any other value (unknown
+  letter, duplicate letter, out-of-order letters, e.g. `AD` or `AA` or `BA`) is rejected for that
+  row.
+
+For example, `d05 = "AB"` means the worker is excluded from (cannot work) the `A` and `B` shifts on
+that date but IS available for the `C` shift; `d06 = "ABC"` means the worker is excluded from all
+three shifts, i.e. fully unavailable that date; `d07 = ""` (empty) means no exclusions at all,
+i.e. available for `A`, `B`, and `C` that date.
 
 ## Import semantics
 

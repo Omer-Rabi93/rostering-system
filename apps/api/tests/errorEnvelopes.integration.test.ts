@@ -61,11 +61,10 @@ describe('error envelopes conform to @rostering/shared schemas', () => {
         maxMonthlyHours: 0,
       },
     });
-    // Availability v2: the add below must clear the HARD `withinAvailability` rule so the only
-    // violation raised is the SOFT `exceedsMaxMonthlyHours` one this test is actually about.
-    await prisma.workerAvailability.create({
-      data: { workerId: worker.id, date: new Date('2026-08-01T00:00:00.000Z'), shifts: 'ABC' },
-    });
+    // Availability v3: the add below must clear the HARD `withinAvailability` rule so the only
+    // violation raised is the SOFT `exceedsMaxMonthlyHours` one this test is actually about --
+    // simply not creating a `WorkerAvailability` row for this worker/date now means "available
+    // every shift" (absence = fully available, the new semantics), so no row is needed at all.
     const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
     const shift = await prisma.shift.create({
       data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },

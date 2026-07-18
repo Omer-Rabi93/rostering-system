@@ -54,18 +54,14 @@ describe('/api/shifts/:shiftId/workers', () => {
         maxMonthlyHours: overrides.maxMonthlyHours ?? 200,
       },
     });
-    // Availability v2: every test in this file schedules shifts inside August 2026, so seed this
-    // worker as fully available (all 3 shifts) on every date of that month by default — matching
-    // the pre-v2 "always available" baseline these tests were written against. The one test that
-    // needs a worker who is NOT available on a specific date (the move-to-unavailable-date test
-    // below) builds its own narrower `WorkerAvailability` rows instead of calling this helper.
-    await prisma.workerAvailability.createMany({
-      data: Array.from({ length: 31 }, (_, i) => ({
-        workerId: worker.id,
-        date: new Date(`2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`),
-        shifts: 'ABC',
-      })),
-    });
+    // Availability v3: every test in this file schedules shifts inside August 2026, and this
+    // worker needs to be fully available (all 3 shifts) on every date of that month by default —
+    // matching the "always available" baseline these tests were written against. Under the new
+    // "row stores EXCLUDED shifts, absence = available for everything" semantics, that baseline
+    // needs NO `WorkerAvailability` rows at all (not a full month of `excludedShifts: 'ABC'` rows,
+    // which would now mean the opposite: fully UNavailable). The one test that needs a worker who
+    // is NOT available on a specific date (the move-to-unavailable-date test below) creates its own
+    // explicit excluding `WorkerAvailability` row instead of calling this helper.
     return worker;
   }
 
@@ -224,11 +220,11 @@ describe('/api/shifts/:shiftId/workers', () => {
       await prisma.contract.create({
         data: { workerId: worker.id, hourlyCostIls: 40, minMonthlyHours: 0, maxMonthlyHours: 200 },
       });
-      // Availability v2: a `WorkerAvailability` row for 2026-08-02 (the source date) only — no row
-      // at all for 2026-08-03 (the move's target date). Absence of a row IS "unavailable that
-      // date", so the move below must be hard-blocked by `withinAvailability`.
+      // Availability v3: a `WorkerAvailability` row EXCLUDING shift A for 2026-08-03 (the move's
+      // target date/shift) — an explicit exclusion, not row-absence (which would now mean
+      // "available"), so the move below must be hard-blocked by `withinAvailability`.
       await prisma.workerAvailability.create({
-        data: { workerId: worker.id, date: new Date('2026-08-02T00:00:00.000Z'), shifts: 'A' },
+        data: { workerId: worker.id, date: new Date('2026-08-03T00:00:00.000Z'), excludedShifts: 'A' },
       });
       const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const sourceShift = await prisma.shift.create({

@@ -55,13 +55,13 @@ describe('AvailabilityGrid', () => {
     expect(within(table).getAllByRole('gridcell')).toHaveLength(dayCount);
   });
 
-  it('renders a worker with zero rows in the month as all-unavailable, without crashing', async () => {
+  it('renders a worker with zero rows in the month as available for all shifts, without crashing', async () => {
     installMockFetch([WORKERS_ROUTE([makeWorker()]), availabilityRoute('2026-08', {})]);
 
     renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
 
     const cell = await screen.findByTestId('avail-cell-1-2026-08-01');
-    expect(cell.getAttribute('aria-label')).toContain('unavailable');
+    expect(cell.getAttribute('aria-label')).toContain('available for all shifts');
   });
 
   it('has exactly one roving tab stop, and arrow keys move it between cells', async () => {
@@ -94,18 +94,18 @@ describe('AvailabilityGrid', () => {
 
     renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     const cell = await screen.findByTestId('avail-cell-1-2026-08-03');
-    expect(cell.getAttribute('aria-label')).toContain('unavailable');
+    expect(cell.getAttribute('aria-label')).toContain('available for all shifts');
 
     cell.focus();
     await user.keyboard('a');
-    expect(cell.getAttribute('aria-label')).toContain('available shift A');
+    expect(cell.getAttribute('aria-label')).toContain('unavailable for shift A');
 
     await user.keyboard('c');
-    expect(cell.getAttribute('aria-label')).toContain('available shift A, C');
+    expect(cell.getAttribute('aria-label')).toContain('unavailable for shift A, C');
 
     // Toggling the same letter again removes it.
     await user.keyboard('a');
-    expect(cell.getAttribute('aria-label')).toContain('available shift C');
+    expect(cell.getAttribute('aria-label')).toContain('unavailable for shift C');
     expect(cell.getAttribute('aria-label')).not.toContain('A, C');
   });
 
@@ -133,7 +133,7 @@ describe('AvailabilityGrid', () => {
     expect(payload).toEqual({ '1': { '2026-08-03': ['B'] } });
   });
 
-  it('starts from the server-loaded availability, and "None" clears a worker entirely', async () => {
+  it('starts from the server-loaded availability, and "None" clears a worker\'s exclusions entirely (fully available)', async () => {
     const user = userEvent.setup();
     const { fetchMock, calls } = installMockFetch([
       WORKERS_ROUTE([makeWorker()]),
@@ -143,10 +143,10 @@ describe('AvailabilityGrid', () => {
 
     renderWithProviders(<AvailabilityGrid month="2026-08" companyId={1} />);
     const cell = await screen.findByTestId('avail-cell-1-2026-08-01');
-    expect(cell.getAttribute('aria-label')).toContain('available shift A, B');
+    expect(cell.getAttribute('aria-label')).toContain('unavailable for shift A, B');
 
     await user.click(screen.getByRole('button', { name: 'None' }));
-    expect(cell.getAttribute('aria-label')).toContain('unavailable');
+    expect(cell.getAttribute('aria-label')).toContain('available for all shifts');
 
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(screen.getByText(/Availability saved/)).toBeInTheDocument());

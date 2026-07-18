@@ -1,3 +1,4 @@
+import { computeAvailableShifts } from '@rostering/shared';
 import type { ShiftType } from '@rostering/shared';
 import { validateEdit } from '../engine/validator.js';
 import type { AssignedShift, AvailabilityByDate, Edit, MonthContext, Verdict } from '../engine/types.js';
@@ -13,19 +14,23 @@ export interface ShiftWorkerResult {
   readonly alerts: readonly AlertDto[];
 }
 
-// `WorkerAvailability.shifts` stores the canonical subset as a plain string (e.g. "A", "ABC") —
-// every stored row was Zod-validated on write (`shiftSubsetSchema`) to only ever contain A/B/C in
-// canonical order, so splitting into characters is exact, not a parse that can fail here.
-function parseShiftSubset(shifts: string): readonly ShiftType[] {
-  return shifts.split('') as ShiftType[];
+// `WorkerAvailability.excludedShifts` stores the canonical subset as a plain string (e.g. "A",
+// "ABC") — every stored row was Zod-validated on write (`shiftSubsetSchema`) to only ever contain
+// A/B/C in canonical order, so splitting into characters is exact, not a parse that can fail here.
+function parseShiftSubset(excludedShifts: string): readonly ShiftType[] {
+  return excludedShifts.split('') as ShiftType[];
 }
 
 /**
  * Fetches this worker's `WorkerAvailability` rows for exactly the given dates (the dates the edit
  * being validated actually touches — a manual edit only ever needs the target date(s), never the
- * whole month) and returns them as the `AvailabilityByDate` map `withinAvailability` consumes. A
- * date with no matching row is simply absent from the returned map — that IS the "unavailable that
- * date" state (Availability v2), not an error to work around.
+ * whole month) and returns them as the `AvailabilityByDate` map `withinAvailability` consumes.
+ * Availability v3: each row stores the shifts this worker is EXCLUDED from that date, inverted
+ * here via `computeAvailableShifts` into the INCLUDED/available shifts `AvailabilityByDate`
+ * actually carries -- `withinAvailability` itself never sees a raw excluded value. A date with no
+ * matching row is simply absent from the returned map, which `withinAvailability`'s own
+ * missing-date default now treats as "available for every shift" (the new semantics), not
+ * "unavailable" (Availability v2's old rule).
  */
 async function loadAvailability(
   tx: Prisma.TransactionClient,
@@ -38,7 +43,9 @@ async function loadAvailability(
   const rows = await tx.workerAvailability.findMany({
     where: { workerId, date: { in: dates.map((d) => new Date(`${d}T00:00:00.000Z`)) } },
   });
-  return new Map(rows.map((row) => [formatDate(row.date), parseShiftSubset(row.shifts)]));
+  return new Map(
+    rows.map((row) => [formatDate(row.date), computeAvailableShifts(parseShiftSubset(row.excludedShifts))]),
+  );
 }
 
 function buildContext(

@@ -10,6 +10,7 @@ export {
   SHIFT_HOURS,
   SHIFT_TYPES,
   type ShiftType,
+  computeAvailableShifts,
   ROLES,
   type Role,
   WORKER_STATUSES,

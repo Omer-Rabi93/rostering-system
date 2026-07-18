@@ -84,10 +84,13 @@ function monthDateRange(month: string): { readonly start: Date; readonly end: Da
   return { start: new Date(`${first}T00:00:00.000Z`), end: new Date(`${last}T00:00:00.000Z`) };
 }
 
-/** `WorkerAvailability.shifts` stores the canonical subset as a plain string (e.g. "A", "ABC") --
- * every stored row was Zod-validated on write to only ever contain A/B/C in canonical order, so
- * splitting into characters is exact, not a parse that can fail here (mirrors
- * `shiftWorkerService.ts`'s own `parseShiftSubset`). */
+/** `WorkerAvailability.excludedShifts` stores the canonical subset as a plain string (e.g. "A",
+ * "ABC") -- every stored row was Zod-validated on write to only ever contain A/B/C in canonical
+ * order, so splitting into characters is exact, not a parse that can fail here (mirrors
+ * `shiftWorkerService.ts`'s own `parseShiftSubset`). Availability v3: the grid's `GET`/`PUT
+ * /api/availability/:month` payload shape (`MonthAvailability`'s `shifts` field) carries the SAME
+ * excluded-shifts letters the DB/CSV store 1:1 (Option A: no inversion at this boundary) -- these
+ * two helpers are a plain string<->array conversion, not an excluded->available computation. */
 function shiftsStringFromArray(shifts: readonly ShiftType[]): string {
   return shifts.join('');
 }
@@ -136,7 +139,7 @@ export class AvailabilityService {
         byDate = new Map();
         byWorker.set(row.workerId, byDate);
       }
-      byDate.set(formatDate(row.date), shiftsArrayFromString(row.shifts));
+      byDate.set(formatDate(row.date), shiftsArrayFromString(row.excludedShifts));
     }
 
     const result: Record<string, Record<string, ShiftType[]>> = {};
@@ -160,7 +163,7 @@ export class AvailabilityService {
     const { start, end } = monthDateRange(month);
 
     const workerIdKeys = Object.keys(payload);
-    type InsertRow = { workerId: number; date: Date; shifts: string };
+    type InsertRow = { workerId: number; date: Date; excludedShifts: string };
     const insertRows: InsertRow[] = [];
     let totalEntries = 0;
     for (const key of workerIdKeys) {
@@ -168,7 +171,7 @@ export class AvailabilityService {
       const byDate = payload[key] ?? {};
       for (const [date, shifts] of Object.entries(byDate)) {
         totalEntries++;
-        insertRows.push({ workerId, date: new Date(`${date}T00:00:00.000Z`), shifts: shiftsStringFromArray(shifts) });
+        insertRows.push({ workerId, date: new Date(`${date}T00:00:00.000Z`), excludedShifts: shiftsStringFromArray(shifts) });
       }
     }
 
@@ -234,7 +237,7 @@ export class AvailabilityService {
         entries = [];
         byWorker.set(nationalId, entries);
       }
-      entries.push({ date: formatDate(row.date), shifts: shiftsArrayFromString(row.shifts) });
+      entries.push({ date: formatDate(row.date), shifts: shiftsArrayFromString(row.excludedShifts) });
     }
 
     const exportRows: AvailabilityCsvExportRow[] = [...byWorker.entries()].map(([nationalId, entries]) => ({
@@ -370,7 +373,7 @@ export class AvailabilityService {
     const insertRows: Prisma.WorkerAvailabilityCreateManyInput[] = entries.map((entry) => ({
       workerId: worker.id,
       date: new Date(`${entry.date}T00:00:00.000Z`),
-      shifts: shiftsStringFromArray(entry.shifts),
+      excludedShifts: shiftsStringFromArray(entry.shifts),
     }));
 
     await this.prisma.$transaction(async (tx) => {

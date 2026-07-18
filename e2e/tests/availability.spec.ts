@@ -31,8 +31,12 @@ test.describe('Availability grid', () => {
     // Make Noa the ONLY available General Guard on her 3 target dates, so the solver's
     // deterministic solution is forced to lean on her there (a positive proof she's used, not
     // just a negative "never violates" check) — she has zero availability everywhere else.
+    // Availability v3: an absent row now means fully AVAILABLE (the opposite of pre-v3), so
+    // "zero availability everywhere" must be an EXPLICIT full-day exclusion (`excludedShifts:
+    // 'ABC'`) rather than clearing every row, which under v3 would make these guards MORE
+    // available, not less.
     for (const w of otherGuards) {
-      await dbAdmin.clearWorkerAvailability({ month, workerId: w.id });
+      await dbAdmin.fillAvailability({ month, workerIds: [w.id], shifts: 'ABC' });
     }
 
     const targetDates = [`${month}-03`, `${month}-10`, `${month}-20`];
@@ -40,9 +44,16 @@ test.describe('Availability grid', () => {
     await openAvailabilityTab(page, month);
 
     const noaRow = page.getByRole('row').filter({ hasText: 'Noa Levi' });
-    await noaRow.getByRole('button', { name: 'None' }).click();
+    // "All" now marks every shift excluded on every date (fully unavailable) — the new baseline
+    // this test needs before carving out the 3 target dates' shift-A availability, replacing the
+    // old "None" (clear exclusions) baseline that pre-v3 meant "fully unavailable" but now means
+    // the opposite (fully available).
+    await noaRow.getByRole('button', { name: 'All' }).click();
 
     for (const date of targetDates) {
+      // Toggling "A" off (it's currently excluded, from the "All" click above) leaves only B and
+      // C excluded for this date — i.e. available for shift A only, same real-world outcome the
+      // old "toggle A on from a cleared row" flow produced.
       await page.getByTestId(`avail-cell-${noa.id}-${date}`).locator('[data-shift="A"]').click();
     }
 
@@ -55,10 +66,10 @@ test.describe('Availability grid', () => {
     for (const date of targetDates) {
       await expect(page.getByTestId(`avail-cell-${noa.id}-${date}`)).toHaveAttribute(
         'aria-label',
-        `Noa Levi, ${dayLabel(date)}, available shift A`,
+        `Noa Levi, ${dayLabel(date)}, unavailable for shift B, C`,
       );
     }
-    // A date outside the 3 chosen ones is unavailable.
+    // A date outside the 3 chosen ones stays fully excluded (unavailable) from the "All" click.
     await expect(page.getByTestId(`avail-cell-${noa.id}-${month}-15`)).toHaveAttribute(
       'aria-label',
       `Noa Levi, ${dayLabel(`${month}-15`)}, unavailable`,
@@ -134,7 +145,10 @@ test.describe('Availability grid', () => {
   }) => {
     const month = seed.availabilityMonth;
     const dana = findWorker(seed, 'Dana Mizrahi'); // a Supervisor, so removing her doesn't starve GG coverage
-    await dbAdmin.clearWorkerAvailability({ month, workerId: dana.id });
+    // Availability v3: an absent row now means fully AVAILABLE, so "zero availability" (the same
+    // real-world fact this test's title/intent still names) must be an EXPLICIT full-day exclusion
+    // every date this month, not a cleared/absent row (which would now mean the opposite).
+    await dbAdmin.fillAvailability({ month, workerIds: [dana.id], shifts: 'ABC' });
 
     await openAvailabilityTab(page, month);
     const danaRow = page.getByRole('row').filter({ hasText: 'Dana Mizrahi' });
@@ -176,15 +190,16 @@ test.describe('Availability grid', () => {
     await expect(firstCell).toHaveAttribute('tabindex', '-1');
     await expect(secondCell).toHaveAttribute('tabindex', '0');
 
-    // Noa is fully available every date by seed default ("A, B, C"); toggling shift B on the
-    // focused cell via the letter key removes it, and the cell's aria-label updates to reflect
-    // exactly that new subset.
+    // Noa is fully available every date by seed default (no exclusion row at all -- Availability
+    // v3: an absent row means available for everything); toggling shift B on the focused cell via
+    // the letter key marks B EXCLUDED, and the cell's aria-label updates to reflect exactly that
+    // new subset.
     const beforeLabel = await secondCell.getAttribute('aria-label');
-    expect(beforeLabel).toBe(`Noa Levi, ${dayLabel(`${month}-02`)}, available shift A, B, C`);
+    expect(beforeLabel).toBe(`Noa Levi, ${dayLabel(`${month}-02`)}, available for all shifts`);
     await page.keyboard.press('b');
     await expect(secondCell).not.toHaveAttribute('aria-label', beforeLabel ?? '');
     const afterLabel = await secondCell.getAttribute('aria-label');
-    expect(afterLabel).toBe(`Noa Levi, ${dayLabel(`${month}-02`)}, available shift A, C`);
+    expect(afterLabel).toBe(`Noa Levi, ${dayLabel(`${month}-02`)}, unavailable for shift B`);
 
     // Home moves back to the first cell of the row.
     await page.keyboard.press('Home');

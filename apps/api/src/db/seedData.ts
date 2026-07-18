@@ -233,26 +233,39 @@ export function nextCalendarMonth(now: Date = new Date()): Month {
   return `${nextYear}-${String(nextMonth0 + 1).padStart(2, '0')}`;
 }
 
-/** `availableShifts` -> the canonical shift-subset string (`SHIFT_TYPES` order, e.g. `"AB"`,
- * `"ABC"`) `WorkerAvailability.shifts` stores. Every fixture has at least one `true` entry, so this
- * is never empty. */
-function shiftSubsetForFixture(availableShifts: AvailableShifts): string {
-  return SHIFT_TYPES.filter((_, i) => availableShifts[i]).join('');
+/** `availableShifts` -> the canonical EXCLUDED shift-subset string (`SHIFT_TYPES` order, e.g.
+ * `"C"`, `""`) `WorkerAvailability.excludedShifts` stores for a date the worker IS available at
+ * all (Availability v3: the row lists what the worker CANNOT work, the complement of
+ * `availableShifts`). Can be empty (fully available that date, e.g. `ALL_SHIFTS`) -- callers must
+ * treat an empty result as "no row needed", never store it (the schema's non-empty-or-absent
+ * invariant). */
+function excludedShiftSubsetForFixture(availableShifts: AvailableShifts): string {
+  return SHIFT_TYPES.filter((_, i) => !availableShifts[i]).join('');
 }
 
 /**
- * Derives this fixture worker's Availability v2 rows for `month`, preserving its old weekly-matrix
- * intent: a row is seeded on every date of `month` whose weekday is in `availableDays`, carrying
- * the (date-invariant) shift subset from `availableShifts`. A date whose weekday is excluded (e.g.
- * a weekend for the "weekdays only" fixture) gets NO row at all -- matching the "absence of a row
- * = unavailable that date" semantics -- rather than a row with an empty `shifts`.
+ * Derives this fixture worker's Availability v3 rows for `month`, preserving its old weekly-matrix
+ * intent under the new "row stores EXCLUDED shifts, absence = available for everything" meaning:
+ *
+ * - A date whose weekday is NOT in `availableDays` (e.g. a weekend for the "weekdays only"
+ *   fixture) is fully unavailable that date -- expressed as an explicit `excludedShifts: "ABC"`
+ *   row (the new way to represent what row-absence used to mean), not by omitting the row (that
+ *   would now mean the opposite: available for everything).
+ * - A date whose weekday IS in `availableDays` gets a row carrying the complement of
+ *   `availableShifts` (e.g. `NO_NIGHT_SHIFT`'s `[true, true, false]` -> excluded `"C"`) -- UNLESS
+ *   the worker is available for every shift that date (`ALL_SHIFTS`), in which case the complement
+ *   is empty and NO row is seeded at all (an empty `excludedShifts` is never stored; row-absence
+ *   already means "available everything," so it needs no row to say so).
  */
 export function buildSeedAvailabilityRows(
   seedWorker: SeedWorkerInput,
   month: Month,
-): ReadonlyArray<{ date: string; shifts: string }> {
-  const shifts = shiftSubsetForFixture(seedWorker.availableShifts);
+): ReadonlyArray<{ date: string; excludedShifts: string }> {
+  const excludedWhenAvailable = excludedShiftSubsetForFixture(seedWorker.availableShifts);
   return monthDays(month)
-    .filter((date) => seedWorker.availableDays[weekdayIndex(date)])
-    .map((date) => ({ date, shifts }));
+    .map((date) => ({
+      date,
+      excludedShifts: seedWorker.availableDays[weekdayIndex(date)] ? excludedWhenAvailable : 'ABC',
+    }))
+    .filter((row) => row.excludedShifts.length > 0);
 }

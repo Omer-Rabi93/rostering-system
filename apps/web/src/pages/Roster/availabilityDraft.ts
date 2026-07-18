@@ -7,10 +7,18 @@ import type { MonthAvailability, ShiftType } from '@rostering/shared';
  * required to funnel every keystroke through a network round-trip: the draft is edited entirely
  * client-side and turned into a single `PUT` payload on Save (`draftToPayload`).
  *
- * Sparse by construction, same as the wire shape: a worker/date with no availability has NO key —
+ * Availability v3: the `ShiftSubset` at each `[workerId][date]` is the EXCLUDED-shift subset, not
+ * the available one — the grid matches the CSV/DB 1:1 (Option A in
+ * `.notes/availability-v3-exclusion-semantics-and-combined-csv-plan.md`'s Part F), so toggling a
+ * letter marks that shift as one the worker is NOT available for. No inversion happens anywhere in
+ * this file or in the fetch/save path (`getMonth`/`replaceMonth`) — the mechanics below are
+ * unchanged from Availability v2; only what a non-empty/absent entry MEANS has flipped.
+ *
+ * Sparse by construction, same as the wire shape: a worker/date with no entry has NO key —
  * `toggleCell` deletes empty date/worker entries rather than ever storing an empty array. Every
- * lookup (`cellShifts`) therefore treats `undefined` as the real "unavailable" state, never
- * coalesced away with a non-null assertion (`noUncheckedIndexedAccess` pitfall from the plan).
+ * lookup (`cellShifts`) therefore treats `undefined` as the real "available for everything, no
+ * exclusions" state, never coalesced away with a non-null assertion (`noUncheckedIndexedAccess`
+ * pitfall from the plan).
  */
 export type AvailabilityDraft = Readonly<Record<string, Readonly<Record<string, readonly ShiftType[]>>>>;
 
@@ -23,8 +31,9 @@ export function draftFromMonthAvailability(data: MonthAvailability | undefined):
  * untouched cell in a large worker x date grid skip re-rendering on an unrelated cell's toggle. */
 const EMPTY_SHIFTS: readonly ShiftType[] = [];
 
-/** The shift subset for one (worker, date) cell — `[]` (not `undefined`) when there is no entry,
- * since absence of a row IS the "unavailable that date" state, not an exceptional case. */
+/** The excluded-shift subset for one (worker, date) cell — `[]` (not `undefined`) when there is no
+ * entry, since absence of a row IS the "available for everything that date" state (Availability
+ * v3), not an exceptional case. */
 export function cellShifts(draft: AvailabilityDraft, workerId: number, date: string): readonly ShiftType[] {
   return draft[String(workerId)]?.[date] ?? EMPTY_SHIFTS;
 }
@@ -63,9 +72,11 @@ export function toggleCell(
   return next;
 }
 
-/** Bulk-set every date in `dates` to exactly `shifts` for one worker — backs the grid's minimal
- * "set all" bulk action (e.g. "Mark this worker fully available all month"). Passing an empty
- * `shifts` array clears the worker's whole row (equivalent to `clearWorkerRow`). */
+/** Bulk-set every date in `dates` to exactly the given EXCLUDED-shift `shifts` for one worker —
+ * backs the grid's minimal "set all" bulk action (e.g. passing `SHIFT_TYPES` marks the worker
+ * excluded from every shift, every date — i.e. fully unavailable all month, the `AvailabilityGrid`
+ * "All" button's behavior). Passing an empty `shifts` array clears the worker's whole row
+ * (equivalent to `clearWorkerRow`, i.e. fully available all month — no exclusions). */
 export function setAllDatesForWorker(
   draft: AvailabilityDraft,
   workerId: number,

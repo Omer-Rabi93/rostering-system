@@ -82,20 +82,20 @@ model Company {
 // cancel-and-replace sequencing alone isn't sufficient under truly concurrent uploads -- see the
 // v4 design doc, Part A's "Cancel-and-replace" section.
 model ImportTask {
-  id            Int               @id @default(autoincrement())
+  id            Int              @id @default(autoincrement())
   companyId     Int
-  company       Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company       Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
   kind          ImportTaskKind
-  status        ImportTaskStatus  @default(PENDING)
+  status        ImportTaskStatus @default(PENDING)
   pgBossJobId   String?
-  month         String?           @db.Char(7) // set for AVAILABILITY_SYNC only
+  month         String?          @db.Char(7) // set for AVAILABILITY_SYNC only
   totalRows     Int?
   processedRows Int?
   insertedCount Int?
   updatedCount  Int?
   failedCount   Int?
   errors        Json?
-  createdAt     DateTime          @default(now())
+  createdAt     DateTime         @default(now())
   startedAt     DateTime?
   finishedAt    DateTime?
   workers       Worker[]
@@ -106,23 +106,23 @@ model ImportTask {
 }
 
 model Worker {
-  id               Int           @id @default(autoincrement())
-  nationalId       String        @unique @db.Char(9) // Israeli ID; checksum checked in Zod
-  name             String        @db.VarChar(120)
+  id               Int                  @id @default(autoincrement())
+  nationalId       String               @unique @db.Char(9) // Israeli ID; checksum checked in Zod
+  name             String               @db.VarChar(120)
   companyId        Int // ← employer, required
-  company          Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company          Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
   role             Role
-  status           WorkerStatus  @default(ACTIVE)
-  shareToken       String        @unique @default(uuid()) // public schedule URL token
+  status           WorkerStatus         @default(ACTIVE)
+  shareToken       String               @unique @default(uuid()) // public schedule URL token
   // v4: stamped onto a worker's row every time a WORKER_SYNC CSV row matches/creates/updates
   // them inside an ImportTask that eventually reaches COMPLETED. Only meaningful for
   // WORKER_SYNC tasks; a worker never touched by any worker-CSV import keeps this `null`
   // forever, which is deliberately the "manually managed, always eligible for roster
   // generation" state -- see the v4 design doc, Part A's "Worker.lastImportTaskId" section.
   lastImportTaskId Int?
-  lastImportTask   ImportTask?   @relation(fields: [lastImportTaskId], references: [id], onDelete: SetNull)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  lastImportTask   ImportTask?          @relation(fields: [lastImportTaskId], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   contract         Contract?
   shiftWorkers     ShiftWorker[]
   availability     WorkerAvailability[]
@@ -144,21 +144,28 @@ model Contract {
   @@map("contracts")
 }
 
-// Availability v2: one row per (worker, calendar date) with the non-empty subset of shifts the
-// worker can work that exact date. ABSENCE of a row = unavailable that date — an empty subset is
-// never stored (the row is deleted instead). Replaces the old `contracts.availability` weekly
-// pattern (dropped in the `availability_v2` migration).
+// Availability v3: one row per (worker, calendar date) with the non-empty subset of shifts the
+// worker is EXCLUDED from (CANNOT work) that exact date. ABSENCE of a row means available for
+// EVERY shift that date — the inverse of Availability v2's "absence = unavailable" rule. A row
+// listing all three letters (`"ABC"`) is how "unavailable all day" is now expressed (replacing
+// what row-absence used to mean); an empty subset is still never stored (the row is deleted
+// instead, same invariant as before, just applied to the excluded set now). Renamed from
+// `shifts` -> `excludedShifts` in the `availability_v3_exclusion_semantics` migration (rename-only,
+// no data backfill — no production data exists in this repo's history to migrate). The
+// excluded -> available inversion itself happens one layer up, in the service code that reads
+// these rows (`@rostering/shared`'s `computeAvailableShifts`), never inside this model or its
+// consumers' "row absent" handling.
 model WorkerAvailability {
-  id        Int      @id @default(autoincrement())
-  workerId  Int
+  id             Int      @id @default(autoincrement())
+  workerId       Int
   // Cascade, matching `Contract`'s delete rule: availability rows are worker-owned auxiliary data
   // with no independent historical value. Roster history stays protected because deleting a worker
   // WITH history is already blocked by `ShiftWorker`'s `onDelete: Restrict` (the deactivate-flow);
   // only a history-less worker can be deleted at all, and then their availability goes with them.
-  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  date      DateTime @db.Date
-  shifts    String   @db.VarChar(3) // canonical subset of "ABC" (e.g. "A", "AB", "ABC"); Zod-validated on write
-  updatedAt DateTime @updatedAt
+  worker         Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  date           DateTime @db.Date
+  excludedShifts String   @db.VarChar(3) // canonical subset of "ABC" (e.g. "A", "AB", "ABC"); Zod-validated on write
+  updatedAt      DateTime @updatedAt
 
   @@unique([workerId, date]) // one entry per worker per calendar date
   @@index([date]) // month-window queries (date BETWEEN first and last of month)

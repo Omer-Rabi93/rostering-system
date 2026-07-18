@@ -128,13 +128,18 @@ test.describe('Roster generation', () => {
     await expect(page.getByText(/unacknowledged — Publish disabled/)).toBeVisible();
   });
 
-  test('all-workers-zero-availability month: active workers, no availability rows -> terminal job, all-alerts empty roster', async ({
+  test('all-workers-zero-availability month: active workers, all excluded every shift -> terminal job, all-alerts empty roster', async ({
     page,
     seed,
     dbAdmin,
   }) => {
     const month = seed.availabilityMonth;
-    await dbAdmin.clearMonthAvailability({ month });
+    // Availability v3: an absent row now means fully AVAILABLE, so "zero availability" (this
+    // test's real scenario) can no longer be produced by clearing every row -- that would now make
+    // every worker MORE available, not less, and this test would wrongly see a fully-populated
+    // roster instead of the all-alerts empty one it asserts. Explicitly exclude every shift, every
+    // date, for every active worker instead (the new way to express the same real-world fact).
+    await dbAdmin.fillAvailability({ month, shifts: 'ABC' });
 
     const calendarTable = await generateAndWait(page, month);
     await expect(calendarTable.getByText('Unassigned').first()).toBeVisible();
