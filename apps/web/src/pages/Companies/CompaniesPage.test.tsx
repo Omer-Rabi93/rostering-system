@@ -25,7 +25,7 @@ function worker(id: number, companyId: number) {
 }
 
 describe('CompaniesPage', () => {
-  it('lists companies with a derived worker count, and creates a new one', async () => {
+  it('lists companies with a derived worker count, and creates a new one (setting it as the active company)', async () => {
     const user = userEvent.setup();
     installMockFetch([
       { method: 'GET', match: '/api/companies', respond: () => ({ status: 200, body: [COMPANY_1, COMPANY_2] }) },
@@ -36,8 +36,9 @@ describe('CompaniesPage', () => {
         respond: () => ({ status: 201, body: { id: 3, name: 'New Co', createdAt: '2026-01-03T00:00:00.000Z' } }),
       },
     ]);
-
-    renderWithProviders(<CompaniesPage />);
+    const { store } = renderWithProviders(<CompaniesPage />, {
+      preloadedState: { activeCompany: { activeCompanyId: null } },
+    });
 
     expect(await screen.findByText('Shamir Security Ltd')).toBeInTheDocument();
     const row1 = screen.getByText('Shamir Security Ltd').closest('tr');
@@ -52,6 +53,9 @@ describe('CompaniesPage', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(await screen.findByText('"New Co" created.')).toBeInTheDocument();
+    // Creating a company from any entry point sets it active -- if you just created it you almost
+    // certainly want to work in it next.
+    expect(store.getState().activeCompany.activeCompanyId).toBe(3);
   });
 
   it('shows an inline duplicate-name error (409) on create without closing the modal', async () => {
@@ -98,5 +102,27 @@ describe('CompaniesPage', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('deleting the active company clears it (the gate reappears on next render)', async () => {
+    const user = userEvent.setup();
+    installMockFetch([
+      { method: 'GET', match: '/api/companies', respond: () => ({ status: 200, body: [COMPANY_1, COMPANY_2] }) },
+      { method: 'GET', match: '/api/workers', respond: () => ({ status: 200, body: [] }) },
+      { method: 'DELETE', match: '/api/companies/1', respond: () => ({ status: 204 }) },
+    ]);
+    const { store } = renderWithProviders(<CompaniesPage />, {
+      preloadedState: { activeCompany: { activeCompanyId: 1 } },
+    });
+
+    await screen.findByText('Shamir Security Ltd');
+    const row1 = screen.getByText('Shamir Security Ltd').closest('tr');
+    await user.click(within(row1 as HTMLElement).getByRole('button', { name: 'Delete' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Delete "Shamir Security Ltd"?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(store.getState().activeCompany.activeCompanyId).toBeNull();
   });
 });

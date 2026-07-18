@@ -59,7 +59,7 @@ describe('useJobPolling', () => {
       .mockResolvedValueOnce(jsonResponse({ ...rosterFixture, generatedAt: '2026-07-25T06:00:20.000Z' })); // refetch triggered by invalidation
     vi.stubGlobal('fetch', fetchMock);
 
-    await store.dispatch(rostersApi.endpoints.getRoster.initiate('2026-08'));
+    await store.dispatch(rostersApi.endpoints.getRoster.initiate({ companyId: 1, month: '2026-08' }));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     function wrapper({ children }: { children: ReactNode }) {

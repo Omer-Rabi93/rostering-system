@@ -2,6 +2,14 @@ import { test as base, expect } from '@playwright/test';
 
 import { E2E_DB_ADMIN_URL } from '../../playwright.config.js';
 
+/** Same `localStorage` key `activeCompany.slice.ts` persists the planner's active company under
+ * (`apps/web/src/store/activeCompany.slice.ts`) — duplicated here rather than imported since e2e/
+ * deliberately doesn't depend on `apps/web/src` (Node-side fixture code vs. browser bundle). Every
+ * authenticated route is now gated behind an active company (`ActiveCompanyGate.tsx`), so a spec
+ * that `page.goto()`s straight to e.g. `/roster/:month` would otherwise land on the picker screen
+ * instead of the page under test. */
+const ACTIVE_COMPANY_STORAGE_KEY = 'rostering.activeCompanyId';
+
 export interface SeedWorker {
   readonly id: number;
   readonly nationalId: string;
@@ -144,7 +152,8 @@ export function findCompany(seed: SeedResult, name: string): SeedCompany {
 interface Fixtures {
   dbAdmin: DbAdmin;
   /** Auto-runs before every test: truncates every table and reseeds the default fixture (3
-   * companies, 12 workers with contracts, 9 staffing-requirement rows, and a month's worth of
+   * companies, 12 workers with contracts, a full 9-row role×shift staffing-requirements matrix
+   * PER company -- company-scoped rostering, so 27 rows total -- and a month's worth of
    * `WorkerAvailability` rows for `availabilityMonth`), giving every single test an independent,
    * repeatable starting database without a per-file `beforeEach` boilerplate line. */
   seed: SeedResult;
@@ -161,6 +170,22 @@ export const test = base.extend<Fixtures>({
     },
     { auto: true },
   ],
+  // Overrides Playwright's built-in `page` fixture: every spec's `page` now starts with the
+  // default seeded company (lowest id, matching `dbAdminServer.ts`'s `getDefaultCompanyId()`)
+  // already active, via `addInitScript` so it's set before any app code runs on the FIRST
+  // navigation too (not just subsequent ones). A spec that specifically wants to exercise the
+  // gate/picker/switcher itself (`companies.spec.ts`) can still clear or overwrite this key with
+  // `page.evaluate(() => localStorage.clear())` before its own `page.goto()`.
+  page: async ({ page, seed }, use) => {
+    const defaultCompanyId = seed.companies[0]?.id;
+    if (defaultCompanyId !== undefined) {
+      await page.addInitScript(
+        ({ key, id }) => localStorage.setItem(key, JSON.stringify(id)),
+        { key: ACTIVE_COMPANY_STORAGE_KEY, id: defaultCompanyId },
+      );
+    }
+    await use(page);
+  },
 });
 
 export { expect };

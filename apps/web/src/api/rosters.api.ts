@@ -20,12 +20,19 @@ export interface PublishRosterResponse {
   readonly status: 'published';
 }
 
-function rosterTag(month: Month) {
-  return { type: 'Roster' as const, id: month };
+/** Company-scoped rostering: a `Roster` is now unique per `(companyId, month)`, not per `month`
+ * alone -- every roster-scoped query/mutation below carries both. */
+export interface CompanyMonth {
+  readonly companyId: number;
+  readonly month: Month;
 }
 
-function costSummaryTag(month: Month) {
-  return { type: 'CostSummary' as const, id: month };
+function rosterTag({ companyId, month }: CompanyMonth) {
+  return { type: 'Roster' as const, id: `${companyId}:${month}` };
+}
+
+function costSummaryTag({ companyId, month }: CompanyMonth) {
+  return { type: 'CostSummary' as const, id: `${companyId}:${month}` };
 }
 
 function confirmQuery(confirm: boolean | undefined): string {
@@ -34,61 +41,58 @@ function confirmQuery(confirm: boolean | undefined): string {
 
 export const rostersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getRoster: builder.query<Roster, Month>({
-      query: (month) => `/rosters/${month}`,
-      providesTags: (_result, _error, month) => [rosterTag(month)],
+    getRoster: builder.query<Roster, CompanyMonth>({
+      query: ({ companyId, month }) => `/rosters/${month}?companyId=${companyId}`,
+      providesTags: (_result, _error, arg) => [rosterTag(arg)],
     }),
 
     /** 202 {jobId} — the roster isn't actually regenerated until the `roster-generation` job
      * reaches `completed` (see `jobs.api.ts`'s polling hook), so this mutation deliberately does
      * NOT invalidate the `Roster` tag itself; the job-completion handler does. */
-    generateRoster: builder.mutation<GenerateRosterResponse, { month: Month; force?: boolean }>({
+    generateRoster: builder.mutation<GenerateRosterResponse, CompanyMonth & { force?: boolean }>({
       query: (body) => ({ url: '/rosters/generate', method: 'POST', body }),
     }),
 
-    ackAlert: builder.mutation<Alert, { rosterId: number; alertId: number; month: Month }>({
+    ackAlert: builder.mutation<Alert, { rosterId: number; alertId: number } & CompanyMonth>({
       query: ({ rosterId, alertId }) => ({ url: `/rosters/${rosterId}/alerts/${alertId}/ack`, method: 'POST' }),
-      invalidatesTags: (_result, _error, { month }) => [rosterTag(month)],
+      invalidatesTags: (_result, _error, arg) => [rosterTag(arg)],
     }),
 
-    publishRoster: builder.mutation<PublishRosterResponse, { rosterId: number; month: Month }>({
+    publishRoster: builder.mutation<PublishRosterResponse, { rosterId: number } & CompanyMonth>({
       query: ({ rosterId }) => ({ url: `/rosters/${rosterId}/publish`, method: 'POST' }),
-      invalidatesTags: (_result, _error, { month }) => [rosterTag(month)],
+      invalidatesTags: (_result, _error, arg) => [rosterTag(arg)],
     }),
 
     addShiftWorker: builder.mutation<
       ShiftWorkerEditResult,
-      { shiftId: number; workerId: number; month: Month; confirm?: boolean }
+      { shiftId: number; workerId: number; confirm?: boolean } & CompanyMonth
     >({
       query: ({ shiftId, workerId, confirm }) => ({
         url: `/shifts/${shiftId}/workers${confirmQuery(confirm)}`,
         method: 'POST',
         body: { workerId },
       }),
-      invalidatesTags: (_result, _error, { month }) => [rosterTag(month), costSummaryTag(month)],
+      invalidatesTags: (_result, _error, arg) => [rosterTag(arg), costSummaryTag(arg)],
     }),
 
     moveShiftWorker: builder.mutation<
       ShiftWorkerEditResult,
-      { shiftId: number; workerId: number; targetShiftId: number; month: Month; confirm?: boolean }
+      { shiftId: number; workerId: number; targetShiftId: number; confirm?: boolean } & CompanyMonth
     >({
       query: ({ shiftId, workerId, targetShiftId, confirm }) => ({
         url: `/shifts/${shiftId}/workers/${workerId}/move${confirmQuery(confirm)}`,
         method: 'POST',
         body: { targetShiftId },
       }),
-      invalidatesTags: (_result, _error, { month }) => [rosterTag(month), costSummaryTag(month)],
+      invalidatesTags: (_result, _error, arg) => [rosterTag(arg), costSummaryTag(arg)],
     }),
 
-    removeShiftWorker: builder.mutation<
-      void,
-      { shiftId: number; workerId: number; month: Month; confirm?: boolean }
-    >({
+    removeShiftWorker: builder.mutation<void, { shiftId: number; workerId: number; confirm?: boolean } & CompanyMonth>({
       query: ({ shiftId, workerId, confirm }) => ({
         url: `/shifts/${shiftId}/workers/${workerId}${confirmQuery(confirm)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { month }) => [rosterTag(month), costSummaryTag(month)],
+      invalidatesTags: (_result, _error, arg) => [rosterTag(arg), costSummaryTag(arg)],
     }),
   }),
 });

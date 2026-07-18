@@ -76,6 +76,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1,2'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByRole('heading', { name: /Compare Workers/ })).toHaveTextContent('August 2026');
@@ -119,6 +120,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1,999,2'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByRole('heading', { name: /Compare Workers/ })).toBeInTheDocument();
@@ -135,6 +137,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText('Select at least 2 workers to compare')).toBeInTheDocument();
@@ -147,6 +150,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText('Select at least 2 workers to compare')).toBeInTheDocument();
@@ -158,6 +162,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1,888,999'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText(/Worker #888 not found/)).toBeInTheDocument();
@@ -171,6 +176,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1,2'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     const backLink = await screen.findByRole('link', { name: /back to cost dashboard/i });
@@ -184,6 +190,7 @@ describe('WorkerCostComparePage', () => {
     renderWithProviders(<WorkerCostComparePage />, {
       initialEntries: ['/cost/2026-08/compare?workers=1,2'],
       path: '/cost/:month/compare',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText('No cost data for August 2026')).toBeInTheDocument();

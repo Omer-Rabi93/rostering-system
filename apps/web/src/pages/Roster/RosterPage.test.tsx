@@ -120,7 +120,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
 
     const generateButton = await screen.findByRole('button', { name: 'Generate roster' });
     await user.click(generateButton);
@@ -149,7 +149,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const cell = await screen.findByTestId('cal-cell-2026-08-01-A');
 
     await user.click(cell);
@@ -204,7 +204,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const cell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(cell);
 
@@ -251,7 +251,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const cell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(cell);
 
@@ -291,7 +291,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const cell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(cell);
 
@@ -345,7 +345,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const sourceCell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(sourceCell);
 
@@ -399,7 +399,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const sourceCell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(sourceCell);
 
@@ -434,7 +434,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const regenerateButton = await screen.findByRole('button', { name: 'Regenerate roster' });
     await user.click(regenerateButton);
 
@@ -457,7 +457,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const regenerateButton = await screen.findByRole('button', { name: 'Regenerate roster' });
     await user.click(regenerateButton);
 
@@ -502,7 +502,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const publishButton = await screen.findByRole('button', { name: 'Publish roster' });
     expect(publishButton).toBeDisabled();
 
@@ -521,7 +521,7 @@ describe('RosterPage', () => {
       { method: 'GET', match: '/api/rosters/2026-08', respond: () => ({ status: 200, body: makeRoster() }) },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     await screen.findByRole('button', { name: 'Regenerate roster' });
 
     await user.click(screen.getByRole('tab', { name: 'Availability' }));
@@ -566,7 +566,7 @@ describe('RosterPage', () => {
       },
     ]);
 
-    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month' });
+    renderWithProviders(<RosterPage />, { initialEntries: ['/roster/2026-08'], path: '/roster/:month', activeCompanyId: 1 });
     const cell = await screen.findByTestId('cal-cell-2026-08-01-A');
     await user.click(cell);
 

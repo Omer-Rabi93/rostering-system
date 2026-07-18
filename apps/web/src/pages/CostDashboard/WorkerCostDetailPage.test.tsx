@@ -73,6 +73,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/1'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     const heading = await screen.findByRole('heading', { name: /Dana Levi/ });
@@ -100,6 +101,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/2'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByRole('heading', { name: /Omer Cohen/ })).toBeInTheDocument();
@@ -116,6 +118,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/1'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText('No cost data for August 2026')).toBeInTheDocument();
@@ -128,6 +131,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/999'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByText('Worker not found')).toBeInTheDocument();
@@ -140,6 +144,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/3'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     expect(await screen.findByRole('heading', { name: /Roi Ben-David/ })).toBeInTheDocument();
@@ -154,6 +159,7 @@ describe('WorkerCostDetailPage', () => {
     renderWithProviders(<WorkerCostDetailPage />, {
       initialEntries: ['/cost/2026-08/worker/1'],
       path: '/cost/:month/worker/:workerId',
+      activeCompanyId: 1,
     });
 
     const backLink = await screen.findByRole('link', { name: /back to cost dashboard/i });

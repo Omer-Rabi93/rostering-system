@@ -1,34 +1,19 @@
 import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Badge, EmptyState, Select, Spinner, Table, type Column, type TableSort } from '@rostering/ui';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Badge, EmptyState, Spinner, Table, type Column, type TableSort } from '@rostering/ui';
 import type { Month } from '@rostering/shared';
 
 import { useGetCostSummaryQuery } from '../../api/costSummary.api.js';
-import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { currentMonth } from '../../lib/calendar.js';
 import { formatIls, formatMonthLong } from '../../lib/format.js';
-import {
-  buildCompanyCostRows,
-  buildWorkerCostRows,
-  computeCostStats,
-  filterCostSummaryByCompany,
-  type CompanyCostRow,
-  type WorkerCostRow,
-} from './aggregate.js';
+import { buildWorkerCostRows, computeCostStats, type WorkerCostRow } from './aggregate.js';
 
-const COMPANY_COLUMNS: Column<CompanyCostRow>[] = [
-  { key: 'companyName', header: 'Company' },
-  { key: 'workers', header: 'Workers', align: 'right' },
-  { key: 'shifts', header: 'Shifts', align: 'right' },
-  { key: 'hours', header: 'Hours', align: 'right' },
-  { key: 'costIls', header: 'Cost (ILS)', align: 'right', render: (row) => formatIls(row.costIls) },
-];
-
-// Built per-render (not a module-level constant, unlike COMPANY_COLUMNS) because the worker-name
-// column's link target depends on the page's current `:month` param, and the leading checkbox
-// column's rendered state/handler depend on the page's `selectedWorkerIds` selection state.
+// Built per-render (not a module-level constant) because the worker-name column's link target
+// depends on the page's current `:month` param, and the leading checkbox column's rendered
+// state/handler depend on the page's `selectedWorkerIds` selection state.
 //
 // The checkbox column is a distinct, non-data column prepended to the array (not a repurposed
 // data column) — it reuses the `workerId` key only to satisfy `Column<T>.key`'s `keyof T & string`
@@ -70,23 +55,21 @@ export function CostDashboardPage(): ReactElement {
   const navigate = useNavigate();
   const month: Month = params.month ?? currentMonth();
 
-  // The company filter is persisted as a `?company=<id>` URL search param (rather than local
-  // `useState`) so the filtered view is bookmarkable/shareable and consistent with the month
-  // already living in the URL path. Absent/empty means "All companies".
-  const [searchParams, setSearchParams] = useSearchParams();
-  const companyParam = searchParams.get('company') ?? '';
-  const selectedCompanyId = companyParam ? Number(companyParam) : null;
+  // Company-scoped rostering: a cost summary is derived from one company's roster, not a global
+  // one. `ActiveCompanyGate` (via `Layout`) guarantees a valid company is active before this page
+  // ever renders, so `companyId` is a plain non-null `number` here. There is no more "All
+  // companies" view or per-page company filter — the switcher in the top bar is the one place to
+  // change which company's dashboard you're looking at.
+  const companyId = useActiveCompanyId();
 
-  const { data: rawSummary, isLoading, isError } = useGetCostSummaryQuery(month);
-  const { data: workers } = useListWorkersQuery();
-  const { data: companies } = useListCompaniesQuery();
+  const { data: summary, isLoading, isError } = useGetCostSummaryQuery({ companyId, month });
+  const { data: workers } = useListWorkersQuery({ companyId });
 
   const [sort, setSort] = useState<TableSort>({ key: 'costIls', direction: 'desc' });
 
-  // Multi-select for the "Compare workers" feature — deliberately local `useState` (unlike the
-  // company filter) rather than a URL param: it's transient UI state scoped to building up a
-  // selection before navigating to the compare page, not something worth bookmarking on the
-  // dashboard itself (the resulting `/cost/:month/compare?workers=...` URL is what's bookmarkable).
+  // Multi-select for the "Compare workers" feature — transient UI state scoped to building up a
+  // selection before navigating to the compare page, not something worth persisting anywhere: the
+  // resulting `/cost/:month/compare?workers=...` URL is what's bookmarkable.
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<Set<number>>(new Set());
 
   function handleToggleWorker(workerId: number) {
@@ -101,15 +84,6 @@ export function CostDashboardPage(): ReactElement {
     });
   }
 
-  const summary = useMemo(
-    () => (rawSummary ? filterCostSummaryByCompany(rawSummary, workers ?? [], selectedCompanyId) : undefined),
-    [rawSummary, workers, selectedCompanyId],
-  );
-
-  const companyRows = useMemo(
-    () => (summary ? buildCompanyCostRows(summary, workers ?? []) : []),
-    [summary, workers],
-  );
   const workerRows = useMemo(() => {
     const rows = summary ? buildWorkerCostRows(summary, workers ?? []) : [];
     const sorted = [...rows].sort((a, b) => {
@@ -124,16 +98,6 @@ export function CostDashboardPage(): ReactElement {
 
   const stats = summary ? computeCostStats(summary) : null;
 
-  function handleCompanyChange(value: string) {
-    const next = new URLSearchParams(searchParams);
-    if (value) {
-      next.set('company', value);
-    } else {
-      next.delete('company');
-    }
-    setSearchParams(next);
-  }
-
   return (
     <div className="page">
       <div className="page-header">
@@ -143,20 +107,6 @@ export function CostDashboardPage(): ReactElement {
             Projected labor cost computed at read time from shift assignments: hours = shifts × 8,
             cost = hours × hourly rate. Read-only — no editing here.
           </p>
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label className="field__label visually-hidden" htmlFor="cost-company">
-            Company
-          </label>
-          <Select
-            id="cost-company"
-            value={companyParam}
-            options={[
-              { value: '', label: 'All companies' },
-              ...(companies ?? []).map((c) => ({ value: String(c.id), label: c.name })),
-            ]}
-            onChange={(e) => handleCompanyChange(e.target.value)}
-          />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label className="field__label visually-hidden" htmlFor="cost-month">
@@ -202,27 +152,6 @@ export function CostDashboardPage(): ReactElement {
               <div className="stat-tile__value">{formatIls(stats.avgCostPerWorker)}</div>
             </div>
           </div>
-
-          {selectedCompanyId === null ? (
-            <>
-              <h2>By company</h2>
-              <Table<CompanyCostRow>
-                columns={COMPANY_COLUMNS}
-                rows={companyRows}
-                rowKey={(row) => row.companyId}
-                caption="Cost by company"
-                footer={
-                  <tr>
-                    <td>Total</td>
-                    <td className="num">{stats.totalWorkers}</td>
-                    <td className="num">{stats.totalShifts}</td>
-                    <td className="num">{stats.totalHours}</td>
-                    <td className="num">{formatIls(stats.totalIls)}</td>
-                  </tr>
-                }
-              />
-            </>
-          ) : null}
 
           <div
             style={{

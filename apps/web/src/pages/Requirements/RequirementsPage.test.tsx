@@ -23,7 +23,7 @@ describe('RequirementsPage', () => {
       },
     ]);
 
-    renderWithProviders(<RequirementsPage />);
+    renderWithProviders(<RequirementsPage />, { activeCompanyId: 1 });
 
     const guardShiftA = await screen.findByLabelText('General Guard required, Shift A');
     expect(guardShiftA).toHaveValue(2);
@@ -36,7 +36,7 @@ describe('RequirementsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save requirements' }));
 
     await screen.findByText('Requirements saved.');
-    expect(calls.some((c) => c.method === 'PUT' && c.path === '/api/staffing-requirements')).toBe(true);
+    expect(calls.some((c) => c.method === 'PUT' && c.path === '/api/staffing-requirements?companyId=1')).toBe(true);
   });
 
   it('blocks save and shows an inline per-cell error for a negative headcount (client-side)', async () => {
@@ -45,7 +45,7 @@ describe('RequirementsPage', () => {
       { method: 'GET', match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
     ]);
 
-    renderWithProviders(<RequirementsPage />);
+    renderWithProviders(<RequirementsPage />, { activeCompanyId: 1 });
     const guardShiftA = await screen.findByLabelText('General Guard required, Shift A');
 
     await user.clear(guardShiftA);
@@ -67,7 +67,7 @@ describe('RequirementsPage', () => {
       },
     ]);
 
-    renderWithProviders(<RequirementsPage />);
+    renderWithProviders(<RequirementsPage />, { activeCompanyId: 1 });
     await screen.findByLabelText('General Guard required, Shift A');
 
     await user.click(screen.getByRole('button', { name: 'Save requirements' }));

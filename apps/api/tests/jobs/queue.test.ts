@@ -56,18 +56,27 @@ describe('jobs/queue.ts (pg-boss wiring)', () => {
     expect(typeof jobId).toBe('string');
   });
 
-  it('enqueueRosterGeneration returns null when a job for the same month is already in flight (singletonKey collision)', async () => {
+  it('enqueueRosterGeneration returns null when a job for the same company+month is already in flight (singletonKey collision)', async () => {
     const month = '2027-03'; // scoped to this test only, to avoid colliding with other tests' months
-    const firstJobId = await enqueueRosterGeneration(boss, month);
+    const firstJobId = await enqueueRosterGeneration(boss, 1, month);
     expect(typeof firstJobId).toBe('string');
 
-    const secondJobId = await enqueueRosterGeneration(boss, month);
+    const secondJobId = await enqueueRosterGeneration(boss, 1, month);
     expect(secondJobId).toBeNull();
   });
 
   it('enqueueRosterGeneration allows a fresh job once the month differs', async () => {
-    const jobId = await enqueueRosterGeneration(boss, '2027-04');
+    const jobId = await enqueueRosterGeneration(boss, 1, '2027-04');
     expect(typeof jobId).toBe('string');
+  });
+
+  it('enqueueRosterGeneration allows two DIFFERENT companies to enqueue the same month concurrently (no cross-company singletonKey collision)', async () => {
+    const month = '2027-06'; // scoped to this test only
+    const companyAJobId = await enqueueRosterGeneration(boss, 101, month);
+    const companyBJobId = await enqueueRosterGeneration(boss, 102, month);
+    expect(typeof companyAJobId).toBe('string');
+    expect(typeof companyBJobId).toBe('string');
+    expect(companyAJobId).not.toBe(companyBJobId);
   });
 
   it('registers the next-month cron schedule with the documented cron string', async () => {

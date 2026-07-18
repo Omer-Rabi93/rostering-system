@@ -59,8 +59,8 @@ describe('availability.api cache invalidation', () => {
     const { rostersApi } = await import('./rosters.api.js');
     const { costSummaryApi } = await import('./costSummary.api.js');
 
-    await store.dispatch(rostersApi.endpoints.getRoster.initiate('2026-08'));
-    await store.dispatch(costSummaryApi.endpoints.getCostSummary.initiate('2026-08'));
+    await store.dispatch(rostersApi.endpoints.getRoster.initiate({ companyId: 1, month: '2026-08' }));
+    await store.dispatch(costSummaryApi.endpoints.getCostSummary.initiate({ companyId: 1, month: '2026-08' }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     await store.dispatch(

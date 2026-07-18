@@ -8,6 +8,7 @@ import type { WorkerDto } from '../../api/workers.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { useGetMonthAvailabilityQuery } from '../../api/availability.api.js';
 import { useListStaffingRequirementsQuery } from '../../api/staffingRequirements.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { editCleared, editStaged, selectPendingEdit, type PendingEdit, type PendingEditKind } from '../../store/rosterEditor.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { getIneligibilityReason } from './eligibility.js';
@@ -106,7 +107,15 @@ interface MoveTarget {
  */
 export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
   const { isOpen, date, shift, shiftRow, roster, onClose, onSubmitEdit, onConfirmEdit } = props;
-  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE' });
+  // Company-scoped rostering: this roster's own company -- the "add a worker" picker and the "Y
+  // required" staffing-requirements matrix are both scoped to it, never another company's. Read
+  // directly from the app's single active-company context (dropping what used to be a prop-drilled
+  // `companyId` hop through `RosterPage`) since `ActiveCompanyGate` guarantees one is always active
+  // wherever this dialog can render.
+  const companyId = useActiveCompanyId();
+  // Scoped to this roster's own company -- a worker from another company can never be an eligible
+  // "add" candidate here (no cross-company leakage into the manual-edit picker).
+  const { data: workers } = useListWorkersQuery({ status: 'ACTIVE', companyId });
   // The same date-specific availability cache `AvailabilityGrid` reads for this roster's month —
   // eligibility hints below are keyed off the edit's exact `date`, not a weekday.
   const { data: monthAvailability } = useGetMonthAvailabilityQuery(roster.month);
@@ -114,7 +123,7 @@ export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
   // role×shift staffing matrix, decoupled from any individual assignment (see this file's
   // module-level context: role-correctness is enforced by each section's picker being filtered to
   // that role, not by any per-slot "required role" concept server-side).
-  const { data: staffingRequirements } = useListStaffingRequirementsQuery();
+  const { data: staffingRequirements } = useListStaffingRequirementsQuery(companyId);
 
   // One independent selection per role section (General Guard / Supervisor / Screener), rather
   // than a single shared `selectedWorkerId`, now that the picker below is split into three —

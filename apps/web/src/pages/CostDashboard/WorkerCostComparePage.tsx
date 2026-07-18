@@ -7,6 +7,7 @@ import type { Month } from '@rostering/shared';
 import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { useGetRosterQuery } from '../../api/rosters.api.js';
 import { useGetWorkerContractQuery, useListWorkersQuery, type WorkerDto } from '../../api/workers.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { currentMonth } from '../../lib/calendar.js';
 import { formatIls, formatMonthLong } from '../../lib/format.js';
 import { SHIFT_ROW_COLUMNS } from './WorkerCostDetailPage.js';
@@ -154,8 +155,12 @@ export function WorkerCostComparePage(): ReactElement {
 
   const workerIds = parseWorkerIds(searchParams.get('workers'));
 
-  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useGetRosterQuery(month);
-  const { data: workers, isLoading: workersLoading } = useListWorkersQuery();
+  // Company-scoped rostering: `ActiveCompanyGate` (via `Layout`) guarantees a valid company is
+  // active before this page ever renders.
+  const companyId = useActiveCompanyId();
+
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useGetRosterQuery({ companyId, month });
+  const { data: workers, isLoading: workersLoading } = useListWorkersQuery({ companyId });
   const { data: companies, isLoading: companiesLoading } = useListCompaniesQuery();
 
   // Keyed by workerId so each `WorkerCompareCard`'s report only ever overwrites its own slot.

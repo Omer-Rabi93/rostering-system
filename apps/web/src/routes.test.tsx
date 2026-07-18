@@ -7,9 +7,15 @@ import { AppRoutes } from './routes.js';
 import { createAppStore } from './store/index.js';
 import { installMockFetch } from './testUtils/mockFetch.js';
 
+// One seeded, already-active company (`ActiveCompanyGate` guarantees a valid one before any route
+// below renders) -- these tests exercise `AppRoutes`/`Layout` wiring itself (topbar + which page
+// renders for which path), not the gate's own create/pick screens, which
+// `ActiveCompanyGate.test.tsx` covers directly.
+const SEEDED_COMPANY = { id: 1, name: 'Acme Security', createdAt: '2026-01-01T00:00:00.000Z' };
+
 const EMPTY_LISTS = [
   { method: 'GET' as const, match: '/api/workers', respond: () => ({ status: 200, body: [] }) },
-  { method: 'GET' as const, match: '/api/companies', respond: () => ({ status: 200, body: [] }) },
+  { method: 'GET' as const, match: '/api/companies', respond: () => ({ status: 200, body: [SEEDED_COMPANY] }) },
   { method: 'GET' as const, match: '/api/staffing-requirements', respond: () => ({ status: 200, body: [] }) },
   {
     method: 'GET' as const,
@@ -31,7 +37,7 @@ const EMPTY_LISTS = [
 function renderAt(path: string) {
   installMockFetch(EMPTY_LISTS);
   return render(
-    <Provider store={createAppStore()}>
+    <Provider store={createAppStore({ activeCompany: { activeCompanyId: 1 } })}>
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
       </MemoryRouter>

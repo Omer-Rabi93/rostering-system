@@ -26,6 +26,7 @@ import {
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { useJobPolling } from '../../api/jobs.api.js';
 import { classifyMutationError, isPublishBlockedError } from '../../api/errors.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { buildMonthDays, currentMonth } from '../../lib/calendar.js';
 import { formatMonthLong } from '../../lib/format.js';
 import { useToasts } from '../../hooks/useToasts.js';
@@ -57,8 +58,16 @@ export function RosterPage(): ReactElement {
   const navigate = useNavigate();
   const month: Month = params.month ?? currentMonth();
 
-  const { data: roster, isLoading } = useGetRosterQuery(month);
-  const { data: workers } = useListWorkersQuery();
+  // Company-scoped rostering: each company has its own independent worker pool, staffing
+  // requirements, and roster. `ActiveCompanyGate` (via `Layout`) guarantees a valid company is
+  // active before this page ever renders, so `companyId` is a plain non-null `number` here.
+  const companyId = useActiveCompanyId();
+
+  const { data: roster, isLoading } = useGetRosterQuery({ companyId, month });
+  // Scoped to the same company as the roster -- a company's roster can only ever be staffed from
+  // that company's own workforce, so the "add a worker" pickers never offer another company's
+  // workers.
+  const { data: workers } = useListWorkersQuery({ companyId });
   const workerName = useMemo(() => {
     const map = new Map((workers ?? []).map((w) => [w.id, w.name]));
     return (id: number) => map.get(id) ?? `Worker #${id}`;
@@ -82,7 +91,7 @@ export function RosterPage(): ReactElement {
 
   async function startGenerate(force: boolean) {
     try {
-      const { jobId: newJobId } = await generateRoster({ month, force }).unwrap();
+      const { jobId: newJobId } = await generateRoster({ companyId, month, force }).unwrap();
       setJobId(newJobId);
     } catch (err) {
       const classified = classifyMutationError(err);
@@ -139,9 +148,9 @@ export function RosterPage(): ReactElement {
   async function handleSubmitEdit(edit: PendingEdit): Promise<SlotActionOutcome> {
     try {
       if (edit.kind === 'add') {
-        await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, month }).unwrap();
+        await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month }).unwrap();
       } else if (edit.kind === 'remove') {
-        await removeShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, month }).unwrap();
+        await removeShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month }).unwrap();
       } else {
         if (edit.targetShiftId === undefined) {
           return { ok: false, kind: 'blocked', violations: ['No target slot selected.'] };
@@ -150,6 +159,7 @@ export function RosterPage(): ReactElement {
           shiftId: edit.shiftId,
           workerId: edit.workerId,
           targetShiftId: edit.targetShiftId,
+          companyId,
           month,
         }).unwrap();
       }
@@ -180,14 +190,15 @@ export function RosterPage(): ReactElement {
 
   async function handleConfirmEdit(edit: PendingEdit): Promise<void> {
     if (edit.kind === 'add') {
-      await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, month, confirm: true }).unwrap();
+      await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month, confirm: true }).unwrap();
     } else if (edit.kind === 'remove') {
-      await removeShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, month, confirm: true }).unwrap();
+      await removeShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month, confirm: true }).unwrap();
     } else if (edit.targetShiftId !== undefined) {
       await moveShiftWorker({
         shiftId: edit.shiftId,
         workerId: edit.workerId,
         targetShiftId: edit.targetShiftId,
+        companyId,
         month,
         confirm: true,
       }).unwrap();
@@ -198,7 +209,7 @@ export function RosterPage(): ReactElement {
     if (!roster) return;
     dispatch(ackRequested(alertId));
     try {
-      await ackAlert({ rosterId: roster.id, alertId, month }).unwrap();
+      await ackAlert({ rosterId: roster.id, alertId, companyId, month }).unwrap();
     } catch {
       pushToast('error', 'Could not acknowledge this alert. Please try again.');
     } finally {
@@ -209,7 +220,7 @@ export function RosterPage(): ReactElement {
   async function handlePublish() {
     if (!roster) return;
     try {
-      await publishRoster({ rosterId: roster.id, month }).unwrap();
+      await publishRoster({ rosterId: roster.id, companyId, month }).unwrap();
       pushToast('success', `${formatMonthLong(month)} published.`);
     } catch (err) {
       if (isPublishBlockedError(err as never)) {

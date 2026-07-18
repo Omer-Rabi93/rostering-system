@@ -37,6 +37,7 @@ export interface AvailabilityImportJobData {
 }
 
 export interface RosterGenerationJobData {
+  readonly companyId: number;
   readonly month: string;
   readonly force?: boolean;
 }
@@ -95,12 +96,15 @@ export async function enqueueAvailabilityImport(boss: PgBoss, csv: string, month
 }
 
 /**
- * `singletonKey = month` -> pg-boss allows at most ONE queued/active generation job per month.
- * Returns `null` on collision (a second concurrent request for the same month), which the HTTP
- * layer (`POST /api/rosters/generate`) translates into a 409.
+ * `singletonKey = "<companyId>:<month>"` -> pg-boss allows at most ONE queued/active generation
+ * job per (company, month) pair -- two different companies generating the same calendar month
+ * concurrently are unrelated jobs, not a collision. Returns `null` on collision (a second
+ * concurrent request for the same company+month), which the HTTP layer
+ * (`POST /api/rosters/generate`) translates into a 409.
  */
 export async function enqueueRosterGeneration(
   boss: PgBoss,
+  companyId: number,
   month: string,
   // `| undefined` (rather than merely optional) so callers can pass through an already-optional
   // `force?: boolean` field (e.g. straight from a parsed Zod body) without first stripping an
@@ -112,8 +116,8 @@ export async function enqueueRosterGeneration(
   // `exactOptionalPropertyTypes` forbids assigning `force: undefined` explicitly -- the optional
   // key must be omitted entirely rather than present-with-undefined.
   const data: RosterGenerationJobData =
-    options.force === undefined ? { month } : { month, force: options.force };
-  return boss.send(QUEUES.ROSTER_GENERATION, data, { singletonKey: month });
+    options.force === undefined ? { companyId, month } : { companyId, month, force: options.force };
+  return boss.send(QUEUES.ROSTER_GENERATION, data, { singletonKey: `${companyId}:${month}` });
 }
 
 export async function scheduleNextMonthGeneration(boss: PgBoss): Promise<void> {

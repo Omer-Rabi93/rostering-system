@@ -11,17 +11,22 @@ import type { StaffingRequirement as StaffingRequirementRecord } from '../genera
 export class StaffingRequirementService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  list(): Promise<StaffingRequirementRecord[]> {
-    return this.prisma.staffingRequirement.findMany({ orderBy: [{ role: 'asc' }, { shift: 'asc' }] });
+  list(companyId: number): Promise<StaffingRequirementRecord[]> {
+    return this.prisma.staffingRequirement.findMany({
+      where: { companyId },
+      orderBy: [{ role: 'asc' }, { shift: 'asc' }],
+    });
   }
 
-  async replaceAll(rows: StaffingRequirementsInput): Promise<StaffingRequirementRecord[]> {
+  async replaceAll(companyId: number, rows: StaffingRequirementsInput): Promise<StaffingRequirementRecord[]> {
     return this.prisma.$transaction(async (tx) => {
-      await tx.staffingRequirement.deleteMany({});
+      // Full-matrix replace is scoped to THIS company only -- every other company's matrix is
+      // left completely untouched by a `PUT` for a different `companyId`.
+      await tx.staffingRequirement.deleteMany({ where: { companyId } });
       if (rows.length > 0) {
-        await tx.staffingRequirement.createMany({ data: rows });
+        await tx.staffingRequirement.createMany({ data: rows.map((row) => ({ ...row, companyId })) });
       }
-      return tx.staffingRequirement.findMany({ orderBy: [{ role: 'asc' }, { shift: 'asc' }] });
+      return tx.staffingRequirement.findMany({ where: { companyId }, orderBy: [{ role: 'asc' }, { shift: 'asc' }] });
     });
   }
 }

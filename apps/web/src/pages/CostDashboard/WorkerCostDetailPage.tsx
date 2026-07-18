@@ -7,6 +7,7 @@ import type { Month } from '@rostering/shared';
 import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { useGetRosterQuery } from '../../api/rosters.api.js';
 import { useGetWorkerContractQuery, useListWorkersQuery } from '../../api/workers.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { currentMonth } from '../../lib/calendar.js';
 import { formatDayLabel, formatIls, formatMonthLong } from '../../lib/format.js';
 import { buildWorkerShiftRows, type WorkerShiftRow } from './workerShiftBreakdown.js';
@@ -33,8 +34,12 @@ export function WorkerCostDetailPage(): ReactElement {
   const month: Month = params.month ?? currentMonth();
   const workerId = Number(params.workerId);
 
-  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useGetRosterQuery(month);
-  const { data: workers, isLoading: workersLoading } = useListWorkersQuery();
+  // Company-scoped rostering: `ActiveCompanyGate` (via `Layout`) guarantees a valid company is
+  // active before this page ever renders.
+  const companyId = useActiveCompanyId();
+
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useGetRosterQuery({ companyId, month });
+  const { data: workers, isLoading: workersLoading } = useListWorkersQuery({ companyId });
   const { data: companies, isLoading: companiesLoading } = useListCompaniesQuery();
   // A worker with no contract on file 404s here — that's a valid state (costSummaryService
   // itself treats "no contract" as a 0 rate, not an error), so its loading/error split below

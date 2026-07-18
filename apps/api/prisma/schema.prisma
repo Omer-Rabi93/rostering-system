@@ -44,11 +44,13 @@ enum AlertType {
 }
 
 model Company {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(120) // unique case-insensitively: raw-SQL migration
+  id                   Int                   @id @default(autoincrement())
+  name                 String                @db.VarChar(120) // unique case-insensitively: raw-SQL migration
   // CREATE UNIQUE INDEX ON companies (lower(name))
-  createdAt DateTime @default(now())
-  workers   Worker[]
+  createdAt            DateTime              @default(now())
+  workers              Worker[]
+  staffingRequirements StaffingRequirement[]
+  rosters              Roster[]
 
   @@map("companies")
 }
@@ -108,23 +110,30 @@ model WorkerAvailability {
 
 model StaffingRequirement {
   id            Int       @id @default(autoincrement())
+  companyId     Int // ← scopes the requirement to one company's own pool, required
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   role          Role
   shift         ShiftType
   requiredCount Int // NOT NULL, ≥ 0
 
-  @@unique([role, shift]) // ← one row per role × shift (≤ 9 rows)
+  @@unique([companyId, role, shift]) // ← one row per company × role × shift (≤ 9 rows per company)
+  @@index([companyId]) // company filters/joins
   @@map("staffing_requirements")
 }
 
 model Roster {
   id          Int          @id @default(autoincrement())
-  month       String       @unique @db.Char(7) // ← "YYYY-MM"; one roster per month
+  companyId   Int // ← each company has its own independent roster per month, required
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  month       String       @db.Char(7) // ← "YYYY-MM"; one roster per company per month
   status      RosterStatus @default(DRAFT)
   generatedAt DateTime?
   publishedAt DateTime?
   shifts      Shift[]
   alerts      Alert[]
 
+  @@unique([companyId, month])
+  @@index([companyId]) // company filters/joins
   @@map("rosters")
 }
 

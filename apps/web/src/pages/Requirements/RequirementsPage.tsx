@@ -9,6 +9,7 @@ import {
   useReplaceStaffingRequirementsMutation,
 } from '../../api/staffingRequirements.api.js';
 import { classifyMutationError } from '../../api/errors.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { useToasts } from '../../hooks/useToasts.js';
 import {
   buildMatrixState,
@@ -28,7 +29,12 @@ const ROLE_LABELS: Record<Role, string> = {
 const SHIFT_HOURS_LABEL: Record<ShiftType, string> = { A: '00–08', B: '08–16', C: '16–24' };
 
 export function RequirementsPage(): ReactElement {
-  const { data, isLoading } = useListStaffingRequirementsQuery();
+  // Company-scoped rostering: each company has its own independent role×shift matrix.
+  // `ActiveCompanyGate` (via `Layout`) guarantees a valid company is active before this page ever
+  // renders, so `companyId` is a plain non-null `number` here.
+  const companyId = useActiveCompanyId();
+
+  const { data, isLoading } = useListStaffingRequirementsQuery(companyId);
   const [replaceAll, replaceResult] = useReplaceStaffingRequirementsMutation();
   const { toasts, pushToast, dismissToast } = useToasts();
 
@@ -56,7 +62,7 @@ export function RequirementsPage(): ReactElement {
     setCellErrors({});
     setGeneralErrors([]);
     try {
-      await replaceAll(validation.rows).unwrap();
+      await replaceAll({ companyId, rows: validation.rows }).unwrap();
       pushToast('success', 'Requirements saved.');
     } catch (err) {
       const classified = classifyMutationError(err);

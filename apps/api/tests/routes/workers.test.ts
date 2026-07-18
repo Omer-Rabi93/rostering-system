@@ -220,7 +220,7 @@ describe('/api/workers', () => {
       const worker = await prisma.worker.create({
         data: { nationalId: ID_A, name: 'Noa Levi', role: 'GENERAL_GUARD', companyId: company.id },
       });
-      const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+      const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
       const shift = await prisma.shift.create({
         data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
       });

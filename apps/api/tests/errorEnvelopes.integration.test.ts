@@ -66,7 +66,7 @@ describe('error envelopes conform to @rostering/shared schemas', () => {
     await prisma.workerAvailability.create({
       data: { workerId: worker.id, date: new Date('2026-08-01T00:00:00.000Z'), shifts: 'ABC' },
     });
-    const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+    const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
     const shift = await prisma.shift.create({
       data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
     });
@@ -96,7 +96,7 @@ describe('error envelopes conform to @rostering/shared schemas', () => {
         maxMonthlyHours: 200,
       },
     });
-    const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+    const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
     const shift = await prisma.shift.create({
       data: { rosterId: roster.id, date: new Date('2026-08-01T00:00:00.000Z'), shiftType: 'A' },
     });
@@ -108,7 +108,8 @@ describe('error envelopes conform to @rostering/shared schemas', () => {
   });
 
   it('409 publish-gate matches publishConflictErrorSchema', async () => {
-    const roster = await prisma.roster.create({ data: { month: '2026-08' } });
+    const company = await prisma.company.create({ data: { name: 'Publish Gate Co' } });
+    const roster = await prisma.roster.create({ data: { companyId: company.id, month: '2026-08' } });
     await prisma.alert.create({
       data: { rosterId: roster.id, type: 'MIN_HOURS_SHORTFALL', detail: { workerId: 1, deficitHours: 10 } },
     });

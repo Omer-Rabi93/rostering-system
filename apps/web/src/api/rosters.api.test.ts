@@ -42,12 +42,12 @@ describe('rosters.api cache invalidation', () => {
 
     const { costSummaryApi } = await import('./costSummary.api.js');
 
-    await store.dispatch(rostersApi.endpoints.getRoster.initiate('2026-08'));
-    await store.dispatch(costSummaryApi.endpoints.getCostSummary.initiate('2026-08'));
+    await store.dispatch(rostersApi.endpoints.getRoster.initiate({ companyId: 1, month: '2026-08' }));
+    await store.dispatch(costSummaryApi.endpoints.getCostSummary.initiate({ companyId: 1, month: '2026-08' }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     await store.dispatch(
-      rostersApi.endpoints.addShiftWorker.initiate({ shiftId: 10, workerId: 3, month: '2026-08' }),
+      rostersApi.endpoints.addShiftWorker.initiate({ shiftId: 10, workerId: 3, companyId: 1, month: '2026-08' }),
     );
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -65,8 +65,8 @@ describe('rosters.api cache invalidation', () => {
       .mockResolvedValueOnce(jsonResponse({ jobId: 'job-1' })); // generateRoster
     vi.stubGlobal('fetch', fetchMock);
 
-    await store.dispatch(rostersApi.endpoints.getRoster.initiate('2026-08'));
-    await store.dispatch(rostersApi.endpoints.generateRoster.initiate({ month: '2026-08' }));
+    await store.dispatch(rostersApi.endpoints.getRoster.initiate({ companyId: 1, month: '2026-08' }));
+    await store.dispatch(rostersApi.endpoints.generateRoster.initiate({ companyId: 1, month: '2026-08' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Exactly 2 calls (the initial getRoster read + the generate POST) — no third fetch, since
