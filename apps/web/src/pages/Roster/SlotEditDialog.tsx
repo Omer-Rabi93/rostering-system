@@ -8,6 +8,7 @@ import type { WorkerDto } from '../../api/workers.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { useGetMonthAvailabilityQuery } from '../../api/availability.api.js';
 import { useListStaffingRequirementsQuery } from '../../api/staffingRequirements.api.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { editCleared, editStaged, selectPendingEdit, type PendingEdit, type PendingEditKind } from '../../store/rosterEditor.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { getIneligibilityReason } from './eligibility.js';
@@ -25,9 +26,6 @@ export interface SlotEditDialogProps {
   readonly shift: ShiftType;
   readonly shiftRow: Shift | undefined;
   readonly roster: Roster;
-  /** Company-scoped rostering: this roster's own company -- the "add a worker" picker and the
-   * "Y required" staffing-requirements matrix are both scoped to it, never another company's. */
-  readonly companyId: number;
   readonly onClose: () => void;
   /** Submits a staged add/move/remove edit; resolves `{ok:true}` on success, or a 422 `blocked` /
    * 409 `confirm` outcome the dialog renders as its own sub-state. Never throws — every rejection
@@ -108,7 +106,13 @@ interface MoveTarget {
  * interaction concludes (`onClose`) — regardless of how many 422/409 round-trips happened first.
  */
 export function SlotEditDialog(props: SlotEditDialogProps): ReactElement {
-  const { isOpen, date, shift, shiftRow, roster, companyId, onClose, onSubmitEdit, onConfirmEdit } = props;
+  const { isOpen, date, shift, shiftRow, roster, onClose, onSubmitEdit, onConfirmEdit } = props;
+  // Company-scoped rostering: this roster's own company -- the "add a worker" picker and the "Y
+  // required" staffing-requirements matrix are both scoped to it, never another company's. Read
+  // directly from the app's single active-company context (dropping what used to be a prop-drilled
+  // `companyId` hop through `RosterPage`) since `ActiveCompanyGate` guarantees one is always active
+  // wherever this dialog can render.
+  const companyId = useActiveCompanyId();
   // Scoped to this roster's own company -- a worker from another company can never be an eligible
   // "add" candidate here (no cross-company leakage into the manual-edit picker).
   const { data: workers } = useListWorkersQuery({ status: 'ACTIVE', companyId });

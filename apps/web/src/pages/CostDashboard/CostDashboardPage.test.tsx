@@ -27,29 +27,17 @@ const SUMMARY = {
   perWorker: [{ workerId: 1, shifts: 10, hours: 80, costIls: 1000 }],
 };
 
-// Company-scoped rostering: `CostDashboardPage` fetches the company list to default `companyId`
-// before it can fetch a cost summary — every test needs this route mocked.
-const COMPANIES_ROUTE = {
-  method: 'GET' as const,
-  match: '/api/companies',
-  respond: () => ({ status: 200, body: [{ id: 1, name: 'Shamir Security Ltd', createdAt: '2026-01-01T00:00:00.000Z' }] }),
-};
-
 describe('CostDashboardPage', () => {
   it('renders roster-total stats and per-company/per-worker tables from the cost-summary endpoint', async () => {
     installMockFetch([
-      COMPANIES_ROUTE,
       { method: 'GET', match: '/api/rosters/2026-08/cost-summary', respond: () => ({ status: 200, body: SUMMARY }) },
       { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [worker(1, 'Dana Levi', 1, 'SUPERVISOR')] }) },
     ]);
 
-    renderWithProviders(<CostDashboardPage />, { initialEntries: ['/cost/2026-08'], path: '/cost/:month' });
+    renderWithProviders(<CostDashboardPage />, { initialEntries: ['/cost/2026-08'], path: '/cost/:month', activeCompanyId: 1 });
 
     const totalTile = (await screen.findByText('Roster total (August 2026)')).closest<HTMLElement>('.stat-tile');
     expect(totalTile ? within(totalTile).getByText('₪1,000') : null).toBeInTheDocument();
-    // "Shamir Security Ltd" also appears as the company-selector's own `<option>` label (outside
-    // any table) now that the page has a company selector — scope to the "Cost by company" table
-    // specifically so the assertion isn't ambiguous between the selector and the two tables.
     const companyTable = screen.getByRole('table', { name: 'Cost by company' });
     const companyRow = within(companyTable).getByText('Shamir Security Ltd').closest('tr');
     expect(companyRow ? within(companyRow).getByText('10') : null).toBeInTheDocument();
@@ -59,12 +47,11 @@ describe('CostDashboardPage', () => {
   it('shows an empty state with a link to Roster when the month has no cost data (404)', async () => {
     const user = userEvent.setup();
     installMockFetch([
-      COMPANIES_ROUTE,
       { method: 'GET', match: '/api/rosters/2026-09/cost-summary', respond: () => ({ status: 404, body: { message: 'Roster 2026-09 not found' } }) },
       { method: 'GET', match: /^\/api\/workers/, respond: () => ({ status: 200, body: [] }) },
     ]);
 
-    renderWithProviders(<CostDashboardPage />, { initialEntries: ['/cost/2026-09'], path: '/cost/:month' });
+    renderWithProviders(<CostDashboardPage />, { initialEntries: ['/cost/2026-09'], path: '/cost/:month', activeCompanyId: 1 });
 
     expect(await screen.findByText('No cost data for September 2026')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Go to Roster' }));

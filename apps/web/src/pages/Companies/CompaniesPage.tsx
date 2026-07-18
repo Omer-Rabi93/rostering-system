@@ -12,6 +12,7 @@ import {
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { useToasts } from '../../hooks/useToasts.js';
+import { companyCleared, companySelected, selectActiveCompanyId } from '../../store/activeCompany.slice.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import { CompanyFormModal } from './CompanyFormModal.js';
@@ -32,6 +33,7 @@ export function CompaniesPage(): ReactElement {
   const [deleteCompany] = useDeleteCompanyMutation();
 
   const activeDialog = useAppSelector(selectActiveDialog);
+  const activeCompanyId = useAppSelector(selectActiveCompanyId);
   const dispatch = useAppDispatch();
   const { toasts, pushToast, dismissToast } = useToasts();
 
@@ -76,7 +78,11 @@ export function CompaniesPage(): ReactElement {
         await renameCompany({ id: editingCompany.id, body: { name } }).unwrap();
         pushToast('success', `"${name}" saved.`);
       } else {
-        await createCompany({ name }).unwrap();
+        const created = await createCompany({ name }).unwrap();
+        // Creating a company from any entry point (here, or ActiveCompanyGate's first-run/picker
+        // "+ New company") sets it as the active company -- if you just created it you almost
+        // certainly want to work in it next.
+        dispatch(companySelected(created.id));
         pushToast('success', `"${name}" created.`);
       }
       closeForm();
@@ -98,6 +104,12 @@ export function CompaniesPage(): ReactElement {
     if (!pendingDelete) return;
     try {
       await deleteCompany(pendingDelete.id).unwrap();
+      // Deleting the active company clears it so the gate reappears on next render -- never leave
+      // the app pointed at a company that no longer exists. Deleting a non-active company is
+      // unaffected.
+      if (pendingDelete.id === activeCompanyId) {
+        dispatch(companyCleared());
+      }
       pushToast('success', `"${pendingDelete.name}" deleted.`);
       dispatch(dialogClosed());
       setPendingDelete(null);

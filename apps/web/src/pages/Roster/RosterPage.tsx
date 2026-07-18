@@ -7,8 +7,6 @@ import {
   ConfirmDialog,
   EmptyState,
   JobProgress,
-  Select,
-  Spinner,
   Toast,
   ToastRegion,
   type AlertChecklistAlert,
@@ -25,10 +23,10 @@ import {
   usePublishRosterMutation,
   useRemoveShiftWorkerMutation,
 } from '../../api/rosters.api.js';
-import { useListCompaniesQuery } from '../../api/companies.api.js';
 import { useListWorkersQuery } from '../../api/workers.api.js';
 import { useJobPolling } from '../../api/jobs.api.js';
 import { classifyMutationError, isPublishBlockedError } from '../../api/errors.js';
+import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { buildMonthDays, currentMonth } from '../../lib/calendar.js';
 import { formatMonthLong } from '../../lib/format.js';
 import { useToasts } from '../../hooks/useToasts.js';
@@ -61,22 +59,15 @@ export function RosterPage(): ReactElement {
   const month: Month = params.month ?? currentMonth();
 
   // Company-scoped rostering: each company has its own independent worker pool, staffing
-  // requirements, and roster -- this page needs a selected company before it can fetch/generate
-  // anything roster-shaped. Defaults to the first company returned by `GET /api/companies` (no
-  // dedicated "current company" concept elsewhere in the app yet), overridable via the selector
-  // below.
-  const { data: companies, isLoading: companiesLoading } = useListCompaniesQuery();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
-  const companyId = selectedCompanyId ?? companies?.[0]?.id;
+  // requirements, and roster. `ActiveCompanyGate` (via `Layout`) guarantees a valid company is
+  // active before this page ever renders, so `companyId` is a plain non-null `number` here.
+  const companyId = useActiveCompanyId();
 
-  const { data: roster, isLoading } = useGetRosterQuery(
-    { companyId: companyId ?? -1, month },
-    { skip: companyId === undefined },
-  );
+  const { data: roster, isLoading } = useGetRosterQuery({ companyId, month });
   // Scoped to the same company as the roster -- a company's roster can only ever be staffed from
   // that company's own workforce, so the "add a worker" pickers never offer another company's
   // workers.
-  const { data: workers } = useListWorkersQuery(companyId !== undefined ? { companyId } : undefined);
+  const { data: workers } = useListWorkersQuery({ companyId });
   const workerName = useMemo(() => {
     const map = new Map((workers ?? []).map((w) => [w.id, w.name]));
     return (id: number) => map.get(id) ?? `Worker #${id}`;
@@ -99,7 +90,6 @@ export function RosterPage(): ReactElement {
   const [view, setView] = useState<RosterView>('roster');
 
   async function startGenerate(force: boolean) {
-    if (companyId === undefined) return;
     try {
       const { jobId: newJobId } = await generateRoster({ companyId, month, force }).unwrap();
       setJobId(newJobId);
@@ -156,9 +146,6 @@ export function RosterPage(): ReactElement {
    * all run through the same `RosterValidator`) is written once instead of forked per-kind.
    */
   async function handleSubmitEdit(edit: PendingEdit): Promise<SlotActionOutcome> {
-    if (companyId === undefined) {
-      return { ok: false, kind: 'blocked', violations: ['No company selected.'] };
-    }
     try {
       if (edit.kind === 'add') {
         await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month }).unwrap();
@@ -202,7 +189,6 @@ export function RosterPage(): ReactElement {
   }
 
   async function handleConfirmEdit(edit: PendingEdit): Promise<void> {
-    if (companyId === undefined) return;
     if (edit.kind === 'add') {
       await addShiftWorker({ shiftId: edit.shiftId, workerId: edit.workerId, companyId, month, confirm: true }).unwrap();
     } else if (edit.kind === 'remove') {
@@ -220,7 +206,7 @@ export function RosterPage(): ReactElement {
   }
 
   async function handleAcknowledge(alertId: number) {
-    if (!roster || companyId === undefined) return;
+    if (!roster) return;
     dispatch(ackRequested(alertId));
     try {
       await ackAlert({ rosterId: roster.id, alertId, companyId, month }).unwrap();
@@ -232,7 +218,7 @@ export function RosterPage(): ReactElement {
   }
 
   async function handlePublish() {
-    if (!roster || companyId === undefined) return;
+    if (!roster) return;
     try {
       await publishRoster({ rosterId: roster.id, companyId, month }).unwrap();
       pushToast('success', `${formatMonthLong(month)} published.`);
@@ -269,17 +255,6 @@ export function RosterPage(): ReactElement {
           </p>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label className="field__label visually-hidden" htmlFor="roster-company">
-            Company
-          </label>
-          <Select
-            id="roster-company"
-            value={companyId !== undefined ? String(companyId) : ''}
-            options={(companies ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
-            onChange={(e) => setSelectedCompanyId(Number(e.target.value))}
-          />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
           <label className="field__label visually-hidden" htmlFor="roster-month">
             Month
           </label>
@@ -295,128 +270,114 @@ export function RosterPage(): ReactElement {
         </div>
       </div>
 
-      {companiesLoading ? (
-        <Spinner label="Loading companies" />
-      ) : companies && companies.length === 0 ? (
-        <EmptyState
-          icon={<span aria-hidden="true">🏢</span>}
-          title="No companies yet"
-          body="Rostering is per-company — add at least one company before generating a roster."
-          action={{ label: 'Go to Companies', onClick: () => void navigate('/companies') }}
-        />
-      ) : (
-        <>
-          <div className="toolbar" role="tablist" aria-label="Roster page sections">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'roster'}
-              className={`btn btn--sm ${view === 'roster' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setView('roster')}
-            >
-              Roster grid
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'availability'}
-              className={`btn btn--sm ${view === 'availability' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setView('availability')}
-            >
-              Availability
-            </button>
-          </div>
+      <div className="toolbar" role="tablist" aria-label="Roster page sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'roster'}
+          className={`btn btn--sm ${view === 'roster' ? 'btn--primary' : 'btn--secondary'}`}
+          onClick={() => setView('roster')}
+        >
+          Roster grid
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'availability'}
+          className={`btn btn--sm ${view === 'availability' ? 'btn--primary' : 'btn--secondary'}`}
+          onClick={() => setView('availability')}
+        >
+          Availability
+        </button>
+      </div>
 
-          {view === 'availability' ? (
-            <>
-              <AvailabilityGrid month={month} />
-              <AvailabilityCsvPanel month={month} />
-            </>
-          ) : isLoading ? null : !roster ? (
-            <>
-              <EmptyState
-                icon={<span aria-hidden="true">📅</span>}
-                title={`No roster for ${formatMonthLong(month)} yet`}
-                body="Generate a draft from active workers, their contracts, and the current staffing requirements. You'll review alerts before publishing."
-                action={{ label: 'Generate roster', onClick: () => void startGenerate(false) }}
-              />
-              {jobId ? (
+      {view === 'availability' ? (
+        <>
+          <AvailabilityGrid month={month} />
+          <AvailabilityCsvPanel month={month} />
+        </>
+      ) : isLoading ? null : !roster ? (
+        <>
+          <EmptyState
+            icon={<span aria-hidden="true">📅</span>}
+            title={`No roster for ${formatMonthLong(month)} yet`}
+            body="Generate a draft from active workers, their contracts, and the current staffing requirements. You'll review alerts before publishing."
+            action={{ label: 'Generate roster', onClick: () => void startGenerate(false) }}
+          />
+          {jobId ? (
+            <JobProgress
+              state={jobPoll.data?.state ?? 'created'}
+              label={
+                jobPoll.data?.state === 'completed'
+                  ? `Generated ${formatMonthLong(month)}.`
+                  : jobPoll.data?.state === 'failed'
+                    ? 'Generation failed.'
+                    : `Generating roster for ${formatMonthLong(month)}…`
+              }
+              {...(jobPoll.data?.state === 'failed' ? { errorMessage: 'See server logs for details.' } : {})}
+            />
+          ) : null}
+        </>
+      ) : (
+        <div className="split-layout">
+          <div>
+            <div className="calendar">
+              <div className="calendar__toolbar">
+                <button className="btn btn--secondary btn--sm" type="button" onClick={handleGenerateClick}>
+                  {roster.status === 'PUBLISHED' ? 'Regenerate…' : 'Regenerate roster'}
+                </button>
+              </div>
+              {jobId && jobPoll.data?.state !== 'completed' ? (
                 <JobProgress
                   state={jobPoll.data?.state ?? 'created'}
-                  label={
-                    jobPoll.data?.state === 'completed'
-                      ? `Generated ${formatMonthLong(month)}.`
-                      : jobPoll.data?.state === 'failed'
-                        ? 'Generation failed.'
-                        : `Generating roster for ${formatMonthLong(month)}…`
-                  }
+                  label={jobPoll.data?.state === 'failed' ? 'Generation failed.' : `Generating roster for ${formatMonthLong(month)}…`}
                   {...(jobPoll.data?.state === 'failed' ? { errorMessage: 'See server logs for details.' } : {})}
                 />
               ) : null}
-            </>
-          ) : (
-            <div className="split-layout">
-              <div>
-                <div className="calendar">
-                  <div className="calendar__toolbar">
-                    <button className="btn btn--secondary btn--sm" type="button" onClick={handleGenerateClick}>
-                      {roster.status === 'PUBLISHED' ? 'Regenerate…' : 'Regenerate roster'}
-                    </button>
-                  </div>
-                  {jobId && jobPoll.data?.state !== 'completed' ? (
-                    <JobProgress
-                      state={jobPoll.data?.state ?? 'created'}
-                      label={jobPoll.data?.state === 'failed' ? 'Generation failed.' : `Generating roster for ${formatMonthLong(month)}…`}
-                      {...(jobPoll.data?.state === 'failed' ? { errorMessage: 'See server logs for details.' } : {})}
-                    />
-                  ) : null}
-                  <CalendarGrid
-                    month={month}
-                    days={days}
-                    shiftRows={SHIFT_ROWS}
-                    getSlot={getSlot}
-                    onSlotActivate={handleSlotActivate}
-                  />
-                </div>
-              </div>
-
-              <aside className="side-panel" aria-label="Alerts">
-                <div className="card">
-                  <div className="card__title">Alerts ({alerts.length})</div>
-                  <div
-                    className={`gate-status ${allAcked ? 'gate-status--ready' : 'gate-status--blocked'}`}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {allAcked
-                      ? '✓ All clear — ready to publish'
-                      : `⚠ ${alerts.filter((a) => !a.acknowledged).length} unacknowledged — Publish disabled`}
-                  </div>
-                  <AlertChecklist alerts={alerts} onAcknowledge={(id) => void handleAcknowledge(id)} />
-                  <button
-                    className="btn btn--primary"
-                    type="button"
-                    style={{ width: '100%', marginTop: 'var(--space-4)' }}
-                    disabled={!allAcked || roster.status === 'PUBLISHED'}
-                    onClick={() => void handlePublish()}
-                  >
-                    Publish roster
-                  </button>
-                </div>
-              </aside>
+              <CalendarGrid
+                month={month}
+                days={days}
+                shiftRows={SHIFT_ROWS}
+                getSlot={getSlot}
+                onSlotActivate={handleSlotActivate}
+              />
             </div>
-          )}
-        </>
+          </div>
+
+          <aside className="side-panel" aria-label="Alerts">
+            <div className="card">
+              <div className="card__title">Alerts ({alerts.length})</div>
+              <div
+                className={`gate-status ${allAcked ? 'gate-status--ready' : 'gate-status--blocked'}`}
+                role="status"
+                aria-live="polite"
+              >
+                {allAcked
+                  ? '✓ All clear — ready to publish'
+                  : `⚠ ${alerts.filter((a) => !a.acknowledged).length} unacknowledged — Publish disabled`}
+              </div>
+              <AlertChecklist alerts={alerts} onAcknowledge={(id) => void handleAcknowledge(id)} />
+              <button
+                className="btn btn--primary"
+                type="button"
+                style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                disabled={!allAcked || roster.status === 'PUBLISHED'}
+                onClick={() => void handlePublish()}
+              >
+                Publish roster
+              </button>
+            </div>
+          </aside>
+        </div>
       )}
 
-      {roster && focusedSlot && companyId !== undefined ? (
+      {roster && focusedSlot ? (
         <SlotEditDialog
           isOpen={activeDialog?.kind === 'rosterEditDialog'}
           date={focusedSlot.date}
           shift={focusedSlot.shift}
           shiftRow={focusedShiftRow}
           roster={roster}
-          companyId={companyId}
           onClose={() => dispatch(dialogClosed())}
           onSubmitEdit={handleSubmitEdit}
           onConfirmEdit={handleConfirmEdit}
