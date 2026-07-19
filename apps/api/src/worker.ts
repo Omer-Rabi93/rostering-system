@@ -1,21 +1,18 @@
 /**
  * pg-boss worker entrypoint (separate process from the HTTP API). Starts a `PgBoss` instance,
- * registers the `csv-import` and `roster-generation` job handlers (each `localConcurrency: 1`,
- * matching the design doc's `teamSize: 1` intent -- see `jobs/queue.ts`'s doc comment), and
- * schedules the next-month generation cron. Never publishes a roster on its own.
+ * registers the `workforce-import` and `roster-generation` job handlers, and schedules the
+ * next-month generation cron. Never publishes a roster on its own.
  */
 import { createPrismaClient } from './db/client.js';
-import { createAvailabilityImportHandler } from './jobs/availabilityImport.job.js';
-import { createCsvImportHandler } from './jobs/csvImport.job.js';
 import {
   createBoss,
   ensureQueues,
-  registerAvailabilityImportWorker,
-  registerCsvImportWorker,
   registerRosterGenerationWorker,
+  registerWorkforceImportWorker,
   scheduleNextMonthGeneration,
 } from './jobs/queue.js';
 import { createRosterGenerationHandler } from './jobs/rosterGeneration.job.js';
+import { createWorkforceImportHandler } from './jobs/workforceImport.job.js';
 
 async function main(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -34,14 +31,11 @@ async function main(): Promise<void> {
   await boss.start();
   await ensureQueues(boss);
 
-  await registerCsvImportWorker(boss, createCsvImportHandler(prisma, boss));
-  await registerAvailabilityImportWorker(boss, createAvailabilityImportHandler(prisma, boss));
+  await registerWorkforceImportWorker(boss, createWorkforceImportHandler(prisma, boss));
   await registerRosterGenerationWorker(boss, createRosterGenerationHandler(prisma));
   await scheduleNextMonthGeneration(boss);
 
-  console.log(
-    'worker: csv-import + availability-import + roster-generation handlers registered; next-month cron scheduled',
-  );
+  console.log('worker: workforce-import + roster-generation handlers registered; next-month cron scheduled');
 }
 
 main().catch((error: unknown) => {

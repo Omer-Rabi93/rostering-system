@@ -5,17 +5,17 @@ import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 
 /**
- * v4: small, generically-shaped endpoint (worker-CSV AND availability-CSV import share the same
- * `ImportTask` entity/lifecycle -- see the v4 design doc, Part A's "New `ImportTask` entity")
- * backing the frontend's pre-upload confirm UX (a later wave): both CSV panels call this right
- * before opening the file picker, and if a task is already in-flight for that company+kind, show a
- * confirm dialog before actually submitting -- the backend's cancel-and-replace logic is still the
- * real correctness guarantee regardless of whether the dialog was shown (this is a UX nicety, not a
- * substitute for it).
+ * v4: small, generically-shaped endpoint (kept as an enum rather than a bare literal, so the
+ * query shape stays forward-compatible if a second `ImportTaskKind` is ever reintroduced -- see
+ * the v4 design doc, Part A's "New `ImportTask` entity") backing the frontend's pre-upload confirm
+ * UX: the combined workforce-CSV panel calls this right before opening the file picker, and if a
+ * task is already in-flight for that company, show a confirm dialog before actually submitting --
+ * the backend's cancel-and-replace logic is still the real correctness guarantee regardless of
+ * whether the dialog was shown (this is a UX nicety, not a substitute for it).
  */
 const activeTaskQuerySchema = z.object({
   companyId: z.coerce.number().int().positive(),
-  kind: z.enum(['WORKER_SYNC', 'AVAILABILITY_SYNC']),
+  kind: z.enum(['WORKFORCE_SYNC']),
 });
 
 /** Thin HTTP layer for `/api/import-tasks`. */

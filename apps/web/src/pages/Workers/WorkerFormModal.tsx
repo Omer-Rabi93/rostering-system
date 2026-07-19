@@ -10,7 +10,6 @@ import {
   useUpsertWorkerContractMutation,
   type WorkerDto,
 } from '../../api/workers.api.js';
-import type { CompanyDto } from '../../api/companies.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { validateNationalId } from './nationalId.js';
 
@@ -35,7 +34,7 @@ interface FormFields {
   maxMonthlyHours: string;
 }
 
-function initialFields(worker: WorkerDto | null, companies: readonly CompanyDto[]): FormFields {
+function initialFields(worker: WorkerDto | null, activeCompanyId: number): FormFields {
   if (worker) {
     return {
       nationalId: worker.nationalId,
@@ -51,7 +50,7 @@ function initialFields(worker: WorkerDto | null, companies: readonly CompanyDto[
   return {
     nationalId: '',
     name: '',
-    companyId: companies[0] ? String(companies[0].id) : '',
+    companyId: String(activeCompanyId),
     role: 'GENERAL_GUARD',
     status: 'ACTIVE',
     hourlyCostIls: '',
@@ -63,25 +62,25 @@ function initialFields(worker: WorkerDto | null, companies: readonly CompanyDto[
 export interface WorkerFormModalProps {
   readonly isOpen: boolean;
   readonly worker: WorkerDto | null; // null = create mode
-  readonly companies: readonly CompanyDto[];
+  readonly companyId: number; // active company from the topbar
   readonly onSaved: () => void;
   readonly onCancel: () => void;
 }
 
 export function WorkerFormModal(props: WorkerFormModalProps): ReactElement {
-  const { isOpen, worker, companies, onSaved, onCancel } = props;
+  const { isOpen, worker, companyId, onSaved, onCancel } = props;
 
   const [createWorker, createResult] = useCreateWorkerMutation();
   const [updateWorker, updateResult] = useUpdateWorkerMutation();
   const [upsertContract] = useUpsertWorkerContractMutation();
 
-  const [fields, setFields] = useState<FormFields>(() => initialFields(worker, companies));
+  const [fields, setFields] = useState<FormFields>(() => initialFields(worker, companyId));
   const [touched, setTouched] = useState(false);
   const [submitError, setSubmitError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (isOpen) {
-      setFields(initialFields(worker, companies));
+      setFields(initialFields(worker, companyId));
       setTouched(false);
       setSubmitError(undefined);
     }
@@ -104,7 +103,7 @@ export function WorkerFormModal(props: WorkerFormModalProps): ReactElement {
     setSubmitError(undefined);
 
     const nidError = validateNationalId(fields.nationalId);
-    if (nidError || fields.name.trim() === '' || fields.companyId === '') return;
+    if (nidError || fields.name.trim() === '') return;
     if (fields.hourlyCostIls === '' || fields.minMonthlyHours === '' || fields.maxMonthlyHours === '') return;
     if (Number(fields.minMonthlyHours) > Number(fields.maxMonthlyHours)) return;
 
@@ -198,20 +197,6 @@ export function WorkerFormModal(props: WorkerFormModalProps): ReactElement {
           <FormField id="w-name" label="Full name" required {...(touched && fields.name.trim() === '' ? { error: 'Name is required.' } : {})}>
             {(inputProps) => (
               <Input {...inputProps} value={fields.name} maxLength={120} onChange={(e) => setFields((f) => ({ ...f, name: e.target.value }))} />
-            )}
-          </FormField>
-
-          <FormField id="w-company" label="Company" required>
-            {(inputProps) => (
-              <Select
-                {...inputProps}
-                value={fields.companyId}
-                options={[
-                  { value: '', label: 'Select a company…' },
-                  ...companies.map((c) => ({ value: String(c.id), label: c.name })),
-                ]}
-                onChange={(e) => setFields((f) => ({ ...f, companyId: e.target.value }))}
-              />
             )}
           </FormField>
 

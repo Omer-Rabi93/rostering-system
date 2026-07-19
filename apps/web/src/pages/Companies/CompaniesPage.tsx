@@ -119,7 +119,28 @@ export function CompaniesPage(): ReactElement {
   }
 
   const columns: Column<CompanyRow>[] = [
-    { key: 'name', header: 'Name', sortable: false },
+    {
+      key: 'name',
+      header: 'Name',
+      sortable: false,
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => openEdit(row)}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            font: 'inherit',
+            color: 'var(--color-brand-text)',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+          }}
+        >
+          {row.name}
+        </button>
+      ),
+    },
     { key: 'workerCount', header: 'Workers', align: 'right' },
   ];
 
@@ -159,7 +180,7 @@ export function CompaniesPage(): ReactElement {
           rowActions={(row) => (
             <>
               <button className="btn btn--secondary btn--sm" type="button" onClick={() => openEdit(row)}>
-                Rename
+                Edit / Requirements
               </button>
               <button className="btn btn--danger btn--sm" type="button" onClick={() => requestDelete(row)}>
                 Delete

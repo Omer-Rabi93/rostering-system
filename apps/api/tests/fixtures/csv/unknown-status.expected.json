@@ -1,7 +1,8 @@
 {
   "_comment": "status \"OnLeave\" is not one of the display strings toWorkerRecord() maps back to a WorkerStatus enum ('Active'/'Inactive') -- CsvFieldError('status', ...).",
-  "kind": "worker",
-  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "WorkforceImportService.importCsv(csvText, month, companyId)",
   "expectImportResult": {
     "totalRows": 1,
     "inserted": 0,

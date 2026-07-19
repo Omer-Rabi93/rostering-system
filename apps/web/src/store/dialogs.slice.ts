@@ -22,12 +22,9 @@ export type DialogDescriptor =
   | { readonly kind: 'softWarningConfirm' }
   | { readonly kind: 'hardBlockNotice' }
   | { readonly kind: 'regeneratePublishedConfirm'; readonly month: string }
-  | { readonly kind: 'csvImportConfirm' }
-  | { readonly kind: 'csvImportInProgressConfirm' }
-  | { readonly kind: 'csvImportResult'; readonly jobId: string }
-  | { readonly kind: 'availabilityCsvImportConfirm' }
-  | { readonly kind: 'availabilityCsvImportInProgressConfirm' }
-  | { readonly kind: 'availabilityCsvImportResult'; readonly jobId: string };
+  | { readonly kind: 'workforceCsvImportConfirm' }
+  | { readonly kind: 'workforceCsvImportInProgressConfirm' }
+  | { readonly kind: 'workforceCsvImportResult'; readonly jobId: string };
 
 export interface DialogsState {
   readonly active: DialogDescriptor | null;

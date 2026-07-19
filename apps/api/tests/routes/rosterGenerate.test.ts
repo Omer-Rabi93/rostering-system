@@ -8,8 +8,8 @@ import { buildTestApp } from '../helpers/testApp.js';
 
 // This suite runs against a persistent, shared dev Postgres (not reset between test runs the way
 // the Prisma-backed `public` schema is via `resetDatabase`). Purge any `roster-generation`/
-// `csv-import` jobs left queued by a previous run so the singletonKey-collision assertions below
-// are never polluted by a stale "created" job that no worker ever consumed.
+// `workforce-import` jobs left queued by a previous run so the singletonKey-collision assertions
+// below are never polluted by a stale "created" job that no worker ever consumed.
 beforeAll(async () => {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is not set');
@@ -17,7 +17,7 @@ beforeAll(async () => {
   await cleanupBoss.start();
   await ensureQueues(cleanupBoss);
   await cleanupBoss.deleteQueuedJobs(QUEUES.ROSTER_GENERATION);
-  await cleanupBoss.deleteQueuedJobs(QUEUES.CSV_IMPORT);
+  await cleanupBoss.deleteQueuedJobs(QUEUES.WORKFORCE_IMPORT);
   await cleanupBoss.stop({ graceful: false, close: true });
 });
 

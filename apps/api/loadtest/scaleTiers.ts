@@ -6,7 +6,7 @@
 // real spawned Python solver subprocess), never through HTTP/pg-boss -- the design doc is explicit
 // that precise internal-stage timing needs to see each internal `await`, which only the direct
 // caller can do, and that this benchmark should NOT add permanent timing instrumentation to
-// `CsvImportService`/`RosterGenerationService` themselves. Run with:
+// `WorkforceImportService`/`RosterGenerationService` themselves. Run with:
 //
 //   cd apps/api && npx tsx loadtest/scaleTiers.ts [tier ...]
 //
@@ -33,12 +33,13 @@ import type { Role, ShiftType } from '@rostering/shared';
 
 import { createPrismaClient, type PrismaClient } from '../src/db/client.js';
 import { createBoss } from '../src/jobs/queue.js';
-import { CsvImportService } from '../src/services/csvImportService.js';
+import { WorkforceImportService } from '../src/services/workforceImportService.js';
 import { RosterGenerationService, type SolveFn } from '../src/services/rosterGenerationService.js';
 import { monthDays } from '../src/engine/calendar.js';
 import { buildProblem, type EngineAvailabilityRow } from '../src/engine/problem.js';
 import { runSolver, type RunSolverOptions } from '../src/engine/runSolver.js';
-import { serializeWorkersCsv, type CsvWorkerRecord } from '../src/csv/index.js';
+import { computeNodeSolverTimeoutMs } from '../src/engine/timeBudget.js';
+import { serializeWorkforceCsv, type WorkforceCsvExportRow } from '../src/csv/index.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(currentDir, '../../..');
@@ -50,10 +51,11 @@ loadDotenv({ path: path.resolve(REPO_ROOT, '.env') });
 // script parameter, not a hardcoded constant buried in logic" ask).
 // ---------------------------------------------------------------------------------------------
 
-/** 100 / 1,000 / 10,000 -- 10,000 is not an arbitrary round number, it is exactly `MAX_ROWS`
- * (confirmed in `apps/api/src/routes/importExport.ts`: `const MAX_ROWS = 10_000;`), so that tier
- * is specifically "does the system behave correctly and reasonably fast at its own documented
- * limit." Can be overridden via CLI args, e.g. `tsx loadtest/scaleTiers.ts 100 1000`. */
+/** 100 / 1,000 / 10,000 -- 10,000 is not an arbitrary round number, it is this system's stated
+ * per-company worker-count ceiling (see `routes/workforce.ts`'s `MAX_WORKFORCE_CSV_ROWS`, raised
+ * to 15,000 for headroom above that same stated ceiling -- the ceiling itself is still 10,000), so
+ * that tier is specifically "does the system behave correctly and reasonably fast at its own
+ * documented limit." Can be overridden via CLI args, e.g. `tsx loadtest/scaleTiers.ts 100 1000`. */
 const ALL_TIERS = [100, 1000, 10_000] as const;
 
 /** Share of each role's imported headcount that `StaffingRequirement.requiredCount` targets,
@@ -67,12 +69,20 @@ const UTILIZATION_RATIO = Number(process.env.LOADTEST_UTILIZATION_RATIO ?? 0.4);
  * February) to solve. */
 const TARGET_MONTH = '2030-01';
 
-/** Node-side kill timeout `runSolver.ts` itself defaults to (`DEFAULT_TIMEOUT_MS`, not exported --
- * see that file), kept "slightly above the solver's own internal ~30s cap." Used here as the
- * pass/fail threshold for the 10,000-worker tier's solve stage, per the design doc's "use the
- * solver's documented ~30s internal cap plus your own Node-side spawn/IPC overhead as the
- * threshold" instruction. */
-const SOLVE_REASONABLE_BOUND_MS = 35_000;
+/**
+ * Pass/fail threshold for a tier's solve stage. The solver's own internal CP-SAT time budget is no
+ * longer a single flat ~30s constant -- it's banded by active-workforce size
+ * (`solve_roster.py#compute_time_budget_seconds`) -- so a single hardcoded bound across every tier
+ * would be meaningless above the <=200-worker band (either falsely PASSing a tier that silently
+ * used up its whole large budget, or falsely FAILing a tier that legitimately needed more than 35s
+ * by DESIGN). `computeNodeSolverTimeoutMs(tier)` mirrors the exact same per-tier bound
+ * `RosterGenerationService` itself hands to `runSolver.ts` for a company of that worker count, so
+ * "PASS" here means the same thing it means in production: the solve finished within the budget
+ * this system intentionally gives a company of this size, not within some unrelated fixed number.
+ */
+function solveReasonableBoundMs(tier: number): number {
+  return computeNodeSolverTimeoutMs(tier);
+}
 
 /** National-ID prefix range reserved for this script's synthetic workers -- high enough to never
  * collide with `db/seedData.ts`'s seed fixtures (prefixes 1-12) or
@@ -140,9 +150,12 @@ let globalWorkerCounter = 0;
 /** Builds `count` synthetic worker+contract records with valid roles/status/checksum-valid
  * national IDs and reasonable hourly rates / monthly-hour bands. `globalWorkerCounter` is shared
  * across every tier in one script run so `nationalId` (globally unique across companies) never
- * collides between tiers. */
-function buildSyntheticWorkerRecords(count: number): CsvWorkerRecord[] {
-  const records: CsvWorkerRecord[] = [];
+ * collides between tiers. `entries` is always empty -- this benchmark's CSV-import stage carries
+ * no availability data of its own; `seedAvailability` writes it separately afterward (direct
+ * Prisma, its own timed stage) so the import-stage and availability-seed-stage numbers stay
+ * independently measurable, matching this benchmark's pre-merge shape. */
+function buildSyntheticWorkerRecords(count: number): WorkforceCsvExportRow[] {
+  const records: WorkforceCsvExportRow[] = [];
   for (let i = 0; i < count; i++) {
     const index = globalWorkerCounter++;
     const nationalId = checksumValidNationalId(NATIONAL_ID_BASE_PREFIX + index);
@@ -153,13 +166,16 @@ function buildSyntheticWorkerRecords(count: number): CsvWorkerRecord[] {
     }
     const role = ROLE_PATTERN[index % ROLE_PATTERN.length] ?? 'GENERAL_GUARD';
     records.push({
-      nationalId,
-      name: `Load Test Worker ${index}`,
-      role,
-      status: 'ACTIVE',
-      hourlyCostIls: 35 + (index % 40), // 35..74 ILS/hr
-      minMonthlyHours: 0,
-      maxMonthlyHours: 180 + (index % 40), // 180..219
+      record: {
+        nationalId,
+        name: `Load Test Worker ${index}`,
+        role,
+        status: 'ACTIVE',
+        hourlyCostIls: 35 + (index % 40), // 35..74 ILS/hr
+        minMonthlyHours: 0,
+        maxMonthlyHours: 180 + (index % 40), // 180..219
+      },
+      entries: [],
     });
   }
   return records;
@@ -282,8 +298,8 @@ async function shadowDataFetchAndBuild(
 ): Promise<ShadowFetchResult> {
   const fetchStart = performance.now();
 
-  const latestWorkerSyncTask = await prisma.importTask.findFirst({
-    where: { companyId, kind: 'WORKER_SYNC', status: 'COMPLETED' },
+  const latestWorkforceSyncTask = await prisma.importTask.findFirst({
+    where: { companyId, kind: 'WORKFORCE_SYNC', status: 'COMPLETED' },
     orderBy: { finishedAt: 'desc' },
   });
 
@@ -292,7 +308,7 @@ async function shadowDataFetchAndBuild(
       where: {
         companyId,
         status: 'ACTIVE',
-        OR: [{ lastImportTaskId: null }, { lastImportTaskId: latestWorkerSyncTask?.id ?? -1 }],
+        OR: [{ lastImportTaskId: null }, { lastImportTaskId: latestWorkforceSyncTask?.id ?? -1 }],
       },
       include: { contract: true },
     }),
@@ -464,13 +480,13 @@ async function runTier(
   const company = await prisma.company.create({ data: { name: companyName } });
   console.log(`  created company ${company.id} (${companyName})`);
 
-  const csvImportService = new CsvImportService(prisma, boss);
+  const workforceImportService = new WorkforceImportService(prisma, boss);
   const records = buildSyntheticWorkerRecords(tier);
-  const csvText = serializeWorkersCsv(records);
+  const csvText = serializeWorkforceCsv(records, TARGET_MONTH);
 
-  console.log(`  importing ${tier} synthetic workers (in-process CsvImportService.importCsv)...`);
+  console.log(`  importing ${tier} synthetic workers (in-process WorkforceImportService.importCsv)...`);
   const importStart = performance.now();
-  const importResult = await csvImportService.importCsv(csvText, company.id);
+  const importResult = await workforceImportService.importCsv(csvText, TARGET_MONTH, company.id);
   const importEnd = performance.now();
   const rowProcessingMs = importEnd - importStart;
   const rowsPerSec = importResult.totalRows / (rowProcessingMs / 1000);
@@ -528,12 +544,12 @@ async function runTier(
     } else if (rosterGeneration.solveMs === null) {
       pass = false;
       passReason = 'solve stage never ran (unexpected)';
-    } else if (rosterGeneration.solveMs > SOLVE_REASONABLE_BOUND_MS) {
+    } else if (rosterGeneration.solveMs > solveReasonableBoundMs(tier)) {
       pass = false;
-      passReason = `solve took ${rosterGeneration.solveMs.toFixed(0)}ms, exceeding the ${SOLVE_REASONABLE_BOUND_MS}ms bound`;
+      passReason = `solve took ${rosterGeneration.solveMs.toFixed(0)}ms, exceeding the ${solveReasonableBoundMs(tier)}ms bound for a ${tier}-worker tier`;
     } else {
       pass = true;
-      passReason = `solve completed in ${rosterGeneration.solveMs.toFixed(0)}ms, within the ${SOLVE_REASONABLE_BOUND_MS}ms bound`;
+      passReason = `solve completed in ${rosterGeneration.solveMs.toFixed(0)}ms, within the ${solveReasonableBoundMs(tier)}ms bound for a ${tier}-worker tier`;
     }
   } else {
     passReason = 'solver unavailable (solver/.venv missing) -- roster-generation stage skipped entirely';
@@ -602,7 +618,8 @@ async function writeArtifacts(results: readonly TierResult[]): Promise<void> {
   const mdLines: string[] = [
     `# Scale-tier benchmark — ${new Date().toISOString()}`,
     '',
-    `Utilization ratio: ${UTILIZATION_RATIO}. Target month: ${TARGET_MONTH}. Solve reasonable bound: ${SOLVE_REASONABLE_BOUND_MS}ms.`,
+    `Utilization ratio: ${UTILIZATION_RATIO}. Target month: ${TARGET_MONTH}. Solve reasonable bound: per-tier, see ` +
+      `computeNodeSolverTimeoutMs (e.g. 100 -> ${solveReasonableBoundMs(100)}ms, 1000 -> ${solveReasonableBoundMs(1000)}ms, 10000 -> ${solveReasonableBoundMs(10_000)}ms).`,
     '',
     '| Tier | Import rows/sec | Import ms | Data-fetch ms | Problem-build ms | Solve ms | Persist ms | Generate total ms | Pass |',
     '|---|---|---|---|---|---|---|---|---|',

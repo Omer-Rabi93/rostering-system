@@ -22,26 +22,26 @@ describe('GET /api/import-tasks/active', () => {
     await disconnectTestPrismaClient();
   });
 
-  it('returns 200 with null when no task is in flight for that company+kind', async () => {
+  it('returns 200 with null when no task is in flight for that company', async () => {
     const company = await prisma.company.create({ data: { name: 'No Task Co' } });
 
     const response = await request(app)
       .get('/api/import-tasks/active')
-      .query({ companyId: company.id, kind: 'WORKER_SYNC' });
+      .query({ companyId: company.id, kind: 'WORKFORCE_SYNC' });
 
     expect(response.status).toBe(200);
     expect(response.body).toBeNull();
   });
 
-  it('returns the non-terminal task for that company+kind when one exists', async () => {
+  it('returns the non-terminal task for that company when one exists', async () => {
     const company = await prisma.company.create({ data: { name: 'Active Task Co' } });
     const task = await prisma.importTask.create({
-      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'PROCESSING' },
+      data: { companyId: company.id, kind: 'WORKFORCE_SYNC', status: 'PROCESSING', month: '2027-05' },
     });
 
     const response = await request(app)
       .get('/api/import-tasks/active')
-      .query({ companyId: company.id, kind: 'WORKER_SYNC' });
+      .query({ companyId: company.id, kind: 'WORKFORCE_SYNC' });
 
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(task.id);
@@ -51,26 +51,12 @@ describe('GET /api/import-tasks/active', () => {
   it('does not return a terminal (COMPLETED/CANCELLED/FAILED) task', async () => {
     const company = await prisma.company.create({ data: { name: 'Terminal Task Co' } });
     await prisma.importTask.create({
-      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'COMPLETED', finishedAt: new Date() },
+      data: { companyId: company.id, kind: 'WORKFORCE_SYNC', status: 'COMPLETED', month: '2027-05', finishedAt: new Date() },
     });
 
     const response = await request(app)
       .get('/api/import-tasks/active')
-      .query({ companyId: company.id, kind: 'WORKER_SYNC' });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toBeNull();
-  });
-
-  it('scopes strictly by kind -- an in-flight AVAILABILITY_SYNC task is not returned for a WORKER_SYNC query', async () => {
-    const company = await prisma.company.create({ data: { name: 'Kind Scoped Co' } });
-    await prisma.importTask.create({
-      data: { companyId: company.id, kind: 'AVAILABILITY_SYNC', status: 'PENDING', month: '2027-05' },
-    });
-
-    const response = await request(app)
-      .get('/api/import-tasks/active')
-      .query({ companyId: company.id, kind: 'WORKER_SYNC' });
+      .query({ companyId: company.id, kind: 'WORKFORCE_SYNC' });
 
     expect(response.status).toBe(200);
     expect(response.body).toBeNull();
@@ -80,19 +66,19 @@ describe('GET /api/import-tasks/active', () => {
     const companyA = await prisma.company.create({ data: { name: 'Scope Co A' } });
     const companyB = await prisma.company.create({ data: { name: 'Scope Co B' } });
     await prisma.importTask.create({
-      data: { companyId: companyB.id, kind: 'WORKER_SYNC', status: 'PENDING' },
+      data: { companyId: companyB.id, kind: 'WORKFORCE_SYNC', status: 'PENDING', month: '2027-05' },
     });
 
     const response = await request(app)
       .get('/api/import-tasks/active')
-      .query({ companyId: companyA.id, kind: 'WORKER_SYNC' });
+      .query({ companyId: companyA.id, kind: 'WORKFORCE_SYNC' });
 
     expect(response.status).toBe(200);
     expect(response.body).toBeNull();
   });
 
   it('returns 400 for a missing or invalid companyId/kind', async () => {
-    const missingCompanyId = await request(app).get('/api/import-tasks/active').query({ kind: 'WORKER_SYNC' });
+    const missingCompanyId = await request(app).get('/api/import-tasks/active').query({ kind: 'WORKFORCE_SYNC' });
     expect(missingCompanyId.status).toBe(400);
 
     const badKind = await request(app).get('/api/import-tasks/active').query({ companyId: 1, kind: 'NOT_A_KIND' });

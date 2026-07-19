@@ -1,6 +1,7 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, ReactElement } from 'react';
-import { useRovingTabindex } from '@rostering/ui';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { isNavKey, neighborFor, useRovingTabindex, type GridPos } from '@rostering/ui';
 import { SHIFT_TYPES } from '@rostering/shared';
 import type { Month, ShiftType } from '@rostering/shared';
 
@@ -117,17 +118,34 @@ const AvailabilityCell = memo(function AvailabilityCell(props: AvailabilityCellP
     >
       <span style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'center' }}>
         {SHIFT_TYPES.map((shift) => {
-          const on = shifts.includes(shift);
+          // `shifts` is the EXCLUDED subset (Availability v3) — a letter present here means the
+          // worker is NOT available for it. Visually this must read as a negative/blocked state
+          // (struck-through, muted red), the opposite of how a v2 "included" toggle looked (bold,
+          // full-opacity, positive ink) — the data was already correct, but before this fix the
+          // styling still looked like "on = available", which read backwards against what it now
+          // means. An untouched letter (not excluded, i.e. available) gets the positive/default
+          // treatment instead.
+          const excluded = shifts.includes(shift);
           return (
             <span
               key={shift}
               data-shift={shift}
               aria-hidden="true"
-              style={{
-                fontWeight: on ? 700 : 400,
-                color: on ? 'var(--color-ink-primary)' : 'var(--color-ink-secondary)',
-                opacity: on ? 1 : 0.4,
-              }}
+              style={
+                excluded
+                  ? {
+                      fontWeight: 400,
+                      color: 'var(--color-status-blocking)',
+                      textDecoration: 'line-through',
+                      opacity: 0.85,
+                    }
+                  : {
+                      fontWeight: 700,
+                      color: 'var(--color-status-good)',
+                      textDecoration: 'none',
+                      opacity: 1,
+                    }
+              }
             >
               {shift}
             </span>
@@ -146,8 +164,36 @@ const AvailabilityCell = memo(function AvailabilityCell(props: AvailabilityCellP
  * reuse `CalendarGrid`'s extracted `useRovingTabindex` hook for the keyboard-nav math.
  *
  * Scale: rows are scoped to ACTIVE workers only (reusing `workers.api.ts`'s existing `status`
- * filter, the same mitigation `SlotEditDialog` already uses) — the plan's own scale note treats
- * that as sufficient for the app's stated 50-150-worker org size without adding virtualization.
+ * filter, the same mitigation `SlotEditDialog` already uses). The backend now allows up to
+ * 1,000-10,000 workers per company, so the row axis is row-virtualized with
+ * `@tanstack/react-virtual`'s `useVirtualizer` (see `rowVirtualizer` below): only the `<tr>`s within
+ * the current scroll window (+ overscan) are ever mounted, regardless of `workerRows.length`. The
+ * date/column axis is NOT virtualized — it's bounded at 31 columns, well within what a plain
+ * unvirtualized row can render.
+ *
+ * Virtualization technique: rather than absolutely-positioning each `<tr>` (which forces
+ * `display:block` on the row per the CSS spec, breaking column alignment across rows and the
+ * sticky-column/sticky-header CSS below), unrendered rows are represented by a single "spacer"
+ * `<tr>` before and after the rendered window, each with one `<td colSpan={days.length + 1}>` sized
+ * to the total height of the rows it stands in for (`rowVirtualizer.getVirtualItems()[0].start` /
+ * `getTotalSize() - lastItem.end`). Every *rendered* row is a completely normal `<tr>` in normal
+ * table flow, so `.availability-scroll`'s sticky header row and sticky first (worker-name) column
+ * (below) keep working unmodified — sticky positioning is scoped per-cell against the nearest
+ * scrolling ancestor, not affected by how many siblings exist above/below.
+ *
+ * Keyboard nav across the virtualization boundary: `useRovingTabindex`'s own `focusCell`/
+ * `handleNavKeyDown` assume the target cell is already mounted (a real DOM node to call `.focus()`
+ * on) — true for `CalendarGrid` (never virtualized) but not here once the target row scrolls out of
+ * the rendered window. So this component does its own nav-key handling (`moveFocus` below, built
+ * from the same exported `neighborFor`/`isNavKey` primitives `useRovingTabindex` uses internally)
+ * that (1) asks the virtualizer to scroll the target row into view
+ * (`rowVirtualizer.scrollToIndex`), (2) immediately updates the roving-focus state via
+ * `roving.focusCell` so the target cell's `tabIndex`/`aria-selected` are already correct the instant
+ * it mounts, and (3) — since the target row may not exist in the DOM yet in the same tick the state
+ * updates — remembers the pending target and, in a plain (no-dependency-array) `useEffect` that
+ * re-checks after every render, calls `.focus()` on it for real as soon as it's mounted. `focusCell`
+ * still handles the common case (target already mounted) synchronously, so most arrow-key presses
+ * never touch the pending-focus path at all.
  *
  * State: a local editable `AvailabilityDraft` (see `availabilityDraft.ts`), initialized from
  * `getMonthAvailability` and re-synced whenever that query's data changes (e.g. after a CSV import
@@ -163,16 +209,88 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
   const [draft, setDraft] = useState<AvailabilityDraft>(() => draftFromMonthAvailability(monthAvailability));
   const [saveMessage, setSaveMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
+  // Keyed on companyId/month too, not just monthAvailability: this component doesn't remount on a
+  // company/month switch, so relying solely on `monthAvailability` identity leaves `saveMessage`
+  // (and, for an already-cached target month, `draft`) showing the previous company/month's state
+  // for one render.
   useEffect(() => {
     setDraft(draftFromMonthAvailability(monthAvailability));
-  }, [monthAvailability]);
+    setSaveMessage(null);
+  }, [monthAvailability, companyId, month]);
 
   const workerRows = workers ?? [];
   const days = buildMonthDays(month);
   const allDates = days.map((d) => d.date);
+  const numRows = workerRows.length;
+  const numCols = days.length;
 
-  const roving = useRovingTabindex({ numRows: workerRows.length, numCols: days.length });
-  const { registerCellRef, handleNavKeyDown } = roving;
+  const roving = useRovingTabindex({ numRows, numCols });
+  const { registerCellRef } = roving;
+
+  // A separate, local record of currently-mounted cell elements, fed by the same ref callback as
+  // `useRovingTabindex`'s own (private) one -- needed because the hook doesn't expose a way to
+  // check "is this row's ref mounted yet", only `focusCell` (look up + focus-if-found). See
+  // `moveFocus`/the pending-focus effect below for why that matters once rows are virtualized.
+  const mountedCellRefs = useRef(new Map<string, HTMLElement>());
+  const combinedRegisterCellRef = useCallback(
+    (row: number, col: number, el: HTMLElement | null) => {
+      const key = `${row}|${col}`;
+      if (el) mountedCellRefs.current.set(key, el);
+      else mountedCellRefs.current.delete(key);
+      registerCellRef(row, col, el);
+    },
+    [registerCellRef],
+  );
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Initial guess only, used before any row has actually been measured -- corrected per-row by
+  // `measureElement` below (each rendered `<tr>`'s real `offsetHeight`), which is what actually
+  // sizes the scrollbar/spacer rows once the grid has rendered at least once. Derived from the
+  // row's real content: worker name + a row of two `btn--sm` buttons stacked with `--space-1` gaps,
+  // inside `.cal-shift-row-head`'s own padding -- roughly two text lines plus padding/border.
+  const ROW_HEIGHT_ESTIMATE = 64;
+  const rowVirtualizer = useVirtualizer({
+    count: numRows,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE,
+    overscan: 8,
+  });
+
+  const pendingFocusRef = useRef<GridPos | null>(null);
+  // Runs after every render (deliberately no dependency array): cheap when nothing is pending
+  // (the common case), and the only reliable way to notice "the row `moveFocus` scrolled to has
+  // now mounted" -- that can take more than one render after `scrollToIndex` (the virtualizer's
+  // range only updates once it observes the new scroll offset).
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    const el = mountedCellRefs.current.get(`${pending.row}|${pending.col}`);
+    if (el) {
+      el.focus();
+      pendingFocusRef.current = null;
+    }
+  });
+
+  const moveFocus = useCallback(
+    (row: number, col: number) => {
+      // No-ops (doesn't move scroll) if `row` is already comfortably within the rendered window;
+      // otherwise scrolls just far enough to bring it into view.
+      rowVirtualizer.scrollToIndex(row, { align: 'auto' });
+      // Update the roving-focus state (tabIndex/aria-selected) right away -- and opportunistically
+      // move real DOM focus too, which succeeds immediately whenever `row` was already mounted
+      // (the vast majority of arrow-key presses, since they move within the current window).
+      roving.focusCell(row, col);
+      // If DOM focus didn't actually land (target wasn't mounted), the effect above will finish
+      // the job once the scrolled-to row mounts.
+      if (document.activeElement !== mountedCellRefs.current.get(`${row}|${col}`)) {
+        pendingFocusRef.current = { row, col };
+      } else {
+        pendingFocusRef.current = null;
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `roving.focusCell` is stable (see rovingTabindex.ts)
+    [rowVirtualizer],
+  );
 
   const toggle = useCallback((workerId: number, date: string, shift: ShiftType) => {
     setDraft((d) => toggleCell(d, workerId, date, shift));
@@ -180,7 +298,14 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
 
   const handleCellKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTableCellElement>, workerId: number, date: string, row: number, col: number) => {
-      if (handleNavKeyDown(event, row, col)) return;
+      if (isNavKey(event.key)) {
+        const next = neighborFor(event.key, { row, col }, numRows, numCols);
+        if (next) {
+          event.preventDefault();
+          moveFocus(next.row, next.col);
+        }
+        return;
+      }
       if (event.key.length !== 1) return;
       const letter = event.key.toUpperCase();
       if (letter === 'A' || letter === 'B' || letter === 'C') {
@@ -188,7 +313,7 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
         toggle(workerId, date, letter);
       }
     },
-    [handleNavKeyDown, toggle],
+    [numRows, numCols, moveFocus, toggle],
   );
 
   const handleCellClick = useCallback(
@@ -260,7 +385,7 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
       {isLoading ? (
         <p>Loading availability…</p>
       ) : (
-        <div className="calendar-scroll">
+        <div className="calendar-scroll availability-scroll" ref={scrollContainerRef}>
           <table className="cal-table" aria-label={`${month} availability grid, one row per active worker`}>
             <thead>
               <tr>
@@ -275,40 +400,89 @@ export function AvailabilityGrid({ month, companyId }: AvailabilityGridProps): R
               </tr>
             </thead>
             <tbody>
-              {workerRows.map((worker, rowIndex) => (
-                <tr key={worker.id}>
-                  <th scope="row" className="cal-shift-row-head">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                      <span>{worker.name}</span>
-                      <span style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleMarkAllExcluded(worker.id)}>
-                          All
-                        </button>
-                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => handleClearWorker(worker.id)}>
-                          None
-                        </button>
-                      </span>
-                    </div>
-                  </th>
-                  {days.map((day, colIndex) => (
-                    <AvailabilityCell
-                      key={day.date}
-                      row={rowIndex}
-                      col={colIndex}
-                      workerId={worker.id}
-                      workerName={worker.name}
-                      date={day.date}
-                      dayLabel={day.label}
-                      isWeekend={day.isWeekend}
-                      shifts={cellShifts(draft, worker.id, day.date)}
-                      isFocused={roving.isFocused(rowIndex, colIndex)}
-                      registerCellRef={registerCellRef}
-                      onCellKeyDown={handleCellKeyDown}
-                      onCellClick={handleCellClick}
-                    />
-                  ))}
-                </tr>
-              ))}
+              {(() => {
+                const virtualRows = rowVirtualizer.getVirtualItems();
+                const totalSize = rowVirtualizer.getTotalSize();
+                const firstItem = virtualRows[0];
+                const lastItem = virtualRows[virtualRows.length - 1];
+                const paddingTop = firstItem ? firstItem.start : 0;
+                const paddingBottom = lastItem ? totalSize - lastItem.end : 0;
+                const colSpan = numCols + 1;
+
+                return (
+                  <>
+                    {/* Spacer rows stand in for the un-rendered rows above/below the virtualized
+                        window, so the scroll container's scrollbar/height still reflects all
+                        `numRows` rows even though only `virtualRows.length` `<tr>`s actually exist —
+                        see the class doc comment above for why this (rather than absolutely
+                        positioning each row) is what keeps the sticky header/first-column CSS working
+                        unmodified. */}
+                    {paddingTop > 0 ? (
+                      <tr aria-hidden="true">
+                        <td style={{ height: paddingTop, padding: 0, border: 'none' }} colSpan={colSpan} />
+                      </tr>
+                    ) : null}
+                    {virtualRows.map((virtualRow) => {
+                      const worker = workerRows[virtualRow.index];
+                      if (!worker) return null;
+                      const rowIndex = virtualRow.index;
+                      return (
+                        <tr key={worker.id} data-index={rowIndex} ref={rowVirtualizer.measureElement}>
+                          <th scope="row" className="cal-shift-row-head">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                              <span>{worker.name}</span>
+                              <span style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                                {/* "All" = all shifts available (green) = clears every exclusion for
+                                    this worker this month. "None" = none of the shifts available
+                                    (blocked) = marks every shift excluded every date. Labels describe
+                                    the resulting AVAILABILITY state, not the underlying
+                                    excluded-shift storage, since that's how a planner reads these
+                                    buttons. */}
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost btn--sm"
+                                  onClick={() => handleClearWorker(worker.id)}
+                                >
+                                  All
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost btn--sm"
+                                  onClick={() => handleMarkAllExcluded(worker.id)}
+                                >
+                                  None
+                                </button>
+                              </span>
+                            </div>
+                          </th>
+                          {days.map((day, colIndex) => (
+                            <AvailabilityCell
+                              key={day.date}
+                              row={rowIndex}
+                              col={colIndex}
+                              workerId={worker.id}
+                              workerName={worker.name}
+                              date={day.date}
+                              dayLabel={day.label}
+                              isWeekend={day.isWeekend}
+                              shifts={cellShifts(draft, worker.id, day.date)}
+                              isFocused={roving.isFocused(rowIndex, colIndex)}
+                              registerCellRef={combinedRegisterCellRef}
+                              onCellKeyDown={handleCellKeyDown}
+                              onCellClick={handleCellClick}
+                            />
+                          ))}
+                        </tr>
+                      );
+                    })}
+                    {paddingBottom > 0 ? (
+                      <tr aria-hidden="true">
+                        <td style={{ height: paddingBottom, padding: 0, border: 'none' }} colSpan={colSpan} />
+                      </tr>
+                    ) : null}
+                  </>
+                );
+              })()}
             </tbody>
           </table>
         </div>

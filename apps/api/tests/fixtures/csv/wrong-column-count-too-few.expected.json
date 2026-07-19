@@ -1,9 +1,10 @@
 {
-  "_comment": "Data row has 6 fields against a 7-column header (max_monthly_hours missing) -- this is a FILE-LEVEL framing problem, not a per-row one: parseWorkersCsv() throws CsvRowShapeError synchronously, before CsvImportService.importCsv ever creates an ImportTask or enters the per-row loop. Shape is deliberately different from the failedRows-array fixtures above.",
-  "kind": "worker",
-  "call": "parseWorkersCsv(csvText) -- throws before importCsv's per-row loop is reached",
+  "_comment": "Data row has 34 fields against the combined 35-column header for month 2027-02 (7 worker columns + 28 day columns, one dNN cell missing) -- this is a FILE-LEVEL framing problem, not a per-row one: parseWorkforceCsv() throws WorkforceCsvRowShapeError synchronously, before WorkforceImportService.importCsv ever creates an ImportTask or enters the per-row loop. Shape is deliberately different from the failedRows-array fixtures above.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "parseWorkforceCsv(csvText, month) -- throws before importCsv's per-row loop is reached",
   "fileError": {
-    "type": "CsvRowShapeError",
-    "messageContains": "has 6 fields, expected 7"
+    "type": "WorkforceCsvRowShapeError",
+    "messageContains": "has 34 fields, expected 35"
   }
 }

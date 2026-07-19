@@ -52,40 +52,32 @@ pnpm --filter @rostering/api exec tsx src/worker.ts  # separate terminal — see
 
 ## Uploading a CSV
 
-Two separate uploads, both scoped to one company (send `companyId` as a multipart form field
-alongside the file — the UI does this automatically for whichever company is currently active).
-Both return `202 {jobId}` immediately (processed in the background — poll `GET /api/jobs/:id` or
-`GET /api/import-tasks/active?companyId=&kind=`), and uploading again for the same company while
-one is still processing cancels the old one and takes over. Full spec:
-**[`docs/csv-schema.md`](docs/csv-schema.md)**.
+One combined upload, scoped to one company and one target month (send `companyId` as a multipart
+form field alongside the file — the UI does this automatically for whichever company is currently
+active). Returns `202 {jobId}` immediately (processed in the background — poll `GET
+/api/jobs/:id` or `GET /api/import-tasks/active?companyId=&kind=WORKFORCE_SYNC`), and uploading
+again for the same company while one is still processing cancels the old one and takes over. Full
+spec: **[`docs/csv-schema.md`](docs/csv-schema.md)**.
 
-### `POST /api/import/workers` — worker roster
+### `POST /api/import/workforce/:month` — worker roster + that month's availability
 
 ```
-national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
-000000018,Noa Levi,General Guard,Active,45.00,120,200
+national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours,d01,d02,...,d31
+000000018,Noa Levi,General Guard,Active,45.00,120,200,C,,AB,...,ABC
 ```
 
 - `national_id` — 9-digit Israeli ID (checksum-validated), the upsert key.
 - `role` — `General Guard` | `Supervisor` | `Screener`. `status` — `Active` | `Inactive`.
-- Full sync of the file's rows only: a worker matched by `national_id` is updated, an unmatched
-  one is created. A worker *absent* from the file is **not** deactivated — it just becomes
-  ineligible for roster generation until it reappears in a completed upload.
-
-### `POST /api/import/availability/:month` — that month's availability
-
-```
-national_id,d01,d02,d03,...,d31
-000000018,ABC,ABC,AB,...,ABC
-```
-
 - One `d`-prefixed column per real calendar day of `:month` (28–31 columns, matching that month's
-  actual day count).
-- Each cell is empty, or an ordered subset of `A`/`B`/`C` (`A`, `AB`, `ABC`, …) — no duplicates,
-  always in `A`&lt;`B`&lt;`C` order. Currently: empty = unavailable that date, letters listed =
-  the shifts the worker can work that date. (This meaning is being inverted in an in-progress
-  change — see the design doc's roadmap.)
-- Replaces that worker's entire month; workers/dates absent from the file are simply untouched.
+  actual day count). Each cell is empty, or an ordered subset of `A`/`B`/`C` (`A`, `AB`, `ABC`, …)
+  — no duplicates, always in `A`<`B`<`C` order — naming the shifts that worker is **excluded
+  from** (cannot work) that date; empty = no exclusions = available every shift that date.
+- One row is one atomic outcome: a bad worker field or a bad `dNN` cell fails the **whole row**,
+  including the worker upsert — neither half applies partially.
+- A row matched by `national_id` updates that worker + fully replaces their availability for
+  `:month`; an unmatched `national_id` creates both. A worker *absent* from the file is **not**
+  deactivated — it just becomes ineligible for roster generation until it reappears in a completed
+  upload.
 
 ## Out of scope
 

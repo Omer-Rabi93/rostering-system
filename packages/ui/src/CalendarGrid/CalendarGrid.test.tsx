@@ -45,25 +45,55 @@ function renderGrid(overrides: Partial<CalendarGridProps> = {}) {
   return { ...render(<CalendarGrid {...props} />), props };
 }
 
+/** Mirrors `CalendarGrid`'s own `groupIntoWeeks` (real Sun–Sat weeks, first/last week possibly
+ * shorter than 7) purely to compute EXPECTED row/header counts here — `makeDays` already produces
+ * real, valid calendar date strings (`2026-08-01`..`2026-08-31` etc.), so this agrees with
+ * production grouping without needing any synthetic weekend/week fixture of its own. */
+function weekBoundaries(days: DayColumn[]): DayColumn[][] {
+  const weeks: DayColumn[][] = [];
+  let current: DayColumn[] = [];
+  for (const day of days) {
+    const dayOfWeek = new Date(`${day.date}T00:00:00.000Z`).getUTCDay();
+    if (dayOfWeek === 0 && current.length > 0) {
+      weeks.push(current);
+      current = [];
+    }
+    current.push(day);
+  }
+  if (current.length > 0) weeks.push(current);
+  return weeks;
+}
+
 describe('CalendarGrid', () => {
-  it('renders one column header per day and exactly 3 shift rows for a 31-day month', () => {
-    const days = makeDays(31, '2026-08');
+  it('wraps a 31-day month (starting mid-week) into ragged-edged 7-day weeks, one header + 3 shift rows per week', () => {
+    const days = makeDays(31, '2026-08'); // 2026-08-01 is a Saturday
     renderGrid({ days });
+    const weeks = weekBoundaries(days);
+    expect(weeks.map((w) => w.length)).toEqual([1, 7, 7, 7, 7, 2]); // Sat-only, then 4 full weeks, then Sun-Mon
 
     const table = screen.getByRole('table');
-    // +1 accounts for the blank corner header cell that aligns with the row-head column.
-    expect(within(table).getAllByRole('columnheader')).toHaveLength(31 + 1);
-    expect(table.querySelectorAll('tbody tr')).toHaveLength(3);
+    // One blank corner header per week's own header row, plus one per day overall.
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(31 + weeks.length);
+    // One header row + 3 shift rows per week.
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(weeks.length * 4);
     expect(table.querySelectorAll('td.cal-cell')).toHaveLength(31 * 3);
+    // No single week's shift row ever exceeds 7 day cells.
+    for (const tbody of table.querySelectorAll('tbody')) {
+      for (const tr of tbody.querySelectorAll('tr')) {
+        expect(tr.querySelectorAll('td.cal-cell').length).toBeLessThanOrEqual(7);
+      }
+    }
   });
 
-  it('renders one column header per day and exactly 3 shift rows for a 28-day month', () => {
-    const days = makeDays(28, '2026-02');
+  it('wraps a 28-day month (starting on Sunday) into exactly 4 full 7-day weeks', () => {
+    const days = makeDays(28, '2026-02'); // 2026-02-01 is a Sunday, Feb 2026 is 4 exact weeks
     renderGrid({ days, month: '2026-02' });
+    const weeks = weekBoundaries(days);
+    expect(weeks.map((w) => w.length)).toEqual([7, 7, 7, 7]);
 
     const table = screen.getByRole('table');
-    expect(within(table).getAllByRole('columnheader')).toHaveLength(28 + 1);
-    expect(table.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(28 + weeks.length);
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(weeks.length * 4);
     expect(table.querySelectorAll('td.cal-cell')).toHaveLength(28 * 3);
   });
 

@@ -1,7 +1,8 @@
 {
-  "_comment": "role \"Foreman\" is not one of the display strings toWorkerRecord() maps back to a Role enum ('General Guard'/'Supervisor'/'Screener') -- CsvFieldError('role', ...).",
-  "kind": "worker",
-  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "_comment": "role \"Foreman\" is not one of the display strings toWorkerRecord() maps back to a Role enum ('General Guard'/'Supervisor'/'Screener') -- CsvFieldError('role', ...), thrown from toWorkforceRow BEFORE any day cell is even examined.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "WorkforceImportService.importCsv(csvText, month, companyId)",
   "expectImportResult": {
     "totalRows": 1,
     "inserted": 0,

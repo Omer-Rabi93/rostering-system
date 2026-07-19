@@ -246,9 +246,9 @@ type JobProgressProps = {
 ### Used by
 
 Roster calendar (roster-generation job polling → drives `Roster` tag
-invalidation on completion), CSV panel (csv-import job polling → drives `Worker`
-tag invalidation). `Spinner` alone (no progress text) is used for lightweight
-inline waits: Table loading state, Save button pending state.
+invalidation on completion), workforce CSV panel (workforce-import job polling →
+drives `Worker` tag invalidation). `Spinner` alone (no progress text) is used
+for lightweight inline waits: Table loading state, Save button pending state.
 
 ---
 

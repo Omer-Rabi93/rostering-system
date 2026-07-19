@@ -5,7 +5,7 @@ describe('jobSchema', () => {
   it('accepts an in-flight job with a null result', () => {
     const result = jobSchema.safeParse({
       id: '8f1c2b3a-0000-4000-8000-000000000000',
-      name: 'csv-import',
+      name: 'workforce-import',
       state: 'active',
       createdAt: '2026-07-17T06:00:00.000Z',
       completedAt: null,
@@ -14,10 +14,10 @@ describe('jobSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts a completed csv-import job with a full ImportResult', () => {
+  it('accepts a completed workforce-import job with a full ImportResult', () => {
     const result = jobSchema.safeParse({
       id: '8f1c2b3a-0000-4000-8000-000000000000',
-      name: 'csv-import',
+      name: 'workforce-import',
       state: 'completed',
       createdAt: '2026-07-17T06:00:00.000Z',
       completedAt: '2026-07-17T06:00:05.000Z',
@@ -32,10 +32,10 @@ describe('jobSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects a completed csv-import job whose result is missing required ImportResult fields', () => {
+  it('rejects a completed workforce-import job whose result is missing required ImportResult fields', () => {
     const result = jobSchema.safeParse({
       id: '8f1c2b3a-0000-4000-8000-000000000000',
-      name: 'csv-import',
+      name: 'workforce-import',
       state: 'completed',
       createdAt: '2026-07-17T06:00:00.000Z',
       completedAt: '2026-07-17T06:00:05.000Z',
@@ -44,10 +44,10 @@ describe('jobSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects a completed csv-import result carrying the removed v4 deactivation-sweep fields', () => {
+  it('rejects a completed workforce-import result carrying the removed v4 deactivation-sweep fields', () => {
     const result = jobSchema.safeParse({
       id: '8f1c2b3a-0000-4000-8000-000000000005',
-      name: 'csv-import',
+      name: 'workforce-import',
       state: 'completed',
       createdAt: '2026-07-17T06:00:00.000Z',
       completedAt: '2026-07-17T06:00:05.000Z',
@@ -74,35 +74,6 @@ describe('jobSchema', () => {
       result: { rosterId: 42, alertCount: 3 },
     });
     expect(result.success).toBe(true);
-  });
-
-  it('accepts a completed availability-import job result (no deactivation fields)', () => {
-    const result = jobSchema.safeParse({
-      id: '8f1c2b3a-0000-4000-8000-000000000003',
-      name: 'availability-import',
-      state: 'completed',
-      createdAt: '2026-07-17T06:00:00.000Z',
-      completedAt: '2026-07-17T06:00:05.000Z',
-      result: {
-        totalRows: 3,
-        applied: 2,
-        failed: 1,
-        errors: [{ row: 2, nationalId: '000000000', field: 'd05', message: 'Illegal shift subset "AD"' }],
-      },
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('rejects an availability-import result carrying a worker-CSV-only deactivation field', () => {
-    const result = jobSchema.safeParse({
-      id: '8f1c2b3a-0000-4000-8000-000000000004',
-      name: 'availability-import',
-      state: 'completed',
-      createdAt: '2026-07-17T06:00:00.000Z',
-      completedAt: '2026-07-17T06:00:05.000Z',
-      result: { totalRows: 1, applied: 1, failed: 0, deactivated: 0, errors: [] },
-    });
-    expect(result.success).toBe(false);
   });
 
   it('accepts a failed job carrying an error result', () => {

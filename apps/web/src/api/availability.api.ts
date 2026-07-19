@@ -6,10 +6,6 @@ export interface ReplaceMonthAvailabilityResponse {
   readonly month: Month;
 }
 
-export interface EnqueueJobResponse {
-  readonly jobId: string;
-}
-
 /** Company-scoped availability: `GET/PUT /api/availability/:month` are now scoped to a
  * `(companyId, month)` pair, not `month` alone -- mirrors `rosters.api.ts`'s own `CompanyMonth`. */
 export interface CompanyMonth {
@@ -26,8 +22,10 @@ function availabilityTag({ companyId, month }: CompanyMonth) {
 }
 
 /**
- * `GET/PUT /api/availability/:month` (bulk JSON, Availability v2) + the month-scoped availability
- * CSV import/export.
+ * `GET/PUT /api/availability/:month` (bulk JSON, `AvailabilityGrid.tsx`'s manual-editing data
+ * source). The month-scoped availability CSV import/export that used to live here merged into the
+ * combined workforce-CSV pipeline (`workforceCsv.api.ts`, `WorkforceCsvPanel.tsx`) — see the Part
+ * G design doc. This grid path is deliberately untouched by that merge.
  *
  * `replaceMonthAvailability` invalidates only that `(companyId, month)`'s `Availability` tag —
  * deliberately NOT `Roster`/`CostSummary`. Availability alone never changes an already-computed
@@ -39,19 +37,9 @@ function availabilityTag({ companyId, month }: CompanyMonth) {
  * whole `CostSummary` tag on a rate change in `workers.api.ts`) would refetch data this mutation
  * never actually changed.
  *
- * `importAvailabilityCsv` is a 202 {jobId} response (same pattern as `csvApi.importWorkersCsv`):
- * the import isn't applied until the `availability-import` job reaches `completed`. Unlike the
- * generic `csv-import` -> `Worker` handling in `jobs.api.ts`'s `onQueryStarted` (a flat tag, so it
- * doesn't need to know *which* import), this job's effect is month-scoped and the `Job` schema
- * carries no month field — so the month-scoped invalidation is done by the caller (the component
- * that already knows both the jobId and the month it started the import for), not generically here.
- *
- * v4: `getMonthAvailability` (bulk `GET`), `replaceMonthAvailability` (bulk `PUT`), and
- * `importAvailabilityCsv` all require a `companyId`, matching
- * `apps/api/src/routes/availability.ts`'s new company-scoping — `getMonthAvailability`/
- * `replaceMonthAvailability` send it as a query param (`companyIdQuerySchema`), `importAvailabilityCsv`
- * sends it as a form field alongside `file` (`companyIdFormFieldSchema`), mirroring
- * `csvApi.importWorkersCsv`.
+ * v4: `getMonthAvailability` (bulk `GET`) and `replaceMonthAvailability` (bulk `PUT`) both require
+ * a `companyId`, matching `apps/api/src/routes/availability.ts`'s company-scoping — sent as a
+ * query param (`companyIdQuerySchema`).
  */
 export const availabilityApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -71,26 +59,9 @@ export const availabilityApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, arg) => [availabilityTag(arg)],
     }),
-
-    importAvailabilityCsv: builder.mutation<EnqueueJobResponse, { month: Month; companyId: number; file: File }>({
-      query: ({ month, companyId, file }) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('companyId', String(companyId));
-        return { url: `/import/availability/${month}`, method: 'POST', body: formData };
-      },
-    }),
   }),
 });
 
-export const {
-  useGetMonthAvailabilityQuery,
-  useReplaceMonthAvailabilityMutation,
-  useImportAvailabilityCsvMutation,
-} = availabilityApi;
-
-export function exportAvailabilityCsvUrl(month: Month): string {
-  return `/api/export/availability/${month}`;
-}
+export const { useGetMonthAvailabilityQuery, useReplaceMonthAvailabilityMutation } = availabilityApi;
 
 export { availabilityTag };

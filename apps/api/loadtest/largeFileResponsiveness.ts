@@ -12,7 +12,7 @@
 // Run: `pnpm --filter @rostering/api exec tsx loadtest/largeFileResponsiveness.ts`
 
 import {
-  buildWorkerCsv,
+  buildWorkforceCsv,
   checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
@@ -23,9 +23,11 @@ import {
   RUN_SALT,
   section,
   sleep,
-  uploadWorkersCsv,
+  uploadWorkforceCsv,
   writeTempCsv,
 } from './shared.js';
+
+const MONTH = '2027-02';
 
 /** MAX_ROWS (routes/importExport.ts) is 10,000 -- "near" it, not AT it, so there is real per-row
  * processing time left for the second upload to interrupt mid-flight (an exactly-MAX_ROWS run is
@@ -57,12 +59,12 @@ async function main(): Promise<void> {
   console.log(`company: ${companyId}`);
 
   const largeRows = makeSyntheticWorkerRows(LARGE_FILE_ROWS, LARGE_PREFIX_BASE);
-  const largeCsvPath = writeTempCsv(buildWorkerCsv(largeRows), `large-${companyId}.csv`);
+  const largeCsvPath = writeTempCsv(buildWorkforceCsv(largeRows, MONTH), `large-${companyId}.csv`);
   const smallRows = makeSyntheticWorkerRows(SMALL_FILE_ROWS, SMALL_PREFIX_BASE);
-  const smallCsvPath = writeTempCsv(buildWorkerCsv(smallRows), `small-${companyId}.csv`);
+  const smallCsvPath = writeTempCsv(buildWorkforceCsv(smallRows, MONTH), `small-${companyId}.csv`);
 
   section(`Uploading the large file (${LARGE_FILE_ROWS} rows)`);
-  const largeUpload = await uploadWorkersCsv(companyId, largeCsvPath);
+  const largeUpload = await uploadWorkforceCsv(companyId, MONTH, largeCsvPath);
   if (largeUpload.statusCode !== 202) {
     throw new Error(`large-file upload was not accepted: ${largeUpload.statusCode} ${JSON.stringify(largeUpload.body)}`);
   }
@@ -73,7 +75,7 @@ async function main(): Promise<void> {
   section(`Waiting ${HEAD_START_MS}ms for it to start PROCESSING`);
   await sleep(HEAD_START_MS);
   const largeTask = await prisma.importTask.findFirstOrThrow({
-    where: { companyId, kind: 'WORKER_SYNC', pgBossJobId: largeJobId },
+    where: { companyId, kind: 'WORKFORCE_SYNC', pgBossJobId: largeJobId },
   });
   console.log(`large-file task ${largeTask.id} status after head start: ${largeTask.status}`);
   if (largeTask.status !== 'PROCESSING') {
@@ -87,7 +89,7 @@ async function main(): Promise<void> {
 
   section(`Uploading the small file (${SMALL_FILE_ROWS} rows) for the SAME company`);
   const smallUploadStart = Date.now();
-  const smallUpload = await uploadWorkersCsv(companyId, smallCsvPath);
+  const smallUpload = await uploadWorkforceCsv(companyId, MONTH, smallCsvPath);
   if (smallUpload.statusCode !== 202) {
     throw new Error(`small-file upload was not accepted: ${smallUpload.statusCode} ${JSON.stringify(smallUpload.body)}`);
   }
@@ -95,7 +97,7 @@ async function main(): Promise<void> {
   if (!smallJobId) throw new Error(`small-file upload response had no jobId: ${JSON.stringify(smallUpload.body)}`);
   console.log(`small-file upload accepted, jobId=${smallJobId}`);
   const smallTask = await prisma.importTask.findFirstOrThrow({
-    where: { companyId, kind: 'WORKER_SYNC', pgBossJobId: smallJobId },
+    where: { companyId, kind: 'WORKFORCE_SYNC', pgBossJobId: smallJobId },
   });
 
   section('Waiting for the SECOND (small) upload\'s task to reach COMPLETED');

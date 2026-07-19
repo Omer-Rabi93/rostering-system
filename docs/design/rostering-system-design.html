@@ -886,9 +886,7 @@ Boundaries</a>.</p>
   <tr><td colspan="3"><strong>Staffing requirements</strong></td></tr>
   <tr><td><code>GET</code> / <code>PUT /api/staffing-requirements</code></td><td><strong>required (query)</strong></td><td>Full role×shift matrix read/replace</td></tr>
   <tr><td colspan="3"><strong>Availability</strong></td></tr>
-  <tr><td><code>GET</code> / <code>PUT /api/availability/:month</code></td><td><strong>required (query)</strong></td><td><code>PUT</code> has its own 2MB body limit (route-scoped, wider than the app-wide 100kb default)</td></tr>
-  <tr><td><code>GET /api/export/availability/:month</code></td><td>—</td><td>CSV export</td></tr>
-  <tr><td><code>POST /api/import/availability/:month</code></td><td><strong>required (form field)</strong></td><td>202 + jobId — see <a href="#csv-jobs">CSV Schema</a></td></tr>
+  <tr><td><code>GET</code> / <code>PUT /api/availability/:month</code></td><td><strong>required (query)</strong></td><td>Manual/grid path only; <code>PUT</code> has its own 2MB body limit (route-scoped, wider than the app-wide 100kb default)</td></tr>
   <tr><td colspan="3"><strong>Rosters</strong></td></tr>
   <tr><td><code>POST /api/rosters/generate</code></td><td><strong>required (body)</strong></td><td>202 + jobId</td></tr>
   <tr><td><code>GET /api/rosters/:month</code></td><td><strong>required (query)</strong></td><td>Roster + shifts + workers + alerts</td></tr>
@@ -898,12 +896,12 @@ Boundaries</a>.</p>
   <tr><td><code>POST /api/shifts/:shiftId/workers</code></td><td>—</td><td>Add worker (<code>?confirm=true</code> for soft-warning override)</td></tr>
   <tr><td><code>POST /api/shifts/:shiftId/workers/:workerId/move</code></td><td>—</td><td>—</td></tr>
   <tr><td><code>DELETE /api/shifts/:shiftId/workers/:workerId</code></td><td>—</td><td>—</td></tr>
-  <tr><td colspan="3"><strong>Worker CSV</strong></td></tr>
-  <tr><td><code>POST /api/import/workers</code></td><td><strong>required (form field)</strong></td><td>202 + jobId</td></tr>
-  <tr><td><code>GET /api/export/workers</code></td><td>—</td><td>CSV export</td></tr>
+  <tr><td colspan="3"><strong>Workforce CSV</strong> (combined worker + availability, one file per month)</td></tr>
+  <tr><td><code>POST /api/import/workforce/:month</code></td><td><strong>required (form field)</strong></td><td>202 + jobId — see <a href="#csv-jobs">CSV Schema</a></td></tr>
+  <tr><td><code>GET /api/export/workforce/:month</code></td><td><strong>required (query)</strong></td><td>CSV export</td></tr>
   <tr><td colspan="3"><strong>Import tasks &amp; jobs</strong></td></tr>
   <tr><td><code>GET /api/import-tasks/active</code></td><td><strong>required (query)</strong> + <code>kind</code></td><td>200 with the in-flight <code>ImportTask</code> or <code>null</code> — never 404</td></tr>
-  <tr><td><code>GET /api/jobs/:id</code></td><td>—</td><td>Generic pg-boss poll (created/active/completed/failed) across all 3 queues</td></tr>
+  <tr><td><code>GET /api/jobs/:id</code></td><td>—</td><td>Generic pg-boss poll (created/active/completed/failed) across both queues (<code>workforce-import</code>, <code>roster-generation</code>)</td></tr>
   <tr><td colspan="3"><strong>Public</strong></td></tr>
   <tr><td><code>GET /api/schedule/:token?month=YYYY-MM</code></td><td>—</td><td>Unauthenticated, per-worker share-token, rate-limited (30 req/min)</td></tr>
 </table>

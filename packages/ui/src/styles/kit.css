@@ -224,6 +224,12 @@ p { margin: 0 0 var(--space-2); }
 /* ---------------- Table ---------------- */
 
 .table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+/* `Table`'s opt-in `virtualized` prop: caps the wrapper's own height and lets IT scroll
+   vertically (rather than the whole page growing to fit every row) -- the same pattern
+   `.availability-scroll` uses for `AvailabilityGrid`. `.data-table thead th` above is already
+   `position: sticky; top: 0` unconditionally, so the header stays pinned for free once this
+   wrapper is the scrolling ancestor. */
+.table-wrap--virtualized { overflow-y: auto; }
 table.data-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .data-table caption { text-align: left; padding: var(--space-3) var(--space-4) 0; font-size: var(--text-xs); color: var(--color-ink-muted); }
 .data-table th, .data-table td {
@@ -450,8 +456,12 @@ table.data-table { width: 100%; border-collapse: collapse; font-size: var(--text
   background: var(--color-surface);
 }
 .calendar__toolbar { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); gap: var(--space-3); flex-wrap: wrap; }
+/* `.calendar-scroll`'s overflow-x is now mostly a safety net, not the primary answer to a wide
+   month: `CalendarGrid` wraps into ≤7-day-wide week-blocks (see `groupIntoWeeks`), and
+   `AvailabilityGrid` still renders one continuous row of day columns, so this still matters there
+   on narrow viewports. */
 .calendar-scroll { overflow-x: auto; }
-table.cal-table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: var(--text-xs); }
+table.cal-table { border-collapse: collapse; width: 100%; font-size: var(--text-xs); }
 .cal-table th.cal-day-head {
   padding: var(--space-2);
   text-align: center;
@@ -460,6 +470,42 @@ table.cal-table { border-collapse: collapse; width: 100%; min-width: 900px; font
   font-size: var(--text-xs);
   min-width: 108px;
 }
+/* Visual gap between each week's own header+3-shift-row block (CalendarGrid only — each week is
+   its own <tbody>, repeating the day-header row so it reads like a normal wrapped calendar).
+   `border-collapse: collapse` ignores spacing/margin on <tbody>/<tr>, so the gap is faked with an
+   extra-wide top border on the first row's own cells, painted the same color as the page behind
+   the table (the classic collapsed-table row-group-spacing trick). */
+tbody.cal-week-group > tr:first-child > th {
+  border-top-width: calc(var(--space-3) + 1px);
+  border-top-color: var(--color-surface);
+}
+
+/* AvailabilityGrid only: one row per ACTIVE worker with no upper bound on row count (a company
+   with hundreds of workers renders hundreds of <tr>s) — cap the table's own height and let IT
+   scroll vertically, instead of the whole page growing to fit every row. The day-column header
+   row and the worker-name column both stay pinned (`position: sticky`) while scrolling, the same
+   "frozen header/frozen first column" pattern spreadsheets use for exactly this shape of data. */
+.availability-scroll {
+  max-height: 60vh;
+  overflow: auto;
+}
+.availability-scroll table.cal-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-page);
+}
+.availability-scroll table.cal-table tbody th.cal-shift-row-head {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+}
+.availability-scroll table.cal-table thead th:first-child {
+  left: 0;
+  z-index: 3; /* the corner cell sits above both the sticky header row and sticky first column */
+}
+
 .cal-table th.cal-day-head.is-weekend { background: color-mix(in srgb, var(--color-page) 70%, var(--color-border)); }
 .cal-table th.cal-shift-row-head {
   padding: var(--space-1) var(--space-2);

@@ -97,9 +97,17 @@ test.describe('Availability grid', () => {
   for (const { month, days, label } of MONTH_BOUNDARY_CASES) {
     test(`month boundary (${label}): grid renders exactly ${days} date columns, CSV round-trips`, async ({
       page,
+      seed,
       dbAdmin,
       request,
     }) => {
+      // Export/import are both company-scoped routes; `seed.companies[0]` is the same default
+      // active company the `page` fixture pre-seeds into localStorage (lowest id, "Alpha Security
+      // Ltd."), so a direct API call here stays aimed at the same company the grid assertions
+      // above are looking at. `seedAvailabilityForMonth` writes rows for every active worker
+      // across every seeded company, so this company has data for `month` regardless.
+      const companyId = seed.companies[0]?.id;
+      if (companyId === undefined) throw new Error('no seeded company');
       await dbAdmin.seedAvailabilityForMonth(month);
       await openAvailabilityTab(page, month);
 
@@ -114,19 +122,26 @@ test.describe('Availability grid', () => {
         new RegExp(`-${lastDate}$`),
       );
 
-      const exportRes = await request.get(`${E2E_API_BASE_URL}/export/availability/${month}`);
+      // Availability CSV import/export merged into the combined workforce CSV (Part G) -- `national_id`
+      // + `d01..dNN` is now the tail of a 7-worker-column + day-column header, not the whole header.
+      const exportRes = await request.get(`${E2E_API_BASE_URL}/export/workforce/${month}?companyId=${companyId}`);
       expect(exportRes.ok()).toBe(true);
       const csvText = await exportRes.text();
       const header = csvText.split('\n')[0]?.trim() ?? '';
       const columns = header.split(',');
-      expect(columns).toHaveLength(days + 1);
+      expect(columns).toHaveLength(days + 7);
       expect(columns[0]).toBe('national_id');
-      expect(columns[1]).toBe('d01');
+      expect(columns[7]).toBe('d01');
       expect(columns[columns.length - 1]).toBe(`d${String(days).padStart(2, '0')}`);
 
-      // Re-importing the unmodified export must apply cleanly with zero row errors.
-      const importRes = await request.post(`${E2E_API_BASE_URL}/import/availability/${month}`, {
-        multipart: { file: { name: `availability-${month}.csv`, mimeType: 'text/csv', buffer: Buffer.from(csvText) } },
+      // Re-importing the unmodified export must apply cleanly with zero row errors. `companyId`
+      // travels as a multipart form field here (`companyIdFormFieldSchema`), same as
+      // `WorkforceCsvPanel.tsx`'s own `FormData` build for this mutation.
+      const importRes = await request.post(`${E2E_API_BASE_URL}/import/workforce/${month}`, {
+        multipart: {
+          file: { name: `workforce-${month}.csv`, mimeType: 'text/csv', buffer: Buffer.from(csvText) },
+          companyId: String(companyId),
+        },
       });
       expect(importRes.status()).toBe(202);
       const { jobId } = (await importRes.json()) as { jobId: string };

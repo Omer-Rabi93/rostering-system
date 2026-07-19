@@ -1,9 +1,10 @@
 {
-  "_comment": "Zero-byte file. csv-parse tokenizes it to zero records, so parseWorkersCsv()'s own `const [header] = records` destructure sees `header === undefined` and throws CsvHeaderError('CSV file is empty; expected a header row') -- a file-level error, before any per-row processing.",
-  "kind": "worker",
-  "call": "parseWorkersCsv(csvText) -- throws before importCsv's per-row loop is reached",
+  "_comment": "Zero-byte file. csv-parse tokenizes it to zero records, so parseWorkforceCsv()'s own `const [header] = records` destructure sees `header === undefined` and throws WorkforceCsvHeaderError('CSV file is empty; expected a header row') -- a file-level error, before any per-row processing.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "parseWorkforceCsv(csvText, month) -- throws before importCsv's per-row loop is reached",
   "fileError": {
-    "type": "CsvHeaderError",
+    "type": "WorkforceCsvHeaderError",
     "messageContains": "empty"
   }
 }

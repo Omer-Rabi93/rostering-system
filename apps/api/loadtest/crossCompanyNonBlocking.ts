@@ -1,6 +1,6 @@
 // Load-test 1/3 (v4 design doc, Part C): cross-company non-blocking proof.
 //
-// Seeds N companies, fires one concurrent `POST /import/workers` upload per company (a mix of
+// Seeds N companies, fires one concurrent `POST /import/workforce/:month` upload per company (a mix of
 // valid files and a couple of the invalid-but-well-framed fixtures from
 // `tests/fixtures/csv/` -- rows that fail per-row validation but still parse fine, so they still
 // get a fast 202 and an async COMPLETED-with-failures task, exactly like a real "someone uploaded
@@ -16,7 +16,7 @@
 // Run: `pnpm --filter @rostering/api exec tsx loadtest/crossCompanyNonBlocking.ts`
 
 import {
-  buildWorkerCsv,
+  buildWorkforceCsv,
   checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
@@ -27,10 +27,14 @@ import {
   pollAllUntilSettled,
   RUN_SALT,
   section,
-  uploadWorkersCsv,
+  uploadWorkforceCsv,
   writeTempCsv,
 } from './shared.js';
 
+/** Matches the fixture files' own baked-in month (see `tests/fixtures/csv/*.expected.json`'s
+ * `"month": "2027-02"`) -- the two fixture-driven companies below need the request's `:month` to
+ * match the fixture CSV's own header shape exactly. */
+const MONTH = '2027-02';
 const COMPANY_COUNT = Number(process.env.LOADTEST_COMPANY_COUNT ?? 10);
 /** Rows per valid company file -- large enough that processing takes a real, measurable amount of
  * wall-clock time (each row is its own DB transaction), not so large the whole script takes
@@ -69,7 +73,7 @@ async function main(): Promise<void> {
       csvPaths.set(companyId, `${FIXTURES_DIR}/unknown-role.csv`);
     } else {
       const rows = makeSyntheticWorkerRows(ROWS_PER_COMPANY, PREFIX_BASE + i * 10_000);
-      const path = writeTempCsv(buildWorkerCsv(rows), `cross-company-${companyId}.csv`);
+      const path = writeTempCsv(buildWorkforceCsv(rows, MONTH), `cross-company-${companyId}.csv`);
       csvPaths.set(companyId, path);
     }
   });
@@ -80,7 +84,7 @@ async function main(): Promise<void> {
     companyIds.map(async (companyId) => {
       const csvPath = csvPaths.get(companyId);
       if (!csvPath) throw new Error(`no csv path for company ${companyId}`);
-      const result = await uploadWorkersCsv(companyId, csvPath);
+      const result = await uploadWorkforceCsv(companyId, MONTH, csvPath);
       return { companyId, ...result };
     }),
   );
@@ -96,7 +100,7 @@ async function main(): Promise<void> {
 
   section('Polling every company\'s ImportTask to settlement');
   const settleStart = Date.now();
-  const settled = await pollAllUntilSettled(prisma, companyIds, 'WORKER_SYNC', { timeoutMs: 120_000 });
+  const settled = await pollAllUntilSettled(prisma, companyIds, 'WORKFORCE_SYNC', { timeoutMs: 120_000 });
   const overallWallClockMs = Date.now() - settleStart;
 
   const durations: Array<{ companyId: number; durationMs: number; status: string }> = [];

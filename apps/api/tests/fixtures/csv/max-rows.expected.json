@@ -1,16 +1,17 @@
 {
-  "_comment": "Exactly MAX_ROWS (10,000, see apps/api/src/routes/importExport.ts) valid, distinct rows -- every national_id is checksum-valid and unique (prefix range 2,000,000-2,009,999, disjoint from every other fixture/test in this repo). MAX_ROWS itself is enforced at the ROUTE (POST /import/workers), not inside CsvImportService.importCsv/parseWorkersCsv -- so this fixture's own service-level expectation is simply 'succeeds fully, right at the documented cap'. It is intended primarily for route-level (supertest) and load-test (apps/api/loadtest/) use, where the MAX_ROWS check itself is exercised.",
-  "kind": "worker",
-  "rowCount": 10000,
-  "call": "CsvImportService.importCsv(csvText, companyId) OR POST /import/workers (route-level, where MAX_ROWS is actually enforced)",
+  "_comment": "Exactly MAX_WORKFORCE_CSV_ROWS (15,000, see apps/api/src/routes/workforce.ts -- raised from 10,000 for the 1,000-10,000-worker-per-company scale target, so this cap has real headroom above that stated ceiling) valid, distinct rows, month 2027-02 -- every national_id is checksum-valid and unique (prefix range 2,000,000-2,014,999, disjoint from every other fixture/test in this repo), every dNN cell empty (no exclusions). MAX_WORKFORCE_CSV_ROWS itself is enforced at the ROUTE (POST /import/workforce/:month), not inside WorkforceImportService.importCsv/parseWorkforceCsv -- so this fixture's own service-level expectation is simply 'succeeds fully, right at the documented cap'. It is intended primarily for route-level (supertest) and load-test use, where the row-cap check itself is exercised.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "rowCount": 15000,
+  "call": "WorkforceImportService.importCsv(csvText, month, companyId) OR POST /import/workforce/:month (route-level, where the row cap is actually enforced)",
   "expectImportResult": {
-    "totalRows": 10000,
-    "inserted": 10000,
+    "totalRows": 15000,
+    "inserted": 15000,
     "updated": 0,
     "failed": 0
   },
   "expectRoute": {
     "status": 202,
-    "note": "at exactly MAX_ROWS, the route must accept and enqueue the job, not reject it"
+    "note": "at exactly the row cap, the route must accept and enqueue the job, not reject it"
   }
 }

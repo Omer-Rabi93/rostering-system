@@ -15,6 +15,7 @@
     "@reduxjs/toolkit": "^2.5.0",
     "@rostering/shared": "workspace:*",
     "@rostering/ui": "workspace:*",
+    "@tanstack/react-virtual": "^3.14.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-redux": "^9.2.0",

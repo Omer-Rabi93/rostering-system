@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Badge,
   ConfirmDialog,
@@ -22,11 +23,11 @@ import {
 } from '../../api/workers.api.js';
 import { classifyMutationError } from '../../api/errors.js';
 import { formatIls } from '../../lib/format.js';
+import { currentMonth } from '../../lib/calendar.js';
 import { useActiveCompanyId } from '../../hooks/useActiveCompanyId.js';
 import { useToasts } from '../../hooks/useToasts.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
-import { CsvPanel } from './CsvPanel.js';
 import { ShareLinkModal } from './ShareLinkModal.js';
 import { WorkerFormModal } from './WorkerFormModal.js';
 import {
@@ -238,6 +239,10 @@ export function WorkersPage(): ReactElement {
           columns={columns}
           rows={rows}
           rowKey={(row) => row.id}
+          // The backend now allows up to 1,000-10,000 workers per company (a full active
+          // workforce, unlike Companies/Cost Dashboard's small, bounded row counts) -- row
+          // virtualization keeps this page responsive regardless of company size.
+          virtualized
           caption={`${rows.length} ${rows.length === 1 ? 'worker' : 'workers'}`}
           rowActions={(row) => (
             <>
@@ -255,12 +260,19 @@ export function WorkersPage(): ReactElement {
         />
       )}
 
-      <CsvPanel />
+      <div className="card">
+        <div className="card__title">Bulk import / export</div>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-ink-secondary)' }}>
+          Import and export workers together with their availability from the{' '}
+          <Link to={`/roster/${currentMonth()}`}>Roster page</Link> — one combined CSV file per
+          month.
+        </p>
+      </div>
 
       <WorkerFormModal
         isOpen={activeDialog?.kind === 'workerForm'}
         worker={editingWorker}
-        companies={companies ?? []}
+        companyId={companyId}
         onSaved={handleSaved}
         onCancel={closeForm}
       />

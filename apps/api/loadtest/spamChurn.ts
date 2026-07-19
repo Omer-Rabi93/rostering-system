@@ -40,7 +40,7 @@ import type { Readable } from 'node:stream';
 
 import {
   API_BASE_URL,
-  buildWorkerCsv,
+  buildWorkforceCsv,
   checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
@@ -51,13 +51,14 @@ import {
   RUN_SALT,
   section,
   sleep,
-  uploadWorkersCsv,
+  uploadWorkforceCsv,
   writeTempCsv,
   type CsvRole,
   type CsvStatus,
   type LoadtestWorkerRow,
 } from './shared.js';
 
+const MONTH = '2027-02';
 const ITERATIONS = Number(process.env.LOADTEST_SPAM_ITERATIONS ?? 60);
 const TICK_MS = Number(process.env.LOADTEST_SPAM_TICK_MS ?? 1000);
 /** Base worker-list size -- per the v4 design doc's own suggestion ("starting from a base set,
@@ -144,7 +145,7 @@ interface ActivePoll {
 }
 
 async function getActiveTaskViaHttp(companyId: number): Promise<{ id: number } | null> {
-  const response = await fetch(`${API_BASE_URL}/api/import-tasks/active?companyId=${companyId}&kind=WORKER_SYNC`);
+  const response = await fetch(`${API_BASE_URL}/api/import-tasks/active?companyId=${companyId}&kind=WORKFORCE_SYNC`);
   return (await response.json()) as { id: number } | null;
 }
 
@@ -199,15 +200,15 @@ async function main(): Promise<void> {
     currentSlots = iter === 0 ? currentSlots : churn(currentSlots, retiredPool);
     iterationSnapshots.push(currentSlots.map((w) => ({ ...w })));
 
-    const csvPath = writeTempCsv(buildWorkerCsv(currentSlots), `spam-${companyId}-${iter}.csv`);
-    const upload = await uploadWorkersCsv(companyId, csvPath);
+    const csvPath = writeTempCsv(buildWorkforceCsv(currentSlots, MONTH), `spam-${companyId}-${iter}.csv`);
+    const upload = await uploadWorkforceCsv(companyId, MONTH, csvPath);
     const jobId = upload.statusCode === 202 ? ((upload.body as { jobId?: string }).jobId ?? null) : null;
     iterationJobIds.push(jobId);
 
     const [activeTask, nonTerminalCount] = await Promise.all([
       getActiveTaskViaHttp(companyId),
       prisma.importTask.count({
-        where: { companyId, kind: 'WORKER_SYNC', status: { in: ['PENDING', 'PROCESSING'] } },
+        where: { companyId, kind: 'WORKFORCE_SYNC', status: { in: ['PENDING', 'PROCESSING'] } },
       }),
     ]);
     polls.push({ iteration: iter, atMs: Date.now(), activeTaskId: activeTask?.id ?? null, nonTerminalCount });
@@ -231,7 +232,7 @@ async function main(): Promise<void> {
   const settleDeadline = Date.now() + SETTLE_TIMEOUT_MS;
   for (;;) {
     const nonTerminalCount = await prisma.importTask.count({
-      where: { companyId, kind: 'WORKER_SYNC', status: { in: ['PENDING', 'PROCESSING'] } },
+      where: { companyId, kind: 'WORKFORCE_SYNC', status: { in: ['PENDING', 'PROCESSING'] } },
     });
     if (nonTerminalCount === 0) break;
     if (Date.now() > settleDeadline) {
@@ -247,7 +248,7 @@ async function main(): Promise<void> {
 
   section('Assertion 1: exactly one COMPLETED task, the rest CANCELLED');
   const tasks = await prisma.importTask.findMany({
-    where: { companyId, kind: 'WORKER_SYNC', createdAt: { gte: runStart } },
+    where: { companyId, kind: 'WORKFORCE_SYNC', createdAt: { gte: runStart } },
     orderBy: { createdAt: 'asc' },
   });
   const completed = tasks.filter((t) => t.status === 'COMPLETED');

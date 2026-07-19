@@ -29,7 +29,7 @@ concurrency) — see its own header comment for how to run it.
    pnpm --filter @rostering/api dev
    ```
 
-4. **Worker process** (consumes `csv-import`/`availability-import`/`roster-generation` jobs — there
+4. **Worker process** (consumes `workforce-import`/`roster-generation` jobs — there
    is no dedicated `dev:worker` package script yet, so run it directly):
    ```sh
    pnpm --filter @rostering/api exec tsx src/worker.ts
@@ -219,8 +219,8 @@ window to reset (`RateLimit-Reset` header, in seconds) and re-run for a clean re
 These scripts (deliberately, per the design doc) run against your regular persistent dev database,
 not a disposable per-run one — so if you run them while ALSO running the Vitest suite
 (`pnpm --filter @rostering/api test`) or `pnpm --filter @rostering/api dev:worker` against the same
-database, you may see occasional cross-talk (e.g. a stray `csv-import` job from a test run still
-sitting in pg-boss's queue). If a script fails in a way that looks like unrelated interference
+database, you may see occasional cross-talk (e.g. a stray `workforce-import` job from a test run
+still sitting in pg-boss's queue). If a script fails in a way that looks like unrelated interference
 rather than a real bug (e.g. a `409` on a company that was JUST created), re-run it once things are
 quiet — this mirrors the same "concurrent test processes racing against the shared DB" caveat other
 work in this worktree has already flagged.

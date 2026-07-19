@@ -13,7 +13,7 @@
 
 import {
   API_BASE_URL,
-  buildWorkerCsv,
+  buildWorkforceCsv,
   checkStackReachable,
   createLoadtestCompany,
   disconnectPrisma,
@@ -22,12 +22,13 @@ import {
   makeSyntheticWorkerRows,
   RUN_SALT,
   sleep,
-  uploadWorkersCsv,
+  uploadWorkforceCsv,
   writeTempCsv,
   section,
   type LoadtestWorkerRow,
 } from './shared.js';
 
+const MONTH = '2027-02';
 const REUPLOAD_COUNT = Number(process.env.LOADTEST_REUPLOAD_COUNT ?? 10);
 const ROWS_PER_FILE = Number(process.env.LOADTEST_REUPLOAD_ROWS ?? 50);
 /** Disjoint from every other script's/fixture's national-ID prefix range in this repo; `RUN_SALT`
@@ -37,7 +38,7 @@ const PREFIX_BASE = 4_000_000 + RUN_SALT;
 async function pollActiveTaskUntilNull(companyId: number, timeoutMs = 60_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const response = await fetch(`${API_BASE_URL}/api/import-tasks/active?companyId=${companyId}&kind=WORKER_SYNC`);
+    const response = await fetch(`${API_BASE_URL}/api/import-tasks/active?companyId=${companyId}&kind=WORKFORCE_SYNC`);
     const body = await response.json();
     if (body === null) return;
     if (Date.now() > deadline) {
@@ -56,13 +57,13 @@ async function main(): Promise<void> {
   console.log(`company: ${companyId}`);
 
   const rows: LoadtestWorkerRow[] = makeSyntheticWorkerRows(ROWS_PER_FILE, PREFIX_BASE);
-  const csvPath = writeTempCsv(buildWorkerCsv(rows), `rapid-fire-${companyId}.csv`);
+  const csvPath = writeTempCsv(buildWorkforceCsv(rows, MONTH), `rapid-fire-${companyId}.csv`);
 
   section(`Firing ${REUPLOAD_COUNT} concurrent re-uploads of the SAME file`);
   const runStart = new Date();
   const fireStart = Date.now();
   const uploads = await Promise.all(
-    Array.from({ length: REUPLOAD_COUNT }, () => uploadWorkersCsv(companyId, csvPath)),
+    Array.from({ length: REUPLOAD_COUNT }, () => uploadWorkforceCsv(companyId, MONTH, csvPath)),
   );
   console.log(`fired ${REUPLOAD_COUNT} uploads in ${fmtMs(Date.now() - fireStart)}`);
 
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
   await pollActiveTaskUntilNull(companyId);
 
   const tasks = await prisma.importTask.findMany({
-    where: { companyId, kind: 'WORKER_SYNC', createdAt: { gte: runStart } },
+    where: { companyId, kind: 'WORKFORCE_SYNC', createdAt: { gte: runStart } },
     orderBy: { createdAt: 'asc' },
   });
   console.log(`\n${tasks.length} ImportTask row(s) created by this run:`);

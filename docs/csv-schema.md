@@ -1,28 +1,31 @@
-# Worker CSV Schema
+# Workforce CSV Schema
 
-`POST /api/import/workers` and `GET /api/export/workers` speak the same 7-column CSV format, so an
-exported file is always re-importable unmodified. Implemented in `apps/api/src/csv/`.
+`POST /api/import/workforce/:month` and `GET /api/export/workforce/:month` speak the same
+combined, month-scoped CSV format, so an exported file is always re-importable unmodified.
+Implemented in `apps/api/src/csv/` (`columns.ts`/`record.ts`/`workforce.ts` for the worker half,
+`availability.ts` for the day-cell primitives).
+
+One row = one worker's full field set (identity + contract) **and** that worker's excluded-shifts
+for every calendar day of the target month, both applied as one atomic outcome per row — see
+[Row atomicity](#row-atomicity) below. This supersedes two CSVs that used to exist independently (a
+worker-only CSV and a separate month-scoped availability-only CSV); they merged into one combined
+upload — see the `availability-v3-exclusion-and-combined-csv` design doc, Part G.
 
 The upload is scoped to one company at upload time (the app's "active company"), not resolved
 per-row — so the CSV itself carries no company column.
 
-Availability v2: worker availability is **not** part of this CSV at all. It is date-specific — one
-`WorkerAvailability` row per `(worker, calendar date)` — entered/exported via a separate
-month-scoped CSV (`POST /api/import/availability/:month`, `GET /api/export/availability/:month`;
-see [Availability CSV Schema](#availability-csv-schema) below). This worker CSV previously carried
-10 `avail_*` day/shift columns (18 total); Phase V4 of the Availability v2 migration removed them
-entirely.
-
-## Header (exact order and names)
+## Header (exact order and names, computed per month)
 
 ```
-national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours
+national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours,d01,d02,...,dNN
 ```
 
-Import rejects a file whose header row does not match this exactly (same 7 columns, same order,
-same names) and rejects any data row with more or fewer fields than the header.
+The first 7 columns are fixed; `d01`…`dNN` runs from `01` to the target month's real day count (28,
+29, 30, or 31 — leap Februaries included). Import rejects a file whose header does not exactly
+match this shape for the `:month` path parameter (wrong day count, wrong order, wrong names, extra
+or missing worker columns) and rejects any data row with more or fewer fields than the header.
 
-## Columns
+## Worker columns
 
 | Column | Type / allowed values | Notes |
 | --- | --- | --- |
@@ -33,76 +36,12 @@ same names) and rejects any data row with more or fewer fields than the header.
 | `hourly_cost_ils` | decimal ≥ 0, dot separator (e.g. `62.50`) | |
 | `min_monthly_hours`, `max_monthly_hours` | integers, `0 ≤ min ≤ max` | |
 
-## Full-sync semantics
-
-Each row is validated in full (Zod schema + Israeli-ID checksum) and processed in its own
-transaction, so one bad row rolls back only itself and the batch continues to the next row.
-If `national_id` matches an existing worker (within the upload's active company), that worker and
-their contract are updated — otherwise both are created.
-
-**After every row has been processed**, a sync sweep sets every existing `ACTIVE` worker whose
-`national_id` does not appear anywhere in the file to `INACTIVE`. The CSV is treated as the
-authoritative current workforce list. Deactivation is a status update only — it never deletes a
-worker, and their contract, share-link token, and shift history are all kept untouched. A worker
-whose row **is present but failed validation** is **not** deactivated (their `national_id` cell
-still shields them from the sweep even though the rest of that row was rejected).
-
-## Formula-injection guard
-
-Any cell whose value starts with `=`, `+`, `-`, `@`, a tab, or a carriage return is prefixed with a
-single `'` on export (the standard spreadsheet "force text" convention), which neutralizes it as a
-formula in Excel/Sheets/LibreOffice. Import strips that guard prefix back off, so the round-trip
-property (`export -> import` reproduces the original worker+contract record) holds even for a name
-like `=SUM(A1)`.
-
-## Import result
-
-```ts
-type ImportResult = {
-  totalRows: number;
-  inserted: number;
-  updated: number;
-  failed: number;
-  deactivated: number; // sync sweep: workers absent from the file
-  deactivatedWorkers: Array<{ workerId: number; nationalId: string; name: string }>;
-  errors: Array<{ row: number; nationalId?: string; field?: string; message: string }>; // row is 1-based
-};
-```
-
-## Sample file
-
-See [`samples/workers-sample.csv`](../samples/workers-sample.csv) — 12 workers matching the
-structure of `apps/api/src/db/seedData.ts`, safe to re-import unmodified.
-
----
-
-# Availability CSV Schema
-
-`POST /api/import/availability/:month` and `GET /api/export/availability/:month` speak a
-month-scoped CSV format (Availability v3 — exclusion semantics): `national_id` plus one column per
-calendar date of the target month (`d01` … `d28`/`d29`/`d30`/`d31`, count depends on the month).
-Each `dNN` cell lists the shifts that worker is **excluded from** (cannot work) that date, not the
-shifts they can work — see [Cell values](#cell-values) below. Implemented in
-`apps/api/src/csv/availability.ts`.
-
-## Header (exact order and names, computed per month)
-
-```
-national_id,d01,d02,...,dNN
-```
-
-`NN` runs from `01` to the target month's real day count (28, 29, 30, or 31 — leap Februaries
-included). Import rejects a file whose header does not exactly match the `:month` path
-parameter's day count and column order — importing, say, a 31-day month's export into a 30-day
-target month is rejected with a 400 before anything is enqueued.
-
-## Cell values
+## Day columns (`dNN`) — cell values
 
 Each `dNN` cell names the shifts the worker is **excluded from** (cannot work) on that date — it is
-NOT a list of shifts they can work. A `dNN` cell is either:
+NOT a list of shifts they can work (Availability v3 — exclusion semantics). A `dNN` cell is either:
 
-- **empty** — the worker has no `WorkerAvailability` entry for that date, meaning no exclusions:
-  they are available for every shift that date, or
+- **empty** — no exclusions: the worker is available for every shift that date, or
 - a **canonical shift-subset string**: one or more of the letters `A`, `B`, `C` (shift order
   00:00–08:00 / 08:00–16:00 / 16:00–24:00), always in `A` < `B` < `C` order with no duplicates —
   `A`, `B`, `C`, `AB`, `AC`, `BC`, `ABC`, naming the excluded shift(s). Any other value (unknown
@@ -111,34 +50,55 @@ NOT a list of shifts they can work. A `dNN` cell is either:
 
 For example, `d05 = "AB"` means the worker is excluded from (cannot work) the `A` and `B` shifts on
 that date but IS available for the `C` shift; `d06 = "ABC"` means the worker is excluded from all
-three shifts, i.e. fully unavailable that date; `d07 = ""` (empty) means no exclusions at all,
-i.e. available for `A`, `B`, and `C` that date.
+three shifts, i.e. fully unavailable that date; `d07 = ""` (empty) means no exclusions at all, i.e.
+available for `A`, `B`, and `C` that date.
 
-## Import semantics
+## Row atomicity
 
-Each **row** (one worker) is validated and applied in its own transaction: an unknown
-`national_id` or any illegal cell fails that row as a whole (reported with its 1-based row number
-and, for a cell error, the offending `dNN` column) without aborting the rest of the batch. A row
-that applies cleanly **replaces** that worker's `WorkerAvailability` rows for every date in the
-target month with exactly what the file's row specifies (an empty cell deletes/omits that date's
-row).
+Each **row** (one worker) is validated in full — worker fields first, then day cells, matching
+column order — and applied in one transaction: a bad worker field (e.g. unknown role) OR any
+illegal `dNN` cell fails the **entire row**, including the worker upsert. Neither half is applied
+partially: a row with a bad availability cell does not upsert the worker either, and a row with a
+bad worker field never touches that worker's availability. This is new relative to the two prior
+independent CSVs, where a worker-field error and an availability-cell error were unrelated failures
+in unrelated uploads.
 
-**There is no full-sync deactivation sweep here** — that is worker-CSV-only semantics. A worker
-whose `national_id` does not appear anywhere in the file simply keeps whatever `WorkerAvailability`
-rows they already have; no worker is ever deactivated by an availability import.
+A row that validates cleanly:
+
+- upserts the worker + contract by `national_id` (creates both if unknown, updates both if the
+  `national_id` already belongs to a worker in this upload's company; a `national_id` that already
+  belongs to a **different** company fails the row with a `national_id` field error, never a silent
+  reassignment), and
+- **replaces** that same worker's `WorkerAvailability` rows for every date in the target month with
+  exactly what the row's `dNN` cells specify (an empty cell deletes/omits that date's row).
+
+## Full-sync eligibility (not a deactivation sweep)
+
+There is **no deactivation sweep**: a worker whose `national_id` does not appear anywhere in the
+file simply keeps their current `status` and whatever `WorkerAvailability` rows they already have —
+nothing is ever deleted or flipped to `Inactive` by an import. Instead, each completed import stamps
+`lastImportTaskId` on every worker its rows touched; a company's next roster generation only
+considers `ACTIVE` workers who either have never been placed under CSV-sync management
+(`lastImportTaskId` is `null` — always eligible) or whose `lastImportTaskId` matches the company's
+**most recent COMPLETED** import (a worker dropped from the latest file stays `Active` but becomes
+unschedulable until they reappear in a completed sync).
 
 ## Formula-injection guard
 
-Every cell (`national_id` and every `dNN` cell alike) is guarded/unguarded through the exact same
-mechanism as the worker CSV — see above. This is applied uniformly regardless of a column's
-expected shape, as defense in depth.
+Any cell (worker column or `dNN` column alike) whose value starts with `=`, `+`, `-`, `@`, a tab, or
+a carriage return is prefixed with a single `'` on export (the standard spreadsheet "force text"
+convention), which neutralizes it as a formula in Excel/Sheets/LibreOffice. Import strips that guard
+prefix back off, so the round-trip property (`export -> import` reproduces the original record)
+holds even for a name like `=SUM(A1)`. Applied uniformly regardless of a column's expected shape, as
+defense in depth.
 
 ## Import result
 
 ```ts
-type AvailabilityImportResult = {
+type ImportResult = {
   totalRows: number;
-  applied: number; // rows successfully replaced
+  inserted: number; // rows whose worker was newly created
+  updated: number; // rows whose worker already existed
   failed: number;
   errors: Array<{ row: number; nationalId?: string; field?: string; message: string }>; // row is 1-based
 };
@@ -146,8 +106,20 @@ type AvailabilityImportResult = {
 
 ## Body/row limits
 
-Import is capped at `MAX_ROWS = 10_000` rows (one row = one worker) before the file is even
-enqueued, mirroring the worker CSV's own cap. The bulk JSON endpoints (`GET`/`PUT
-/api/availability/:month`) additionally cap the total number of `(workerId, date)` entries at
-`MAX_AVAILABILITY_ENTRIES = 20,000` and use a route-scoped 2 MB JSON body limit (see the
-Availability v2 plan's body-size note) instead of the app-wide 100 KB default.
+Import is capped at 10,000 rows (one row = one worker) before the file is even enqueued. The
+manual/grid `PUT /api/availability/:month` endpoint (unrelated to this CSV — see below) separately
+caps the total number of `(workerId, date)` entries at 20,000 and uses a route-scoped 2 MB JSON body
+limit instead of the app-wide 100 KB default.
+
+## The manual/grid availability path is separate
+
+`GET`/`PUT /api/availability/:month` (the planner's month-by-month availability grid,
+`AvailabilityGrid.tsx`) is a distinct, unrelated JSON API — full-month replace via a date-keyed JSON
+payload, not a CSV upload. It is untouched by anything above: editing the grid never goes through
+CSV framing, row atomicity, or the `ImportTask`/queue machinery this document describes.
+
+## Sample file
+
+See [`samples/workforce-sample-2026-08.csv`](../samples/workforce-sample-2026-08.csv) — 12 workers
+matching the structure of `apps/api/src/db/seedData.ts`, safe to re-import unmodified. Regenerate
+with `npx tsx apps/api/scripts/generateSampleWorkforceCsv.ts > samples/workforce-sample-<month>.csv`.

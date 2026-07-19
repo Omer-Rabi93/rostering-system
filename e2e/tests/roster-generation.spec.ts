@@ -12,7 +12,9 @@ async function generateAndWait(page: Page, month: string) {
 
 /** Reads every occupied roster cell into a plain, order-independent structure so two generations
  * of the same problem can be compared for byte-for-byte assignment equality (the CP-SAT
- * determinism guarantee — seed 42, 1 search worker, 30s cap — proven at the Python/API level in
+ * determinism guarantee — seed 42, 1 search worker, a time budget banded by workforce size (30s
+ * for this suite's small fixtures, up to 1800s for the largest companies — see
+ * `solver/solve_roster.py#compute_time_budget_seconds`) — proven at the Python/API level in
  * earlier phases; this is the UI-level confirmation). */
 async function readRosterAssignments(page: Page): Promise<Record<string, string[]>> {
   return page.evaluate(() => {

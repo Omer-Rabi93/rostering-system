@@ -111,9 +111,11 @@ library dependency.
 
 **Q: Walk me through the model.**
 
-- **Decision variables:** booleans `x[worker, date, shift]`, created **only** where the worker has
-  an availability row for that exact date containing that shift — this prunes the model before
-  solving starts; a worker with no availability contributes zero variables.
+- **Decision variables:** booleans `x[worker, date, shift]`, created **only** where the worker is
+  actually available for that exact date and shift (the service layer converts stored exclusions
+  into available-shifts before the wire; the solver defaults a date with no entry to
+  all-shifts-available) — this prunes the model before solving starts; a fully-excluded worker
+  contributes zero variables.
 - **Hard constraints:** (a) per (date, shift, role): sum of assigned workers **plus a shortfall
   slack** equals the required headcount; (b) ≤ 2 shifts per worker per calendar day; (c)
   `8·Σx ≤ maxMonthlyHours`.
@@ -246,21 +248,32 @@ Availability. v1 modeled it as a weekly recurring pattern — a 7-weekday × 3-s
 on the Contract. Re-reading the source requirements with the stakeholder showed that's wrong:
 planners enter availability **per real calendar date** for the month being rostered ("March 3rd:
 mornings only"), not "every Sunday". So we replaced it with a `WorkerAvailability` table — one row
-per (worker, exact date) with a canonical shift-subset string, `@@unique([workerId, date])`,
-**absence of a row = unavailable, no fallback**. That touched the schema, the solver's variable
-creation, the validator, the API, and the CSV format (the worker CSV dropped 21 `avail_*` columns;
-a separate month-scoped availability CSV was added). Lesson: validate the domain model against how
-users actually work before building on it — and when it's wrong, replace it fully rather than
-layering compatibility on top.
+per (worker, exact date) with a canonical shift-subset string, `@@unique([workerId, date])`. That
+touched the schema, the solver's variable creation, the validator, the API, and the CSV format
+(the worker CSV dropped 21 `avail_*` columns; a separate month-scoped availability CSV was added).
+A later revision (v3) inverted the row's *meaning* from "shifts you can work, absence =
+unavailable" to "shifts you're excluded from, absence = fully available" — see the next question.
+Lesson: validate the domain model against how users actually work before building on it — and
+when it's wrong, replace it fully rather than layering compatibility on top.
 
-**Q: Why is "absent row = unavailable" instead of a default?**
+**Q: What exactly does an availability row mean today?**
 
-It makes the safe state the default state — nobody gets scheduled on a date nobody entered. It
-also maps cleanly onto the strict TypeScript config: `noUncheckedIndexedAccess` forces every
-lookup to handle `undefined`, and here `undefined` *is meaningful* (unavailable), so the type
-system pushes you toward correct handling instead of `!` assertions. (Roadmap note: there's a
-planned inversion to exclusion semantics — a row lists shifts a worker *can't* work, absence =
-fully available — chosen so "fully unavailable" stays representable as a normal row.)
+It flipped once more (Availability **v3**): a row now stores the shifts a worker is **excluded
+from** on that date (`excludedShifts`), and **absence of a row = fully available**. In the CSV an
+empty cell means "no exclusions", `C` means "can't work nights that day", `ABC` means "fully
+unavailable that day". Two reasons for the inversion: it matches how people actually communicate
+("I can't do nights", not "I can do A and B"), and — the deeper one — it fixes a representability
+gap: under the old inclusion model, "fully unavailable" was expressed by *deleting* the row, so
+inverting only at the UI/CSV boundary would have had no way to store it. Storing exclusions makes
+"fully unavailable" a normal row (`ABC`) and "fully available" the natural absent state, matching
+the CSV's empty-cell convention 1:1.
+
+The migration was deliberately containment-first: the solver and the problem-builder still speak
+"available shifts" — the excluded→available inversion happens in exactly one service-layer spot,
+and the only solver change was the missing-date default flipping from `[]` to all-shifts. The
+riskiest, determinism-sensitive component got a one-line change, not a rewrite. (And the strict TS
+config still helps: `noUncheckedIndexedAccess` forces every date lookup to handle `undefined`,
+which now *means* "no exclusions" — still a meaningful state, never coalesced away.)
 
 **Q: Why does `ShiftWorker` snapshot the worker's role?**
 
@@ -990,8 +1003,9 @@ exactly why they're two files, not one.
    matrix (role × shift headcounts), and the month's `WorkerAvailability` rows.
 3. **Build the problem** (`engine/problem.ts` — pure, no framework imports): compute the month's
    date list, cross the 9-cell requirements matrix with every date (the wire format is
-   per-(date, shift, role)), and emit per-worker `date → [shifts]` availability as a plain JSON
-   record. Missing date key = unavailable — no default is fabricated.
+   per-(date, shift, role)), and emit per-worker `date → [shifts]` **available**-shifts as a
+   plain JSON record (the stored exclusions are inverted here, in one place — the solver never
+   sees exclusion semantics; a date with no entry defaults to all shifts available).
 4. **Run the solver** (`runSolver.ts`): `spawn(python3, [solve_roster.py], {shell:false})`,
    problem JSON written to **stdin only**, 35s Node-side kill timeout (just above the solver's
    own 30s cap so Python gets to fail cleanly first).

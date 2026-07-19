@@ -11,7 +11,7 @@ import { createStaffingRequirementsRouter } from './routes/staffingRequirements.
 import { createRostersRouter } from './routes/rosters.js';
 import { createShiftWorkersRouter } from './routes/shiftWorkers.js';
 import { createPublicScheduleRouter } from './routes/publicSchedule.js';
-import { createImportExportRouter } from './routes/importExport.js';
+import { createWorkforceRouter } from './routes/workforce.js';
 import { createImportTasksRouter } from './routes/importTasks.js';
 import { createJobsRouter } from './routes/jobs.js';
 
@@ -43,7 +43,7 @@ export function createApp(prisma: PrismaClient, boss: PgBoss): Express {
   // well within this app's stated 50-150-worker org size). A request that does not match one of
   // this router's own routes (e.g. `/api/companies`) falls through unchanged to the app-wide
   // parser and the routers mounted below, so every other route keeps the 100kb cap untouched.
-  app.use('/api', createAvailabilityRouter(prisma, boss));
+  app.use('/api', createAvailabilityRouter(prisma));
 
   app.use(express.json({ limit: '100kb' }));
 
@@ -56,9 +56,9 @@ export function createApp(prisma: PrismaClient, boss: PgBoss): Express {
   app.use('/api/staffing-requirements', createStaffingRequirementsRouter(prisma));
   app.use('/api/rosters', createRostersRouter(prisma, boss));
   app.use('/api/shifts', createShiftWorkersRouter(prisma));
-  // The router itself defines the full `/import/workers` + `/export/workers` paths (they don't
-  // share a common resource prefix the way `/api/companies` etc. do).
-  app.use('/api', createImportExportRouter(prisma, boss));
+  // The router itself defines the full `/import/workforce/:month` + `/export/workforce/:month`
+  // paths (they don't share a common resource prefix the way `/api/companies` etc. do).
+  app.use('/api', createWorkforceRouter(prisma, boss));
   app.use('/api/import-tasks', createImportTasksRouter(prisma));
   app.use('/api/jobs', createJobsRouter(boss));
 

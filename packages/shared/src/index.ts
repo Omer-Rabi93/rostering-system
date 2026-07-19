@@ -68,8 +68,6 @@ export {
   type ImportResult,
   rosterGenerationResultSchema,
   type RosterGenerationResult,
-  availabilityImportResultSchema,
-  type AvailabilityImportResult,
   jobErrorResultSchema,
   type JobErrorResult,
 } from './schemas/job.js';

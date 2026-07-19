@@ -49,6 +49,31 @@ function buildAriaLabel(day: DayColumn, shift: ShiftType, slot: SlotData): strin
   return `${day.label}, Shift ${shift}, ${workerText}, ${alertText}`;
 }
 
+type IndexedDay = DayColumn & { colIndex: number };
+
+/** Groups `days` into real Sun–Sat calendar weeks (each day's own actual weekday, not a synthetic
+ * 7-day chunk), so a month renders as several ≤7-day-wide row-blocks instead of one continuous
+ * row that can run to 31 columns. The first/last week are naturally shorter than 7 when the month
+ * doesn't start/end on a Sunday/Saturday — normal calendar behavior. `colIndex` (each day's index
+ * in the full, unwrapped `days` array) travels with every entry so keyboard-nav math
+ * (`registerCellRef`/`posForSlot`, both keyed by a flat `(row, col)` pair) stays completely
+ * unaware of the week grouping — Right/Left arrow at a week's edge naturally continues into the
+ * next/previous week's same row, since `col` is still just "index into the whole month." */
+function groupIntoWeeks(days: readonly DayColumn[]): IndexedDay[][] {
+  const weeks: IndexedDay[][] = [];
+  let current: IndexedDay[] = [];
+  days.forEach((day, colIndex) => {
+    const dayOfWeek = new Date(`${day.date}T00:00:00.000Z`).getUTCDay(); // 0 = Sunday
+    if (dayOfWeek === 0 && current.length > 0) {
+      weeks.push(current);
+      current = [];
+    }
+    current.push({ ...day, colIndex });
+  });
+  if (current.length > 0) weeks.push(current);
+  return weeks;
+}
+
 export function CalendarGrid({
   month,
   days,
@@ -100,69 +125,71 @@ export function CalendarGrid({
     onSlotActivate(date, shift);
   }
 
+  const weeks = groupIntoWeeks(days);
+
   return (
     <div className="calendar">
       <div className="calendar-scroll">
         <table className="cal-table" aria-label={`${month} roster grid, Shift A B C per day`}>
-          <thead>
-            <tr>
-              <th scope="col" className="cal-day-head">
-                <span className="visually-hidden">Shift</span>
-              </th>
-              {days.map((day) => (
-                <th
-                  key={day.date}
-                  scope="col"
-                  className={`cal-day-head${day.isWeekend ? ' is-weekend' : ''}`}
-                >
-                  {day.label}
+          {weeks.map((week, weekIndex) => (
+            <tbody key={week[0]?.date ?? weekIndex} className={weekIndex > 0 ? 'cal-week-group' : undefined}>
+              <tr>
+                <th scope="col" className="cal-day-head">
+                  <span className="visually-hidden">Shift</span>
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {shiftRows.map((shift, rowIndex) => (
-              <tr key={shift}>
-                <th scope="row" className="cal-shift-row-head">
-                  {shift}
-                </th>
-                {days.map((day, colIndex) => {
-                  const slot = getSlot(day.date, shift);
-                  const isFocused = focused.date === day.date && focused.shift === shift;
-                  const alertClass =
-                    slot.alertSeverity === 'warning'
-                      ? ' has-alert'
-                      : slot.alertSeverity === 'blocking'
-                        ? ' has-blocking'
-                        : '';
-                  return (
-                    <td
-                      key={day.date}
-                      ref={(el) => roving.registerCellRef(rowIndex, colIndex, el)}
-                      className={`cal-cell${alertClass}`}
-                      role="gridcell"
-                      tabIndex={isFocused ? 0 : -1}
-                      {...(isFocused ? { 'aria-selected': 'true' as const } : {})}
-                      aria-label={buildAriaLabel(day, shift, slot)}
-                      data-testid={`cal-cell-${day.date}-${shift}`}
-                      onClick={() => handleClick(day.date, shift)}
-                      onKeyDown={(event) => handleKeyDown(event, day.date, shift)}
-                    >
-                      {slot.workers.length === 0 ? (
-                        <span className="cal-cell-empty-hint">Unassigned</span>
-                      ) : (
-                        slot.workers.map((worker) => (
-                          <span className={`cal-chip cal-chip--${ROLE_CLASS[worker.role]}`} key={worker.id}>
-                            {worker.name}
-                          </span>
-                        ))
-                      )}
-                    </td>
-                  );
-                })}
+                {week.map((day) => (
+                  <th
+                    key={day.date}
+                    scope="col"
+                    className={`cal-day-head${day.isWeekend ? ' is-weekend' : ''}`}
+                  >
+                    {day.label}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
+              {shiftRows.map((shift, rowIndex) => (
+                <tr key={shift}>
+                  <th scope="row" className="cal-shift-row-head">
+                    {shift}
+                  </th>
+                  {week.map((day) => {
+                    const slot = getSlot(day.date, shift);
+                    const isFocused = focused.date === day.date && focused.shift === shift;
+                    const alertClass =
+                      slot.alertSeverity === 'warning'
+                        ? ' has-alert'
+                        : slot.alertSeverity === 'blocking'
+                          ? ' has-blocking'
+                          : '';
+                    return (
+                      <td
+                        key={day.date}
+                        ref={(el) => roving.registerCellRef(rowIndex, day.colIndex, el)}
+                        className={`cal-cell${alertClass}`}
+                        role="gridcell"
+                        tabIndex={isFocused ? 0 : -1}
+                        {...(isFocused ? { 'aria-selected': 'true' as const } : {})}
+                        aria-label={buildAriaLabel(day, shift, slot)}
+                        data-testid={`cal-cell-${day.date}-${shift}`}
+                        onClick={() => handleClick(day.date, shift)}
+                        onKeyDown={(event) => handleKeyDown(event, day.date, shift)}
+                      >
+                        {slot.workers.length === 0 ? (
+                          <span className="cal-cell-empty-hint">Unassigned</span>
+                        ) : (
+                          slot.workers.map((worker) => (
+                            <span className={`cal-chip cal-chip--${ROLE_CLASS[worker.role]}`} key={worker.id}>
+                              {worker.name}
+                            </span>
+                          ))
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>

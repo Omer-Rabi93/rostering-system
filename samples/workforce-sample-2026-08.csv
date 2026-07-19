@@ -1,0 +1,13 @@
+national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours,d01,d02,d03,d04,d05,d06,d07,d08,d09,d10,d11,d12,d13,d14,d15,d16,d17,d18,d19,d20,d21,d22,d23,d24,d25,d26,d27,d28,d29,d30,d31
+000000018,Noa Levi,General Guard,Active,45.00,120,200,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000026,Avi Cohen,General Guard,Active,45.00,100,180,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C
+000000034,Dana Mizrahi,Supervisor,Active,65.00,140,200,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000042,Yossi Peretz,Screener,Active,50.00,120,180,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,
+000000059,Michal Katz,General Guard,Active,47.00,120,200,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000067,Eitan Shapira,General Guard,Inactive,47.00,100,160,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000075,Tamar Golan,Supervisor,Active,68.00,140,200,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C
+000000083,Roi Ben-David,Screener,Active,52.00,120,190,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000091,Shira Azulay,General Guard,Active,46.00,120,200,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000109,Omer Biton,General Guard,Active,46.00,100,180,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,,,,,ABC,ABC,,
+000000117,Liora Sharabi,Supervisor,Active,66.00,140,200,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+000000125,Guy Amrani,Screener,Inactive,51.00,110,180,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C

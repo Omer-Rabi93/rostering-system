@@ -99,12 +99,20 @@ export function deriveValidIsraeliId(prefix: number): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Worker CSV construction (post-v4 7-column schema: national_id,name,role,status,
-// hourly_cost_ils,min_monthly_hours,max_monthly_hours -- see src/csv/columns.ts).
+// Combined workforce CSV construction (Part G: 7 worker columns + that month's `dNN` columns --
+// see src/csv/columns.ts + src/csv/workforce.ts). Every synthetic row is written with every `dNN`
+// cell empty (no exclusions/fully available) -- these scripts stress the worker-upsert/queue/
+// cancel-and-replace machinery, not availability-cell validation, so there is nothing to gain from
+// varying the day cells.
 // ---------------------------------------------------------------------------------------------
 
-export const WORKER_CSV_HEADER =
+export const WORKER_CSV_BASE_HEADER =
   'national_id,name,role,status,hourly_cost_ils,min_monthly_hours,max_monthly_hours';
+
+export function workforceCsvHeaderForMonth(month: string): string {
+  const dayColumns = monthDays(month).map((_unused, i) => `d${String(i + 1).padStart(2, '0')}`);
+  return [WORKER_CSV_BASE_HEADER, ...dayColumns].join(',');
+}
 
 export type CsvRole = 'General Guard' | 'Supervisor' | 'Screener';
 export type CsvStatus = 'Active' | 'Inactive';
@@ -119,20 +127,25 @@ export interface LoadtestWorkerRow {
   readonly maxMonthlyHours: number;
 }
 
-export function workerRowToCsvLine(row: LoadtestWorkerRow): string {
-  return [
-    row.nationalId,
-    row.name,
-    row.role,
-    row.status,
-    row.hourlyCostIls.toFixed(2),
-    String(row.minMonthlyHours),
-    String(row.maxMonthlyHours),
-  ].join(',');
+export function workerRowToCsvLine(row: LoadtestWorkerRow, month: string): string {
+  const emptyDayCells = monthDays(month).map(() => '').join(',');
+  return (
+    [
+      row.nationalId,
+      row.name,
+      row.role,
+      row.status,
+      row.hourlyCostIls.toFixed(2),
+      String(row.minMonthlyHours),
+      String(row.maxMonthlyHours),
+    ].join(',') +
+    ',' +
+    emptyDayCells
+  );
 }
 
-export function buildWorkerCsv(rows: readonly LoadtestWorkerRow[]): string {
-  return [WORKER_CSV_HEADER, ...rows.map(workerRowToCsvLine)].join('\n') + '\n';
+export function buildWorkforceCsv(rows: readonly LoadtestWorkerRow[], month: string): string {
+  return [workforceCsvHeaderForMonth(month), ...rows.map((row) => workerRowToCsvLine(row, month))].join('\n') + '\n';
 }
 
 /** One synthetic worker for prefix `n` -- checksum-valid nationalId, deterministic-but-varied
@@ -176,12 +189,13 @@ export interface UploadResult {
   readonly elapsedMs: number;
 }
 
-/** Fires exactly one `POST /api/import/workers` multipart upload via `autocannon` (one dedicated
- * `connections: 1, amount: 1` run per call -- autocannon's connection model assumes homogeneous
- * requests across connections, so "N distinct concurrent uploads" is built by running N of these
- * one-shot instances in parallel via `Promise.all`, not by giving one instance N differing
- * connections). Returns the parsed JSON response body (e.g. `{ jobId }`) and wall-clock latency. */
-export async function uploadWorkersCsv(companyId: number, csvFilePath: string): Promise<UploadResult> {
+/** Fires exactly one `POST /api/import/workforce/:month` multipart upload via `autocannon` (one
+ * dedicated `connections: 1, amount: 1` run per call -- autocannon's connection model assumes
+ * homogeneous requests across connections, so "N distinct concurrent uploads" is built by running
+ * N of these one-shot instances in parallel via `Promise.all`, not by giving one instance N
+ * differing connections). Returns the parsed JSON response body (e.g. `{ jobId }`) and wall-clock
+ * latency. */
+export async function uploadWorkforceCsv(companyId: number, month: string, csvFilePath: string): Promise<UploadResult> {
   const start = Date.now();
   let capturedStatus: number | undefined;
   let capturedBody: string | undefined;
@@ -203,7 +217,7 @@ export async function uploadWorkersCsv(companyId: number, csvFilePath: string): 
     requests: [
       {
         method: 'POST',
-        path: '/api/import/workers',
+        path: `/api/import/workforce/${month}`,
         onResponse: (status: number, body: string) => {
           capturedStatus = status;
           capturedBody = body;
@@ -245,15 +259,20 @@ export interface SeededRosterCompany {
   readonly shareToken: string;
 }
 
-/** One worker, fully available for shift A every day of `month`, and a matching single-slot
- * requirement -- the minimal recipe for the real CP-SAT solver to find a feasible, zero-alert
- * solution near-instantly (stolen from `tests/services/rosterGenerationService.test.ts`'s
- * `seedOneWorker` + its real-solver test's `WorkerAvailability` seeding). */
+/** One worker, fully available for shift A every day of `month` (Availability v3: no
+ * `WorkerAvailability` rows at all = no exclusions = fully available for every shift, so this
+ * needs no seeding of its own), and a matching single-slot requirement -- the minimal recipe for
+ * the real CP-SAT solver to find a feasible, zero-alert solution near-instantly (stolen from
+ * `tests/services/rosterGenerationService.test.ts`'s `seedOneWorker`). */
 export async function seedSingleWorkerCompanyForRoster(
   prisma: PrismaClient,
   name: string,
   prefix: number,
-  month: string,
+  // Kept in the signature for call-site stability (callers pass the month they intend to
+  // generate a roster for) even though the body no longer reads it -- Availability v3: no
+  // `WorkerAvailability` rows at all already means fully available for every month, so there is
+  // nothing month-specific left to seed here.
+  _month: string,
 ): Promise<SeededRosterCompany> {
   const companyId = await createLoadtestCompany(prisma, name);
   const worker = await prisma.worker.create({
@@ -275,13 +294,6 @@ export async function seedSingleWorkerCompanyForRoster(
   });
   await prisma.staffingRequirement.create({
     data: { companyId, role: 'GENERAL_GUARD', shift: 'A', requiredCount: 1 },
-  });
-  await prisma.workerAvailability.createMany({
-    data: monthDays(month).map((date) => ({
-      workerId: worker.id,
-      date: new Date(`${date}T00:00:00.000Z`),
-      shifts: 'A',
-    })),
   });
   return { companyId, workerId: worker.id, workerName: worker.name, shareToken: worker.shareToken };
 }
@@ -373,7 +385,7 @@ export async function pollTaskUntilSettled(
 export async function pollAllUntilSettled(
   prisma: PrismaClient,
   companyIds: readonly number[],
-  kind: 'WORKER_SYNC' | 'AVAILABILITY_SYNC',
+  kind: 'WORKFORCE_SYNC',
   { timeoutMs = 120_000, intervalMs = 200 }: { timeoutMs?: number; intervalMs?: number } = {},
 ): Promise<Map<number, PolledImportTask>> {
   const deadline = Date.now() + timeoutMs;

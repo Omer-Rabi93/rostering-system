@@ -47,3 +47,63 @@ class TestRequestStub {
   }
 }
 vi.stubGlobal('Request', TestRequestStub);
+
+/**
+ * `@tanstack/react-virtual` (windowing `AvailabilityGrid`'s worker rows, see
+ * `pages/Roster/AvailabilityGrid.tsx`) test-environment shims.
+ *
+ * jsdom performs no real layout, so every element's `offsetHeight`/`offsetWidth`/`clientHeight`/
+ * `clientWidth`/`scrollHeight`/`scrollWidth` are hardwired to `0`, and `Element.prototype.scrollTo`
+ * is a documented no-op that never updates `scrollTop` or fires a `scroll` event. Left alone, that
+ * makes the virtualizer's size/offset math degenerate two different ways: a `0` viewport size makes
+ * it think nothing fits (renders nothing), while `0`-height rows all land at the same offset (so
+ * "how many rows fit in the viewport" becomes "all of them" — the opposite failure). None of these
+ * properties are read by any other test in this workspace (confirmed via a repo-wide grep before
+ * adding this), so hardwiring them to small-but-nonzero constants here is additive only.
+ */
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+}
+
+// A single, small default readback for every element's size — both the scroll container's own
+// "viewport" size and each measured row's size are read off the exact same properties
+// (`@tanstack/virtual-core`'s `getRect` reads `offsetWidth`/`offsetHeight` for both), so one
+// uniform value keeps the math consistent: a 40px viewport / 40px-tall rows still yields a
+// small, non-degenerate rendered window (roughly `1 + 2*overscan` rows) regardless of how many
+// total rows exist.
+for (const prop of ['offsetHeight', 'clientHeight'] as const) {
+  Object.defineProperty(HTMLElement.prototype, prop, { configurable: true, get: () => 40 });
+}
+for (const prop of ['offsetWidth', 'clientWidth'] as const) {
+  Object.defineProperty(HTMLElement.prototype, prop, { configurable: true, get: () => 120 });
+}
+// Large enough that `scrollHeight - clientHeight` (the virtualizer's own max-scroll-offset clamp)
+// never becomes the binding constraint for any row count/height this workspace's tests use.
+for (const prop of ['scrollHeight', 'scrollWidth'] as const) {
+  Object.defineProperty(HTMLElement.prototype, prop, { configurable: true, get: () => 10_000_000 });
+}
+
+// A stateful `scrollTop` (jsdom's own always reads back `0`) plus a `scrollTo` that writes it and
+// dispatches the native `scroll` event `@tanstack/virtual-core`'s `observeElementOffset` listens
+// for — without both, `virtualizer.scrollToIndex()` computes a target offset but nothing ever
+// reports it back, so the virtualizer never actually renders the scrolled-to row.
+const scrollTopByElement = new WeakMap<Element, number>();
+Object.defineProperty(Element.prototype, 'scrollTop', {
+  configurable: true,
+  get(this: Element): number {
+    return scrollTopByElement.get(this) ?? 0;
+  },
+  set(this: Element, value: number) {
+    scrollTopByElement.set(this, value);
+  },
+});
+Element.prototype.scrollTo = function scrollTo(this: Element, options?: ScrollToOptions | number): void {
+  const top = typeof options === 'object' && options !== null ? options.top : undefined;
+  if (typeof top === 'number') scrollTopByElement.set(this, top);
+  this.dispatchEvent(new Event('scroll'));
+};

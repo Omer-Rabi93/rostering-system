@@ -262,10 +262,10 @@ describe('RosterGenerationService.generate', () => {
 
   it('v4 eligibility: a never-synced worker (lastImportTaskId null) is included regardless of the company\'s ImportTask history', async () => {
     const { worker, company } = await seedOneWorker();
-    // Company has a completed WORKER_SYNC task in its history, but this worker was never touched
-    // by it (created/managed by hand) -- `lastImportTaskId` stays null.
+    // Company has a completed WORKFORCE_SYNC task in its history, but this worker was never
+    // touched by it (created/managed by hand) -- `lastImportTaskId` stays null.
     await prisma.importTask.create({
-      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'COMPLETED', finishedAt: new Date() },
+      data: { companyId: company.id, kind: 'WORKFORCE_SYNC', status: 'COMPLETED', month: '2027-02', finishedAt: new Date() },
     });
     const fakeSolve = (problem: SolverProblem): Promise<SolverSolution> =>
       Promise.resolve({
@@ -281,10 +281,10 @@ describe('RosterGenerationService.generate', () => {
     expect(shiftWorkers.every((sw) => sw.workerId === worker.id)).toBe(true);
   });
 
-  it('v4 eligibility: a worker whose lastImportTaskId matches the latest COMPLETED WORKER_SYNC task is included', async () => {
+  it('v4 eligibility: a worker whose lastImportTaskId matches the latest COMPLETED WORKFORCE_SYNC task is included', async () => {
     const { worker, company } = await seedOneWorker();
     const latestTask = await prisma.importTask.create({
-      data: { companyId: company.id, kind: 'WORKER_SYNC', status: 'COMPLETED', finishedAt: new Date() },
+      data: { companyId: company.id, kind: 'WORKFORCE_SYNC', status: 'COMPLETED', month: '2027-02', finishedAt: new Date() },
     });
     await prisma.worker.update({ where: { id: worker.id }, data: { lastImportTaskId: latestTask.id } });
 
@@ -305,22 +305,24 @@ describe('RosterGenerationService.generate', () => {
   it('v4 eligibility: an ACTIVE worker whose lastImportTaskId points at a stale/non-latest task (older COMPLETED, or CANCELLED/FAILED) is excluded from the candidate pool', async () => {
     const { worker, company } = await seedOneWorker();
 
-    // An older COMPLETED WORKER_SYNC task the worker was stamped with...
+    // An older COMPLETED WORKFORCE_SYNC task the worker was stamped with...
     const olderCompletedTask = await prisma.importTask.create({
       data: {
         companyId: company.id,
-        kind: 'WORKER_SYNC',
+        kind: 'WORKFORCE_SYNC',
         status: 'COMPLETED',
+        month: '2027-02',
         finishedAt: new Date('2020-01-01T00:00:00.000Z'),
       },
     });
-    // ...followed by a newer COMPLETED WORKER_SYNC task that did NOT touch this worker (e.g. they
-    // were dropped from the latest uploaded CSV) -- this is now "the latest completed sync".
+    // ...followed by a newer COMPLETED WORKFORCE_SYNC task that did NOT touch this worker (e.g.
+    // they were dropped from the latest uploaded CSV) -- this is now "the latest completed sync".
     await prisma.importTask.create({
       data: {
         companyId: company.id,
-        kind: 'WORKER_SYNC',
+        kind: 'WORKFORCE_SYNC',
         status: 'COMPLETED',
+        month: '2027-02',
         finishedAt: new Date('2020-06-01T00:00:00.000Z'),
       },
     });
@@ -353,7 +355,7 @@ describe('RosterGenerationService.generate', () => {
     // Same exclusion holds for a worker stamped against a CANCELLED task (superseded upload).
     const { worker: cancelledWorker, company: cancelledCompany } = await seedOneWorker('Cancelled Co');
     const cancelledTask = await prisma.importTask.create({
-      data: { companyId: cancelledCompany.id, kind: 'WORKER_SYNC', status: 'CANCELLED' },
+      data: { companyId: cancelledCompany.id, kind: 'WORKFORCE_SYNC', status: 'CANCELLED', month: '2027-02' },
     });
     await prisma.worker.update({
       where: { id: cancelledWorker.id },

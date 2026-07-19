@@ -25,6 +25,7 @@ import {
   type SolverSolution,
 } from '../engine/problem.js';
 import { runSolver, type RunSolverOptions } from '../engine/runSolver.js';
+import { computeNodeSolverTimeoutMs } from '../engine/timeBudget.js';
 import type { PrismaClient } from '../db/client.js';
 import type { Prisma, Role } from '../generated/prisma/client.js';
 
@@ -98,18 +99,18 @@ export class RosterGenerationService {
   }
 
   async generate(companyId: number, month: string): Promise<RosterGenerationResult> {
-    // v4 eligibility rule: a worker never touched by any worker-CSV import (`lastImportTaskId ===
-    // null`) is always eligible -- a company managing workers entirely by hand must still be able
-    // to generate a roster. A worker that HAS been placed under CSV-sync management is only
+    // v4 eligibility rule: a worker never touched by any workforce-CSV import (`lastImportTaskId
+    // === null`) is always eligible -- a company managing workers entirely by hand must still be
+    // able to generate a roster. A worker that HAS been placed under CSV-sync management is only
     // eligible if their `lastImportTaskId` matches the company's most recent COMPLETED
-    // `WORKER_SYNC` task -- if a newer sync completed without touching them (e.g. they were
+    // `WORKFORCE_SYNC` task -- if a newer sync completed without touching them (e.g. they were
     // dropped from the file), they stay `ACTIVE` but become unschedulable until re-synced. The
     // `?? -1` sentinel makes the second OR branch a no-op when the company has no completed
-    // `WORKER_SYNC` task at all (no worker can ever have `lastImportTaskId === -1`), leaving only
-    // the null-check branch active in that case. See the v4 design doc, Part A's
+    // `WORKFORCE_SYNC` task at all (no worker can ever have `lastImportTaskId === -1`), leaving
+    // only the null-check branch active in that case. See the v4 design doc, Part A's
     // "Roster-generation eligibility rule" section.
-    const latestWorkerSyncTask = await this.prisma.importTask.findFirst({
-      where: { companyId, kind: 'WORKER_SYNC', status: 'COMPLETED' },
+    const latestWorkforceSyncTask = await this.prisma.importTask.findFirst({
+      where: { companyId, kind: 'WORKFORCE_SYNC', status: 'COMPLETED' },
       orderBy: { finishedAt: 'desc' },
     });
 
@@ -118,7 +119,7 @@ export class RosterGenerationService {
         where: {
           companyId,
           status: 'ACTIVE',
-          OR: [{ lastImportTaskId: null }, { lastImportTaskId: latestWorkerSyncTask?.id ?? -1 }],
+          OR: [{ lastImportTaskId: null }, { lastImportTaskId: latestWorkforceSyncTask?.id ?? -1 }],
         },
         include: { contract: true },
       }),
@@ -148,7 +149,18 @@ export class RosterGenerationService {
       availability,
     });
 
-    const solution = await this.solve(problem, this.solverOptions);
+    // The Node-side kill timeout MUST be derived from the same workforce-size -> time-budget
+    // mapping the Python solver applies to itself (`compute_time_budget_seconds` in
+    // `solve_roster.py`, computed there straight from `len(problem['workers'])` -- no wire-format
+    // change needed since that array already travels in the problem JSON). Deriving it here, from
+    // the SAME `workersWithContract.length` that ends up as `problem.workers`, rather than
+    // guessing/hardcoding a Node-side constant, is what guarantees the two sides can never
+    // disagree: if they did, the Node side could kill the solver process before its own internal
+    // CP-SAT deadline, turning a would-be-successful large solve into a false timeout. An explicit
+    // `timeoutMs` already present in `this.solverOptions` (e.g. a test wiring a deliberately short
+    // timeout) always wins -- this is a computed DEFAULT, not a forced override.
+    const timeoutMs = this.solverOptions.timeoutMs ?? computeNodeSolverTimeoutMs(workersWithContract.length);
+    const solution = await this.solve(problem, { ...this.solverOptions, timeoutMs });
 
     return this.persistDraft(companyId, month, solution, roleById);
   }

@@ -1,7 +1,8 @@
 {
-  "_comment": "Valid 7-column header, zero data rows -- NOT an error at any level. parseWorkersCsv returns []; importCsv completes normally with totalRows: 0 and an ImportTask that reaches COMPLETED with zero of everything.",
-  "kind": "worker",
-  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "_comment": "Valid combined 35-column header (7 worker columns + 28 day columns, month 2027-02), zero data rows -- NOT an error at any level. parseWorkforceCsv returns []; importCsv completes normally with totalRows: 0 and an ImportTask that reaches COMPLETED with zero of everything.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "WorkforceImportService.importCsv(csvText, month, companyId)",
   "expectImportResult": {
     "totalRows": 0,
     "inserted": 0,

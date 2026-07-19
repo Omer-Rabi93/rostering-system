@@ -1,7 +1,8 @@
 {
-  "_comment": "Documents ACTUAL current behavior, not an invented expectation: CsvImportService processes rows sequentially, each in its own transaction, upserting by national_id. Row 1 inserts a worker with national_id 009000050; by the time row 2 (same national_id) runs, that worker already exists in the SAME company, so row 2 just updates it -- last-row-wins, NOT a validation error. This fixture exists to pin that behavior down as a regression test, since a naive reader might expect an in-file-duplicate error that this codebase does not actually implement.",
-  "kind": "worker",
-  "call": "CsvImportService.importCsv(csvText, companyId)",
+  "_comment": "Documents ACTUAL current behavior, not an invented expectation: WorkforceImportService processes rows sequentially, each in its own transaction, upserting by national_id. Row 1 inserts a worker with national_id 009000050; by the time row 2 (same national_id) runs, that worker already exists in the SAME company, so row 2 just updates it -- last-row-wins, NOT a validation error. This fixture exists to pin that behavior down as a regression test, since a naive reader might expect an in-file-duplicate error that this codebase does not actually implement.",
+  "kind": "workforce",
+  "month": "2027-02",
+  "call": "WorkforceImportService.importCsv(csvText, month, companyId)",
   "expectImportResult": {
     "totalRows": 2,
     "inserted": 1,

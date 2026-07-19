@@ -14,7 +14,7 @@ export const jobsApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, id) => [{ type: 'Job', id }],
       /** Store-level plumbing for "job completion invalidates the tag it affects": a
        * `roster-generation` job invalidates `Roster` (+ `CostSummary`, since cost is computed from
-       * the same shift assignments a regeneration rewrites), a `csv-import` job invalidates
+       * the same shift assignments a regeneration rewrites), a `workforce-import` job invalidates
        * `Worker`. This runs once per fulfilled poll — invalidating an already-up-to-date tag on a
        * non-terminal poll is a harmless no-op refetch, but we only care about the terminal one, so
        * we still gate on `state === 'completed'`. */
@@ -24,7 +24,7 @@ export const jobsApi = baseApi.injectEndpoints({
           if (data.state !== 'completed') return;
           if (data.name === 'roster-generation') {
             dispatch(baseApi.util.invalidateTags(['Roster', 'CostSummary']));
-          } else if (data.name === 'csv-import') {
+          } else if (data.name === 'workforce-import') {
             dispatch(baseApi.util.invalidateTags(['Worker']));
           }
         } catch {

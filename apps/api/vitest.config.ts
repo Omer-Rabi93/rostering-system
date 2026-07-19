@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
+    include: ['tests/**/*.test.ts'],
     setupFiles: ['./tests/setupEnv.ts'],
     // Integration test suites share one real, dockerized Postgres database (see
     // `tests/helpers/testDb.ts`) and each resets/truncates it in `beforeEach`. Running test FILES

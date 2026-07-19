@@ -34,12 +34,26 @@ export interface RunSolverOptions {
   /** Defaults to `$SOLVER_PYTHON_PATH` or plain `python3` on `PATH` (the production contract). */
   readonly pythonExecutable?: string;
   readonly scriptPath?: string;
-  /** Node-side kill timeout; kept slightly above the solver's own internal 30s cap. */
+  /**
+   * Node-side kill timeout. The solver's own internal CP-SAT time budget is no longer a single
+   * flat constant -- it's banded by active-workforce size (`solve_roster.py`'s
+   * `compute_time_budget_seconds`, 30s up to 1800s) -- so there is no longer one universal "safe"
+   * default here. The real caller, `RosterGenerationService`, always computes and passes this
+   * explicitly (`engine/timeBudget.ts#computeNodeSolverTimeoutMs`, mirroring the exact same
+   * worker-count-based bands the Python side uses, plus headroom), so the two sides can never
+   * disagree about the deadline. `DEFAULT_TIMEOUT_MS` below only exists for callers that don't
+   * (e.g. ad hoc scripts/tests invoking `runSolver` directly against a small fixture) -- it matches
+   * the smallest (<=200-worker) band's Node-side timeout exactly, so it stays correct for exactly
+   * the cases that don't care about scale.
+   */
   readonly timeoutMs?: number;
 }
 
 export class SolverProcessError extends Error {}
 
+/** Matches `engine/timeBudget.ts#computeNodeSolverTimeoutMs(200)` (the <=200-worker band's 30s
+ * CP-SAT budget + 5s headroom) -- the fallback for callers that don't pass an explicit
+ * workforce-size-derived `timeoutMs` (see `RunSolverOptions.timeoutMs`'s doc comment). */
 const DEFAULT_TIMEOUT_MS = 35_000;
 
 export function runSolver(

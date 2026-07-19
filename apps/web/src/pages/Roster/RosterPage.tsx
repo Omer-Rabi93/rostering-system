@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -34,7 +34,7 @@ import { ackRequested, ackSettled } from '../../store/ackChecklist.slice.js';
 import { dialogClosed, dialogOpened, selectActiveDialog } from '../../store/dialogs.slice.js';
 import { slotFocused, selectFocusedSlot, type PendingEdit } from '../../store/rosterEditor.slice.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
-import { AvailabilityCsvPanel } from './AvailabilityCsvPanel.js';
+import { WorkforceCsvPanel } from './WorkforceCsvPanel.js';
 import { AvailabilityGrid } from './AvailabilityGrid.js';
 import type { SlotActionOutcome } from './SlotEditDialog.js';
 import { SlotEditDialog } from './SlotEditDialog.js';
@@ -82,6 +82,14 @@ export function RosterPage(): ReactElement {
 
   const [jobId, setJobId] = useState<string | undefined>(undefined);
   const jobPoll = useJobPolling(jobId);
+
+  // `RosterPage` never remounts on a company switch (`ActiveCompanyGate` swaps context value, not
+  // `children`) or a month switch (`navigate()` keeps this the same route element) — so without
+  // this, a "Regenerate roster" job started for one company/month keeps polling and rendering its
+  // `JobProgress` banner after the user switches away, mislabeled with the now-current month.
+  useEffect(() => {
+    setJobId(undefined);
+  }, [companyId, month]);
 
   const activeDialog = useAppSelector(selectActiveDialog);
   const focusedSlot = useAppSelector(selectFocusedSlot);
@@ -294,7 +302,7 @@ export function RosterPage(): ReactElement {
       {view === 'availability' ? (
         <>
           <AvailabilityGrid month={month} companyId={companyId} />
-          <AvailabilityCsvPanel month={month} />
+          <WorkforceCsvPanel month={month} />
         </>
       ) : isLoading ? null : !roster ? (
         <>
