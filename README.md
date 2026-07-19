@@ -178,6 +178,31 @@ type ImportResult = {
 > **separate**, unrelated JSON API — a full-month date-keyed JSON replace, not CSV. It never goes
 > through CSV parsing, row atomicity, or the `ImportTask`/queue machinery above.
 
+## Bonus features
+
+Two features beyond the assignment's required scope, each chosen for direct operational value:
+
+### 1. Public read-only schedule link per worker (`/schedule/:token`)
+
+Every worker has a non-guessable share-token URL that shows their own published schedule — no
+worker accounts, no login rollout, works on any phone.
+
+**Rationale:** a roster nobody sees still gets violated. For a 24/7 guard workforce the biggest
+distribution problem is getting each worker their up-to-date shifts without standing up an auth
+system; this replaces the "screenshot of a spreadsheet in WhatsApp" workflow that causes missed
+shifts. The link is read-only, scoped to a single worker, and revocable (rotating the worker's
+`shareToken` invalidates old links) — access control without login.
+
+### 2. Cost dashboard
+
+Aggregates a month's roster into projected labor cost — per company, role, and worker — computed
+as assignments × 8 h × each worker's contracted `hourly_cost_ils`.
+
+**Rationale:** contracts already carry hourly cost, so every generated roster is also a financial
+commitment. The dashboard surfaces that cost *before* the roster is published, letting the planner
+see the money impact of a regeneration or a manual edit immediately. Scheduling errors are
+ultimately cost errors; this closes that loop for the person the system is built for.
+
 ## Limitations
 
 - **Roster generation is exact-only, and scales worse than data management.** The CP-SAT solver
