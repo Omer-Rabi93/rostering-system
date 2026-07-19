@@ -19,10 +19,12 @@ WORKDIR /app
 
 # --- pruner ------------------------------------------------------------
 # apps/web depends on @rostering/shared and @rostering/ui (workspace:*) in package.json, so
-# turbo prune includes both — even though vite.config.ts/tsconfig.json alias both straight to
-# their `src/index.ts` (not `dist/`), so this build never actually needs those packages' own
-# `tsup` builds to run; it only needs their source + their own node_modules (e.g. zod, react)
-# installed, which `pnpm install` below provides via the normal workspace symlinks.
+# turbo prune includes both. vite.config.ts/tsconfig.json alias the bare `@rostering/shared` and
+# `@rostering/ui` specifiers straight to their `src/index.ts` (not `dist/`), but the
+# `@rostering/ui/styles.css` subpath alias points at `packages/ui/dist/styles/index.css` — so
+# packages/ui's own `tsup` build still has to run before `vite build`. See the `build` stage
+# below: it uses `turbo run build`, not a bare `pnpm --filter` script, specifically so turbo.json's
+# `dependsOn: ["^build"]` builds packages/shared and packages/ui first.
 FROM base AS pruner
 COPY . .
 RUN pnpm dlx turbo prune @rostering/web --docker
@@ -39,7 +41,7 @@ COPY --from=pruner /app/out/full/ .
 # apps/web's own `tsc --noEmit` step (its tsconfig.json extends it too).
 COPY tsconfig.base.json ./tsconfig.base.json
 
-RUN pnpm --filter @rostering/web run build
+RUN pnpm exec turbo run build --filter=@rostering/web
 
 # --- runtime (nginx) -----------------------------------------------------
 FROM ${NGINX_IMAGE} AS runtime
