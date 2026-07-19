@@ -129,12 +129,18 @@ async function main(): Promise<void> {
   }
 
   const totalWallClockMs = fireElapsedMs + overallWallClockMs;
-  const budgetMs = Math.max(maxSingleMs * ALLOWED_SLOWDOWN_FACTOR, 2_000);
+  // `fireElapsedMs` (getting all `COMPANY_COUNT` uploads ack'd) is a fixed cost paid once, in full,
+  // BEFORE any company's ImportTask even starts -- it has nothing to do with whether companies then
+  // block each other while processing, so it's credited on top of the budget rather than forced to
+  // compete against `ALLOWED_SLOWDOWN_FACTOR` alongside per-company processing jitter (that
+  // conflation was under-budgeting real runs by ~fireElapsedMs, causing marginal false failures).
+  const budgetMs = fireElapsedMs + Math.max(maxSingleMs * ALLOWED_SLOWDOWN_FACTOR, 2_000);
   if (totalWallClockMs > budgetMs) {
     console.error(
-      `FAIL: overall wall-clock (${fmtMs(totalWallClockMs)}) exceeded ${ALLOWED_SLOWDOWN_FACTOR}x the slowest ` +
-        `single company's own processing time (budget ${fmtMs(budgetMs)}) -- companies appear to be blocking ` +
-        `each other, contrary to the per-company singletonKey design.`,
+      `FAIL: overall wall-clock (${fmtMs(totalWallClockMs)}) exceeded the ack phase (${fmtMs(fireElapsedMs)}) ` +
+        `plus ${ALLOWED_SLOWDOWN_FACTOR}x the slowest single company's own processing time (budget ` +
+        `${fmtMs(budgetMs)}) -- companies appear to be blocking each other, contrary to the per-company ` +
+        `singletonKey design.`,
     );
     process.exitCode = 1;
     return;

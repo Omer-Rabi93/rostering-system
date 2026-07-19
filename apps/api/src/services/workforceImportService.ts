@@ -59,13 +59,19 @@ import {
 import type { PrismaClient } from '../db/client.js';
 import { isUniqueConstraintViolation } from '../db/prismaErrors.js';
 import type { ImportTask } from '../generated/prisma/client.js';
-import { cancelJob, QUEUES } from '../jobs/queue.js';
+import { cancelJob, enqueueWorkforceImport, QUEUES } from '../jobs/queue.js';
 
 type ImportRowError = ImportResult['errors'][number];
 
 /** Re-read the task's own status this often (row count) inside the import loop -- matches the v4
  * design doc's "every 50 rows" figure. */
 const CANCELLATION_CHECK_INTERVAL = 50;
+
+/** Postgres advisory-lock namespace for `beginAndEnqueueImport`'s per-company critical section
+ * (`pg_advisory_xact_lock`'s two-arg form scopes by `(namespace, companyId)`, so different features
+ * that both key on a plain companyId can't collide) -- arbitrary but fits `int4` (max 2147483647),
+ * and there is no other advisory-lock use anywhere else in this codebase to collide with. */
+const WORKFORCE_IMPORT_LOCK_NAMESPACE = 0x574f524b;
 
 /** Bounded retry count for `cancelAndCreateTask`'s P2002 backstop against near-simultaneous
  * uploads for the same company+kind. See that method's catch block for why a single retry isn't
@@ -122,11 +128,90 @@ export class WorkforceImportService {
   /** Cleanup for the rare case `enqueueWorkforceImport` itself returns `null` (a genuine
    * singleton-slot collision even after `beginImportTask`'s own cancel-and-replace) -- marks the
    * orphaned `PENDING` task `FAILED` rather than leaving it dangling as a phantom "non-terminal
-   * task" that would block every future upload for this company. */
+   * task" that would block every future upload for this company.
+   *
+   * Guarded to only touch a task still `PENDING`: the same collision that made our own
+   * `enqueueWorkforceImport` call lose can ALSO mean a different, newer concurrent upload's own
+   * `cancelAndCreateTask` already found and cancelled THIS task (see that method's cancel step) in
+   * the window between our `beginImportTask` and this call -- in that case the task is already
+   * `CANCELLED`, the semantically correct terminal state (we lost to a real newer upload, this
+   * wasn't a processing failure), and an unconditional `update` here would silently stomp it back
+   * to `FAILED`. `updateMany`'s `where` makes the write a no-op instead of throwing when the row no
+   * longer matches -- found via the v4 load-test suite's rapid-fire-reupload script surfacing a
+   * flood of unexplained `FAILED` tasks (`errors: null`, near-zero duration) that were actually
+   * clobbered `CANCELLED` ones. */
   async failImportTask(taskId: number): Promise<void> {
-    await this.prisma.importTask.update({
-      where: { id: taskId },
+    await this.prisma.importTask.updateMany({
+      where: { id: taskId, status: 'PENDING' },
       data: { status: 'FAILED', finishedAt: new Date() },
+    });
+  }
+
+  /**
+   * Route-level entry point for `POST /import/workforce/:month`: atomically cancels any in-flight
+   * WORKFORCE_SYNC task for `companyId`, creates a fresh `PENDING` task, sends its pg-boss job, and
+   * attaches the job id -- the WHOLE sequence under one per-company Postgres advisory lock
+   * (`pg_advisory_xact_lock`, held for the transaction's lifetime), not just the DB write.
+   *
+   * This replaces an earlier design where the route called `beginImportTask` +
+   * `enqueueWorkforceImport` + `attachImportJob` as three separate, unlocked steps, retried as a
+   * unit up to N times on collision. That design is provably insufficient under genuine N-way
+   * concurrent load, not just occasionally flaky: `beginImportTask`'s cancel-and-replace and the
+   * actual `boss.send()` are two independently-raced resources with a real window between them, and
+   * with multiple concurrent requests EACH retrying independently, one request's retry can cancel a
+   * PEER's already-successfully-enqueued task before that peer's job is ever picked up -- repeatable
+   * even after separately fixing `claimTask`/`importCsv`'s resurrection bugs (a worker blindly
+   * flipping an already-CANCELLED task back to PROCESSING). Confirmed via the v4 load-test suite's
+   * rapid-fire-reupload script: a burst of 10 concurrent re-uploads for one company could settle
+   * with the DB-level ImportTask history showing 0 (or, before the resurrection fixes, 2) tasks
+   * ever reaching COMPLETED, when exactly 1 always should. Serializing the WHOLE sequence per
+   * company removes the window entirely: by the time a second request acquires the lock, the first
+   * request's cancel + create + enqueue + attach has either fully committed or fully rolled back, so
+   * there is nothing left for it to race against.
+   *
+   * Different companies never contend for the same lock key (`pg_advisory_xact_lock`'s two-arg form
+   * scopes by `(namespace, companyId)`), so this does NOT reintroduce cross-company blocking -- see
+   * the load-test suite's crossCompanyNonBlocking script, which specifically proves that.
+   *
+   * Returns `null` only if `enqueueWorkforceImport` still refuses even under the lock (pg-boss left
+   * a job `active` that `cancelJob` couldn't fully stop, e.g. a worker had already dequeued and
+   * started running it a moment before this call acquired the lock) -- the route should surface
+   * this as a 409: the company genuinely has an unstoppable in-flight import right now.
+   */
+  async beginAndEnqueueImport(
+    companyId: number,
+    month: Month,
+    totalRows: number,
+    csvText: string,
+  ): Promise<{ task: ImportTask; jobId: string } | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${WORKFORCE_IMPORT_LOCK_NAMESPACE}, ${companyId})`;
+
+      const existingTask = await tx.importTask.findFirst({
+        where: { companyId, kind: WORKFORCE_SYNC_KIND, status: { in: ['PENDING', 'PROCESSING'] } },
+      });
+      if (existingTask) {
+        await tx.importTask.update({
+          where: { id: existingTask.id },
+          data: { status: 'CANCELLED', finishedAt: new Date() },
+        });
+        if (existingTask.pgBossJobId) {
+          await cancelJob(this.boss, QUEUES.WORKFORCE_IMPORT, existingTask.pgBossJobId).catch(() => undefined);
+        }
+      }
+
+      const task = await tx.importTask.create({
+        data: { companyId, kind: WORKFORCE_SYNC_KIND, status: 'PENDING', month, totalRows, pgBossJobId: null },
+      });
+
+      const jobId = await enqueueWorkforceImport(this.boss, companyId, csvText, month);
+      if (!jobId) {
+        await tx.importTask.update({ where: { id: task.id }, data: { status: 'FAILED', finishedAt: new Date() } });
+        return null;
+      }
+
+      const attached = await tx.importTask.update({ where: { id: task.id }, data: { pgBossJobId: jobId } });
+      return { task: attached, jobId };
     });
   }
 
@@ -150,6 +235,12 @@ export class WorkforceImportService {
     const { start, end } = monthDateRange(month);
 
     const task = await this.claimTask(companyId, month, rawRows.length, pgBossJobId);
+    if (!task) {
+      // A newer upload's cancel-and-replace already marked this `pgBossJobId`'s task CANCELLED
+      // before the worker got here (see `claimTask`'s doc comment) -- nothing to process, and the
+      // row is already exactly where that newer upload left it.
+      return { totalRows: rawRows.length, inserted: 0, updated: 0, failed: 0, errors: [] };
+    }
 
     let inserted = 0;
     let updated = 0;
@@ -188,16 +279,15 @@ export class WorkforceImportService {
     const result: ImportResult = { totalRows: rawRows.length, inserted, updated, failed, errors };
 
     if (!cancelled) {
-      // `lastImportTaskId` is stamped HERE, in bulk, only once the task is confirmed COMPLETED --
-      // see the file-level doc comment for why per-row stamping is unsafe.
-      if (touchedWorkerIds.length > 0) {
-        await this.prisma.worker.updateMany({
-          where: { id: { in: touchedWorkerIds } },
-          data: { lastImportTaskId: task.id },
-        });
-      }
-      await this.prisma.importTask.update({
-        where: { id: task.id },
+      // One last check, unconditionally (not gated on `CANCELLATION_CHECK_INTERVAL`), right before
+      // the finalizing write: the periodic mid-loop check only samples every `CANCELLATION_CHECK_
+      // INTERVAL` (50) rows, so a file with <=50 rows never hits it even once -- without this, a
+      // newer upload's cancel-and-replace that landed AFTER the loop's last periodic check (or, for
+      // a small file, at any point during the whole loop) would go unnoticed, and this stale run
+      // would stomp the already-CANCELLED row back to COMPLETED. `updateMany`'s `where` guard makes
+      // the write a no-op instead of unconditionally overwriting if we lost that race.
+      const finalize = await this.prisma.importTask.updateMany({
+        where: { id: task.id, status: 'PROCESSING' },
         data: {
           status: 'COMPLETED',
           processedRows: inserted + updated + failed,
@@ -208,11 +298,21 @@ export class WorkforceImportService {
           finishedAt: new Date(),
         },
       });
+      // `lastImportTaskId` is stamped HERE, in bulk, only once the task is confirmed COMPLETED --
+      // see the file-level doc comment for why per-row stamping is unsafe. Skipped entirely if the
+      // `updateMany` above was a no-op (we lost the race above) -- same reasoning as the `cancelled`
+      // branch below: never stamp workers for a run that didn't actually win.
+      if (finalize.count > 0 && touchedWorkerIds.length > 0) {
+        await this.prisma.worker.updateMany({
+          where: { id: { in: touchedWorkerIds } },
+          data: { lastImportTaskId: task.id },
+        });
+      }
     }
-    // If `cancelled`, the task was already marked non-PROCESSING (CANCELLED) by whichever newer
-    // upload superseded us -- leave it exactly as that upload's own `beginImportTask` left it,
-    // never overwrite it back to COMPLETED, and never stamp lastImportTaskId for the rows we
-    // touched before noticing the cancellation.
+    // If `cancelled` (or the finalizing `updateMany` above found the row already non-PROCESSING),
+    // the task was already marked CANCELLED by whichever newer upload superseded us -- leave it
+    // exactly as that upload's own `beginImportTask` left it, never overwrite it back to COMPLETED,
+    // and never stamp lastImportTaskId for the rows we touched before noticing the cancellation.
 
     return result;
   }
@@ -307,22 +407,35 @@ export class WorkforceImportService {
   /** `importCsv`'s task-acquisition step: adopt the task `beginImportTask` created for this exact
    * `pgBossJobId` (the real route -> queue -> job-handler pipeline), or self-bootstrap a fresh one
    * via the same cancel-and-replace helper (direct/test callers, or the defensive fallback if no
-   * matching task is found -- e.g. this method somehow ran outside the normal pipeline). */
+   * matching task is found -- e.g. this method somehow ran outside the normal pipeline).
+   *
+   * Returns `null` if the task this job id was minted for is no longer `PENDING` -- a newer
+   * upload's `cancelAndCreateTask` can mark it `CANCELLED` (and best-effort `cancelJob` the pg-boss
+   * row) in the window between the route sending this job and the worker actually dequeuing it;
+   * `cancelJob`'s cancellation is itself best-effort against an already-`active` pg-boss row (see
+   * its own doc comment), so this handler can still get invoked for a task that's already been
+   * superseded. The old unconditional `update` here would silently resurrect that CANCELLED row
+   * back to PROCESSING and let a stale run complete it -- found via the v4 load-test suite's
+   * rapid-fire-reupload script producing 0 or 2 COMPLETED tasks (should always be exactly 1) out of
+   * a single rapid burst. `updateMany`'s `where` guard makes the write a no-op instead of
+   * unconditionally overwriting if we lost that race. */
   private async claimTask(
     companyId: number,
     month: Month,
     totalRows: number,
     pgBossJobId: string | undefined,
-  ): Promise<ImportTask> {
+  ): Promise<ImportTask | null> {
     if (pgBossJobId) {
       const existing = await this.prisma.importTask.findFirst({
         where: { companyId, kind: WORKFORCE_SYNC_KIND, pgBossJobId },
       });
       if (existing) {
-        return this.prisma.importTask.update({
-          where: { id: existing.id },
+        const claimed = await this.prisma.importTask.updateMany({
+          where: { id: existing.id, status: 'PENDING' },
           data: { status: 'PROCESSING', startedAt: new Date(), totalRows },
         });
+        if (claimed.count === 0) return null;
+        return this.prisma.importTask.findUniqueOrThrow({ where: { id: existing.id } });
       }
     }
     return this.cancelAndCreateTask(companyId, month, totalRows, pgBossJobId, 'PROCESSING');
