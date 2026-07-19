@@ -1,24 +1,17 @@
-import { computeAvailableShifts } from '@rostering/shared';
-import type { ShiftType } from '@rostering/shared';
+import { computeAvailableShifts, shiftSubsetFromString } from '@rostering/shared';
 import { validateEdit } from '../engine/validator.js';
 import type { AssignedShift, AvailabilityByDate, Edit, MonthContext, Verdict } from '../engine/types.js';
 import type { PrismaClient } from '../db/client.js';
 import type { Contract as ContractRecord, Prisma, Worker as WorkerRecord } from '../generated/prisma/client.js';
 import { ConflictWarningError, NotFoundError, UnprocessableError } from '../errors.js';
-import { formatDate, recomputeRosterAlerts, type AlertDto } from './alertRecompute.js';
+import { formatDate } from '../engine/calendar.js';
+import { recomputeRosterAlerts, type AlertDto } from './alertRecompute.js';
 
 export interface ShiftWorkerResult {
   readonly shiftId: number;
   readonly workerId: number;
   readonly role: string;
   readonly alerts: readonly AlertDto[];
-}
-
-// `WorkerAvailability.excludedShifts` stores the canonical subset as a plain string (e.g. "A",
-// "ABC") — every stored row was Zod-validated on write (`shiftSubsetSchema`) to only ever contain
-// A/B/C in canonical order, so splitting into characters is exact, not a parse that can fail here.
-function parseShiftSubset(excludedShifts: string): readonly ShiftType[] {
-  return excludedShifts.split('') as ShiftType[];
 }
 
 /**
@@ -44,7 +37,7 @@ async function loadAvailability(
     where: { workerId, date: { in: dates.map((d) => new Date(`${d}T00:00:00.000Z`)) } },
   });
   return new Map(
-    rows.map((row) => [formatDate(row.date), computeAvailableShifts(parseShiftSubset(row.excludedShifts))]),
+    rows.map((row) => [formatDate(row.date), computeAvailableShifts(shiftSubsetFromString(row.excludedShifts))]),
   );
 }
 

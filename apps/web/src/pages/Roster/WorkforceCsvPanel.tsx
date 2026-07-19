@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { ConfirmDialog, JobProgress, Modal, Table, type Column } from '@rostering/ui';
-import type { ImportResult, Month } from '@rostering/shared';
+import { importResultSchema, type ImportResult, type Month } from '@rostering/shared';
 
 import { availabilityTag } from '../../api/availability.api.js';
 import { baseApi } from '../../api/baseApi.js';
@@ -139,10 +139,14 @@ export function WorkforceCsvPanel({ month }: WorkforceCsvPanelProps): ReactEleme
     setJobId(undefined);
   }
 
-  const jobResult: ImportResult | null =
-    jobPoll.data?.state === 'completed' && jobPoll.data.name === 'workforce-import' && jobPoll.data.result
-      ? (jobPoll.data.result as ImportResult)
+  // Parsed, not asserted: the job's `result` payload crosses the wire untyped, so claim its shape
+  // through the same shared schema the API's own job handler serializes against. A mismatched
+  // payload renders as "no result" instead of a runtime surprise deeper in the report table.
+  const parsedResult =
+    jobPoll.data?.state === 'completed' && jobPoll.data.name === 'workforce-import'
+      ? importResultSchema.safeParse(jobPoll.data.result)
       : null;
+  const jobResult: ImportResult | null = parsedResult?.success ? parsedResult.data : null;
 
   return (
     <div className="card">

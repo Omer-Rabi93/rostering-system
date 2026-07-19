@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { PgBoss } from 'pg-boss';
 import { isValidIsraeliId, type Month } from '@rostering/shared';
 
-import { serializeWorkforceCsv, workforceCsvHeader, type WorkforceCsvExportRow } from '../../src/csv/workforce.js';
+import { serializeWorkforceCsv, workforceCsvHeader, type WorkforceCsvRow } from '../../src/csv/workforce.js';
 import { dayColumns } from '../../src/csv/availability.js';
 import { createBoss } from '../../src/jobs/queue.js';
 import { WorkforceImportService } from '../../src/services/workforceImportService.js';
@@ -19,7 +19,7 @@ function validNationalId(prefix: number): string {
 
 const FEB_2027 = '2027-02' as Month; // 28 days, non-leap
 
-function record(overrides: Partial<WorkforceCsvExportRow['record']> = {}, prefix = 620) {
+function record(overrides: Partial<WorkforceCsvRow['record']> = {}, prefix = 620) {
   return {
     nationalId: validNationalId(prefix),
     name: `Worker ${prefix}`,
@@ -32,7 +32,7 @@ function record(overrides: Partial<WorkforceCsvExportRow['record']> = {}, prefix
   };
 }
 
-function csvFor(rows: WorkforceCsvExportRow[]): string {
+function csvFor(rows: WorkforceCsvRow[]): string {
   return serializeWorkforceCsv(rows, FEB_2027);
 }
 

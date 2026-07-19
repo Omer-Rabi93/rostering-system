@@ -1,12 +1,10 @@
+import { companyIdQuerySchema } from './companyIdSchema.js';
 import { Router } from 'express';
-import { z } from 'zod';
 import { staffingRequirementsInputSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { StaffingRequirementService } from '../services/staffingRequirementService.js';
-
-const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() }).strict();
 
 /** Thin HTTP layer for `/api/staffing-requirements`. Every route is scoped to one company's own
  * requirements matrix via a required `companyId` query param -- each company has its own

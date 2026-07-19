@@ -39,7 +39,7 @@ import { monthDays } from '../src/engine/calendar.js';
 import { buildProblem, type EngineAvailabilityRow } from '../src/engine/problem.js';
 import { runSolver, type RunSolverOptions } from '../src/engine/runSolver.js';
 import { computeNodeSolverTimeoutMs } from '../src/engine/timeBudget.js';
-import { serializeWorkforceCsv, type WorkforceCsvExportRow } from '../src/csv/index.js';
+import { serializeWorkforceCsv, type WorkforceCsvRow } from '../src/csv/index.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(currentDir, '../../..');
@@ -154,8 +154,8 @@ let globalWorkerCounter = 0;
  * no availability data of its own; `seedAvailability` writes it separately afterward (direct
  * Prisma, its own timed stage) so the import-stage and availability-seed-stage numbers stay
  * independently measurable, matching this benchmark's pre-merge shape. */
-function buildSyntheticWorkerRecords(count: number): WorkforceCsvExportRow[] {
-  const records: WorkforceCsvExportRow[] = [];
+function buildSyntheticWorkerRecords(count: number): WorkforceCsvRow[] {
+  const records: WorkforceCsvRow[] = [];
   for (let i = 0; i < count; i++) {
     const index = globalWorkerCounter++;
     const nationalId = checksumValidNationalId(NATIONAL_ID_BASE_PREFIX + index);

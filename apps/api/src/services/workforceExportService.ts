@@ -7,22 +7,11 @@
 // a natural side effect of requiring `companyId`) and `AvailabilityService.exportCsv`
 // (availability-only) -- see the Part G design doc.
 
-import type { Month } from '@rostering/shared';
+import { shiftSubsetFromString, type Month } from '@rostering/shared';
 
-import { monthDays } from '../engine/calendar.js';
+import { formatDate, monthDateRange } from '../engine/calendar.js';
 import type { PrismaClient } from '../db/client.js';
-import { serializeWorkforceCsv, type WorkforceCsvExportRow } from '../csv/index.js';
-import { formatDate } from './alertRecompute.js';
-
-function monthDateRange(month: string): { readonly start: Date; readonly end: Date } {
-  const days = monthDays(month);
-  const [first] = days;
-  const last = days[days.length - 1];
-  if (first === undefined || last === undefined) {
-    throw new Error(`Month ${month} produced no calendar days`);
-  }
-  return { start: new Date(`${first}T00:00:00.000Z`), end: new Date(`${last}T00:00:00.000Z`) };
-}
+import { serializeWorkforceCsv, type WorkforceCsvRow } from '../csv/index.js';
 
 export class WorkforceExportService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -41,23 +30,29 @@ export class WorkforceExportService {
 
     // A worker with no contract yet has no row to export -- every documented column beyond the
     // worker identity fields comes from the contract, so there is nothing meaningful to write.
-    const rows: WorkforceCsvExportRow[] = workers
-      .filter((w) => w.contract !== null)
-      .map((w) => ({
-        record: {
-          nationalId: w.nationalId,
-          name: w.name,
-          role: w.role,
-          status: w.status,
-          hourlyCostIls: Number(w.contract?.hourlyCostIls),
-          minMonthlyHours: w.contract?.minMonthlyHours ?? 0,
-          maxMonthlyHours: w.contract?.maxMonthlyHours ?? 0,
+    const rows: WorkforceCsvRow[] = workers.flatMap((w) => {
+      const { contract } = w;
+      if (contract === null) {
+        return [];
+      }
+      return [
+        {
+          record: {
+            nationalId: w.nationalId,
+            name: w.name,
+            role: w.role,
+            status: w.status,
+            hourlyCostIls: Number(contract.hourlyCostIls),
+            minMonthlyHours: contract.minMonthlyHours,
+            maxMonthlyHours: contract.maxMonthlyHours,
+          },
+          entries: w.availability.map((row) => ({
+            date: formatDate(row.date),
+            shifts: shiftSubsetFromString(row.excludedShifts),
+          })),
         },
-        entries: w.availability.map((row) => ({
-          date: formatDate(row.date),
-          shifts: row.excludedShifts.split('') as WorkforceCsvExportRow['entries'][number]['shifts'],
-        })),
-      }));
+      ];
+    });
 
     return serializeWorkforceCsv(rows, month);
   }

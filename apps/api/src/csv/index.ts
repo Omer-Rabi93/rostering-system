@@ -18,5 +18,4 @@ export {
   serializeWorkforceCsv,
   type WorkforceCsvRawRow,
   type WorkforceCsvRow,
-  type WorkforceCsvExportRow,
 } from './workforce.js';

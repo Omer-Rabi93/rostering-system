@@ -18,6 +18,23 @@ export function weekdayIndex(isoDate: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
   return date.getUTCDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 }
 
+/** A DB `Date` (UTC-midnight `@db.Date` column) as its `YYYY-MM-DD` calendar string. */
+export function formatDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/** First/last calendar dates of a `YYYY-MM` month as UTC-midnight `Date`s — the inclusive bounds
+ * for a `WorkerAvailability` month-window query (`date: { gte: start, lte: end }`). */
+export function monthDateRange(month: string): { readonly start: Date; readonly end: Date } {
+  const days = monthDays(month);
+  const [first] = days;
+  const last = days[days.length - 1];
+  if (first === undefined || last === undefined) {
+    throw new Error(`Month ${month} produced no calendar days`);
+  }
+  return { start: new Date(`${first}T00:00:00.000Z`), end: new Date(`${last}T00:00:00.000Z`) };
+}
+
 /** All calendar dates (`YYYY-MM-DD`) in a `YYYY-MM` month, in order, leap years included. */
 export function monthDays(month: string): string[] {
   const [yearStr, monthStr] = month.split('-');

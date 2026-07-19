@@ -26,6 +26,18 @@ export function computeAvailableShifts(excludedShifts: readonly ShiftType[] | un
   return SHIFT_TYPES.filter((shift) => !excludedShifts.includes(shift));
 }
 
+/**
+ * A stored shift-subset string (`WorkerAvailability.excludedShifts`, e.g. `"AC"`) as a typed
+ * shift array. Every stored value was Zod-validated on write (`shiftSubsetSchema`: canonical
+ * `A<B<C` order, no duplicates), so the type-guard filter is exact for stored data — it exists to
+ * keep the conversion cast-free, not to silently repair bad input. Single shared implementation
+ * for every DB-string-to-array call site (availability grid DTOs, validator context feed,
+ * workforce CSV export).
+ */
+export function shiftSubsetFromString(value: string): ShiftType[] {
+  return value.split('').filter((c): c is ShiftType => (SHIFT_TYPES as readonly string[]).includes(c));
+}
+
 /** The three worker roles. */
 export const ROLES = ['GENERAL_GUARD', 'SUPERVISOR', 'SCREENER'] as const;
 export type Role = (typeof ROLES)[number];

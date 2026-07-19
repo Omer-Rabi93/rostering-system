@@ -11,6 +11,7 @@ export {
   SHIFT_TYPES,
   type ShiftType,
   computeAvailableShifts,
+  shiftSubsetFromString,
   ROLES,
   type Role,
   WORKER_STATUSES,

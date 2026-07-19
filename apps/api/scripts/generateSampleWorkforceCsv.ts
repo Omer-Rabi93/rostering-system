@@ -8,11 +8,11 @@
 //   npx tsx scripts/generateSampleWorkforceCsv.ts > ../../samples/workforce-sample-<month>.csv
 import type { ShiftType } from '@rostering/shared';
 import { SEED_WORKERS, buildSeedAvailabilityRows, nextCalendarMonth } from '../src/db/seedData.js';
-import { serializeWorkforceCsv, type WorkforceCsvExportRow } from '../src/csv/workforce.js';
+import { serializeWorkforceCsv, type WorkforceCsvRow } from '../src/csv/workforce.js';
 
 const month = nextCalendarMonth();
 
-const records: WorkforceCsvExportRow[] = SEED_WORKERS.map((w) => ({
+const records: WorkforceCsvRow[] = SEED_WORKERS.map((w) => ({
   record: {
     nationalId: w.nationalId,
     name: w.name,

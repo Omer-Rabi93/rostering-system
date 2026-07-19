@@ -1,6 +1,7 @@
 import type { PrismaClient } from '../db/client.js';
 import { NotFoundError, PublishConflictError } from '../errors.js';
-import { formatDate, toAlertDto, type AlertDto } from './alertRecompute.js';
+import { formatDate } from '../engine/calendar.js';
+import { toAlertDto, type AlertDto } from './alertRecompute.js';
 
 export interface ShiftAssignmentDto {
   readonly workerId: number;

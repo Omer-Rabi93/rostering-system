@@ -1,3 +1,4 @@
+import { companyIdQuerySchema } from './companyIdSchema.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import { monthSchema } from '@rostering/shared';
@@ -18,8 +19,6 @@ const generateRosterBodySchema = z
     force: z.boolean().optional(),
   })
   .strict();
-
-const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() }).strict();
 
 /** Thin HTTP layer for `/api/rosters`. */
 export function createRostersRouter(prisma: PrismaClient, boss: PgBoss): Router {

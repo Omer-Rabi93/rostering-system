@@ -1,3 +1,4 @@
+import { formatDate } from '../engine/calendar.js';
 import { ROLES } from '@rostering/shared';
 import type { Role, ShiftType } from '@rostering/shared';
 
@@ -9,10 +10,6 @@ export interface AlertDto {
   readonly detail: unknown;
   readonly acknowledged: boolean;
   readonly acknowledgedAt: string | null;
-}
-
-export function formatDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 export function toAlertDto(alert: {

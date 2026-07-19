@@ -85,15 +85,24 @@ export function parseWorkforceCsv(csvText: string, month: Month): WorkforceCsvRa
         `Row ${index + 1} has ${row.length} fields, expected ${expectedHeader.length}`,
       );
     }
-    const worker = {} as Record<string, string>;
-    CSV_COLUMNS.forEach((col, i) => {
-      worker[col] = unguardCell(row[i] ?? '');
-    });
+    // Explicit literal, keys in `CSV_COLUMNS` order -- the header check above already proved the
+    // row's field order matches `[...CSV_COLUMNS, ...dayCols]`, so positional access is exact and
+    // no `as` assertion is needed to claim the record's shape.
+    const [nationalId, name, role, status, hourlyCostIls, minMonthlyHours, maxMonthlyHours] = row;
+    const worker: CsvRawRow = {
+      national_id: unguardCell(nationalId ?? ''),
+      name: unguardCell(name ?? ''),
+      role: unguardCell(role ?? ''),
+      status: unguardCell(status ?? ''),
+      hourly_cost_ils: unguardCell(hourlyCostIls ?? ''),
+      min_monthly_hours: unguardCell(minMonthlyHours ?? ''),
+      max_monthly_hours: unguardCell(maxMonthlyHours ?? ''),
+    };
     const cells: Record<string, string> = {};
     dayCols.forEach((col, i) => {
       cells[col] = unguardCell(row[CSV_COLUMNS.length + i] ?? '');
     });
-    return { rowNumber: index + 1, worker: worker as CsvRawRow, cells };
+    return { rowNumber: index + 1, worker, cells };
   });
 }
 
@@ -104,7 +113,11 @@ export function parseWorkforceCsv(csvText: string, month: Month): WorkforceCsvRa
  * looking at that row's day cells, and a row that passes worker validation but has one bad `dNN`
  * cell throws on the FIRST illegal cell (the caller, `WorkforceImportService`, treats a row with
  * ANY bad cell -- worker field or day cell -- as one failed row: the worker upsert and the
- * availability replace are one atomic unit per row, not two independent outcomes). */
+ * availability replace are one atomic unit per row, not two independent outcomes).
+ *
+ * The same shape serializes back out (`serializeWorkforceCsv`): `entries` need only cover dates
+ * the worker has an exclusion for; every other date in the month is written as an empty cell (no
+ * exclusions, fully available). */
 export function toWorkforceRow(raw: WorkforceCsvRawRow, month: Month): WorkforceCsvRow {
   const record = toWorkerRecord(raw.worker);
   const entries: AvailabilityCsvEntry[] = [];
@@ -123,16 +136,8 @@ export interface WorkforceCsvRow {
   readonly entries: readonly AvailabilityCsvEntry[];
 }
 
-/** One worker's full combined row, ready to serialize -- `entries` need only cover the dates the
- * worker has an exclusion for; every other date in the month is written as an empty cell (no
- * exclusions, fully available). */
-export interface WorkforceCsvExportRow {
-  readonly record: CsvWorkerRecord;
-  readonly entries: readonly AvailabilityCsvEntry[];
-}
-
 /** Serializes each row's worker fields + that month's exclusion entries back to one combined CSV. */
-export function serializeWorkforceCsv(rows: readonly WorkforceCsvExportRow[], month: Month): string {
+export function serializeWorkforceCsv(rows: readonly WorkforceCsvRow[], month: Month): string {
   const header = workforceCsvHeader(month);
   const dayCols = dayColumns(month);
   const monthDates = dayCols.map((col) => dateForDayColumn(month, col));

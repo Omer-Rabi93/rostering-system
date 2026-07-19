@@ -21,3 +21,6 @@ coverage/
 .venv/
 __pycache__/
 *.pyc
+
+# Playwright HTML report (generated per run)
+e2e/report/

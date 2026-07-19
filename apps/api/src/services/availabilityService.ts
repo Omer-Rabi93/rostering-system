@@ -9,12 +9,12 @@
 // v4: `getMonth`/`replaceMonth` are company-scoped end to end -- see the v4 design doc, Part A
 // ("Same-company nationalId matching, cross-company conflict as an error").
 
-import type { Month, MonthAvailability } from '@rostering/shared';
+import { shiftSubsetFromString, type Month, type MonthAvailability } from '@rostering/shared';
 import type { ShiftType } from '@rostering/shared';
 
 import { monthDays } from '../engine/calendar.js';
 import { BadRequestError, type FieldError } from '../errors.js';
-import { formatDate } from './alertRecompute.js';
+import { formatDate } from '../engine/calendar.js';
 import type { PrismaClient } from '../db/client.js';
 
 /**
@@ -47,9 +47,6 @@ function monthDateRange(month: string): { readonly start: Date; readonly end: Da
 function shiftsStringFromArray(shifts: readonly ShiftType[]): string {
   return shifts.join('');
 }
-function shiftsArrayFromString(shifts: string): ShiftType[] {
-  return shifts.split('') as ShiftType[];
-}
 
 export class AvailabilityService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -80,7 +77,7 @@ export class AvailabilityService {
         byDate = new Map();
         byWorker.set(row.workerId, byDate);
       }
-      byDate.set(formatDate(row.date), shiftsArrayFromString(row.excludedShifts));
+      byDate.set(formatDate(row.date), shiftSubsetFromString(row.excludedShifts));
     }
 
     const result: Record<string, Record<string, ShiftType[]>> = {};

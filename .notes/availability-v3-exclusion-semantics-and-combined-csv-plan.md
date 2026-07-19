@@ -174,6 +174,13 @@ implementation detail. Two ways to handle it if that matters:
 **Flag if the partial-update workflow actually matters** — proceeding with full replacement
 otherwise.
 
+> **DECISION (2026-07-19, recorded post-implementation):** full replacement shipped — the
+> standalone worker-CSV and availability-CSV upload/export routes were removed and
+> `POST/GET /api/{import,export}/workforce/:month` is the only CSV path. The month-scoped
+> availability-only refresh workflow is served by the grid's `PUT /api/availability/:month`
+> (unchanged, per this plan); re-submitting the full combined file is the accepted cost for one
+> upload surface. Revisit only if a real partial-refresh complaint appears.
+
 ### Requirements
 
 - `apps/api/src/csv/columns.ts`/`availability.ts`: merge into one combined-CSV parser/serializer

@@ -1,9 +1,9 @@
 import express, { Router } from 'express';
-import { z } from 'zod';
 import { monthAvailabilitySchema, monthSchema } from '@rostering/shared';
 
 import type { PrismaClient } from '../db/client.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { companyIdQuerySchema } from './companyIdSchema.js';
 import { AvailabilityService } from '../services/availabilityService.js';
 
 /**
@@ -11,10 +11,8 @@ import { AvailabilityService } from '../services/availabilityService.js';
  * nationalId matching, cross-company conflict as an error" section. `PUT`'s own JSON body is
  * already fully occupied by the `MonthAvailability` payload itself (a date-keyed record,
  * `monthAvailabilitySchema`), so `companyId` travels as a query param here -- the same convention
- * `routes/rosters.ts`'s `companyIdQuerySchema` already uses for its own company-scoped `GET`
- * routes.
+ * every company-scoped route shares (`routes/companyIdSchema.ts`).
  */
-const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() });
 
 /**
  * Body-size decision (Availability v2 plan; raised for the 1,000-10,000-worker-per-company scale

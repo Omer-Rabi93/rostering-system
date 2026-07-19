@@ -47,7 +47,7 @@ import { contractSchema, workerSchema, type ImportResult, type Month } from '@ro
 import type { PgBoss } from 'pg-boss';
 import { ZodError } from 'zod';
 
-import { monthDays } from '../engine/calendar.js';
+import { monthDateRange } from '../engine/calendar.js';
 import {
   AvailabilityCsvCellError,
   CsvFieldError,
@@ -78,16 +78,6 @@ const CANCELLATION_CHECK_INTERVAL = 50;
 const MAX_CANCEL_AND_CREATE_ATTEMPTS = 20;
 
 const WORKFORCE_SYNC_KIND = 'WORKFORCE_SYNC' as const;
-
-function monthDateRange(month: string): { readonly start: Date; readonly end: Date } {
-  const days = monthDays(month);
-  const [first] = days;
-  const last = days[days.length - 1];
-  if (first === undefined || last === undefined) {
-    throw new Error(`Month ${month} produced no calendar days`);
-  }
-  return { start: new Date(`${first}T00:00:00.000Z`), end: new Date(`${last}T00:00:00.000Z`) };
-}
 
 function toRowError(row: number, nationalId: string | undefined, err: unknown): ImportRowError {
   if (err instanceof CsvFieldError || err instanceof AvailabilityCsvCellError) {

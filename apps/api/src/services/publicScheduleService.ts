@@ -1,6 +1,6 @@
 import type { PrismaClient } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
-import { formatDate } from './alertRecompute.js';
+import { formatDate } from '../engine/calendar.js';
 
 export interface PublicScheduleShiftDto {
   readonly date: string;

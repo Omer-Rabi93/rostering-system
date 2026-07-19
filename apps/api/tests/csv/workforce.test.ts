@@ -10,7 +10,7 @@ import {
   serializeWorkforceCsv,
   toWorkforceRow,
   workforceCsvHeader,
-  type WorkforceCsvExportRow,
+  type WorkforceCsvRow,
 } from '../../src/csv/workforce.js';
 
 const FEB_2027 = '2027-02' as Month; // 28 days, non-leap
@@ -163,7 +163,7 @@ describe('serializeWorkforceCsv / round-trip property', () => {
   });
 
   it('round-trips a worker with sparse availability through serialize -> parse -> toWorkforceRow', () => {
-    const rows: WorkforceCsvExportRow[] = [
+    const rows: WorkforceCsvRow[] = [
       {
         record: {
           nationalId: '123456782',
@@ -190,7 +190,7 @@ describe('serializeWorkforceCsv / round-trip property', () => {
   });
 
   it('round-trips a worker with no availability entries as all-empty dNN cells', () => {
-    const rows: WorkforceCsvExportRow[] = [
+    const rows: WorkforceCsvRow[] = [
       {
         record: {
           nationalId: '000000019',
@@ -211,7 +211,7 @@ describe('serializeWorkforceCsv / round-trip property', () => {
   });
 
   it('round-trips a name that looks like a spreadsheet formula (formula-injection guard, uniform across columns)', () => {
-    const rows: WorkforceCsvExportRow[] = [
+    const rows: WorkforceCsvRow[] = [
       {
         record: {
           nationalId: '123456782',
@@ -235,7 +235,7 @@ describe('serializeWorkforceCsv / round-trip property', () => {
   });
 
   it('round-trips a batch of multiple distinct workers together', () => {
-    const rows: WorkforceCsvExportRow[] = [
+    const rows: WorkforceCsvRow[] = [
       {
         record: {
           nationalId: '123456782',

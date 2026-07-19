@@ -1,5 +1,5 @@
+import { companyIdFormFieldSchema, companyIdQuerySchema } from './companyIdSchema.js';
 import { Router } from 'express';
-import { z } from 'zod';
 import { monthSchema } from '@rostering/shared';
 import type { PgBoss } from 'pg-boss';
 
@@ -34,8 +34,6 @@ const MAX_ENQUEUE_ATTEMPTS = 5;
  * company"), same as the pre-merge worker-CSV convention. Travels as a multipart form field
  * alongside `file` (multer parses non-file fields into `req.body`).
  */
-const companyIdFormFieldSchema = z.object({ companyId: z.coerce.number().int().positive() });
-const companyIdQuerySchema = z.object({ companyId: z.coerce.number().int().positive() });
 
 /** Thin HTTP layer for `/api/import/workforce/:month` and `/api/export/workforce/:month`.
  * Supersedes `importExport.ts` (worker-only) and `availability.ts`'s CSV-import/export routes

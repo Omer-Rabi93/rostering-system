@@ -38,11 +38,11 @@ export function createApp(prisma: PrismaClient, boss: PgBoss): Express {
 
   // Mounted under `/api` (never at root, so nginx's `location /api` proxying/security headers
   // cover it) and BEFORE the app-wide 100kb JSON body limit below: its own `PUT
-  // /api/availability/:month` route applies a wider, route-scoped 2mb `express.json()` limit
-  // first (Availability v2 plan's body-size decision — a dense month payload can exceed 100kb
-  // well within this app's stated 50-150-worker org size). A request that does not match one of
-  // this router's own routes (e.g. `/api/companies`) falls through unchanged to the app-wide
-  // parser and the routers mounted below, so every other route keeps the 100kb cap untouched.
+  // /api/availability/:month` route applies a wider, route-scoped 12mb `express.json()` limit
+  // first (Availability v2 plan's body-size decision, later raised from 2mb for the supported
+  // 1,000–10,000-worker-per-company scale — see CLAUDE.md's "Scale posture"). A request that does
+  // not match one of this router's own routes (e.g. `/api/companies`) falls through unchanged to
+  // the app-wide parser and the routers mounted below, so every other route keeps the 100kb cap.
   app.use('/api', createAvailabilityRouter(prisma));
 
   app.use(express.json({ limit: '100kb' }));
