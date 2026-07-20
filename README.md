@@ -32,7 +32,7 @@ scope.
 
 ```bash
 cp .env.example .env
-docker compose up --build --scale api=2
+docker compose up --build --scale api=2 --scale worker=2
 ```
 
 Serves the whole app (SPA + API) at **http://localhost** (see [Entering the frontend](#entering-the-frontend)
@@ -97,9 +97,7 @@ pnpm --filter @rostering/api exec tsx src/worker.ts  # separate terminal — see
 - **Docker (production-shaped stack):** **http://localhost** — nginx serves the built SPA and
   proxies `/api/*` to the `api` replicas on the same origin (port 80 is the only port published by
   the whole stack).
-- **Local dev (`pnpm dev`):** **http://localhost:5173** — Vite's dev server, which proxies `/api` to
-  `http://localhost:3000` (the API's `pnpm --filter @rostering/api dev` process) — see
-  `apps/web/vite.config.ts`.
+
 
 The app gates every screen behind picking/creating a company first (there's no login — see
 [Out of scope](#out-of-scope)). The public, worker-facing read-only schedule lives at
